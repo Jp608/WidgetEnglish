@@ -16,3 +16,4 @@ IA
 Gemini API o OpenAI API
 Pronunciación
 TextToSpeech
+2026
