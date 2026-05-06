@@ -16,4 +16,4 @@ IA
 Gemini API o OpenAI API
 Pronunciación
 TextToSpeech
-2026
+2026 quinto semestre
