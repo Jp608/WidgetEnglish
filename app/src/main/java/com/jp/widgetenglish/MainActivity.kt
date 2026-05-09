@@ -12,19 +12,60 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.jp.widgetenglish.ui.theme.WidgetEnglishTheme
+import android.util.Log
+import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import com.jp.widgetenglish.data.local.database.DatabaseProvider
+import com.jp.widgetenglish.data.local.database.DatabaseSeeder
+import kotlinx.coroutines.launch
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
+import com.jp.widgetenglish.features.home.presentation.screens.HomeScreen
+import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
+import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModelFactory
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        /*lifecycleScope.launch {
+            val database = DatabaseProvider.getDatabase(applicationContext)
+
+            DatabaseSeeder.seed(database)
+
+            val usuario = database.usuarioDao()
+                .obtenerUsuarioPorId("usuario_prueba")
+
+            val palabra = database.palabraDao()
+                .obtenerPalabraPorId("palabra_dog")
+
+            val verbo = database.verboDao()
+                .obtenerVerboPorId("verbo_go")
+
+            val lote = database.loteDao()
+                .obtenerLotePorId("lote_basico")
+
+            Log.d("ROOM_TEST", "Usuario: $usuario")
+            Log.d("ROOM_TEST", "Palabra: $palabra")
+            Log.d("ROOM_TEST", "Verbo: $verbo")
+            Log.d("ROOM_TEST", "Lote: $lote")
+        }*/
         setContent {
             WidgetEnglishTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                val database = DatabaseProvider.getDatabase(applicationContext)
+
+                val repository = VocabularioRepositoryImpl(
+                    palabraDao = database.palabraDao(),
+                    verboDao = database.verboDao(),
+                    loteDao = database.loteDao(),
+                    progresoDao = database.progresoDao()
+                )
+
+                val homeViewModel: HomeViewModel = viewModel(
+                    factory = HomeViewModelFactory(repository)
+                )
+
+                HomeScreen(viewModel = homeViewModel)
             }
         }
     }
