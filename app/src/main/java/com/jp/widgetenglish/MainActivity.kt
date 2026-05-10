@@ -21,9 +21,8 @@ import kotlinx.coroutines.launch
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
-import com.jp.widgetenglish.features.home.presentation.screens.HomeScreen
-import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
-import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModelFactory
+import com.widgetenglish.app.ui.AppNavGraph
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,11 +60,7 @@ class MainActivity : ComponentActivity() {
                     progresoDao = database.progresoDao()
                 )
 
-                val homeViewModel: HomeViewModel = viewModel(
-                    factory = HomeViewModelFactory(repository)
-                )
-
-                HomeScreen(viewModel = homeViewModel)
+                AppNavGraph()
             }
         }
     }
