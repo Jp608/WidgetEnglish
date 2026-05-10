@@ -1,17 +1,17 @@
 package com.jp.widgetenglish.features.auth.viewmodel
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jp.widgetenglish.data.local.entity.RolUsuario
+import com.google.firebase.auth.AuthCredential
+import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
-import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.features.auth.presentation.state.AuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
@@ -21,32 +21,43 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    private val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+
     fun actualizarNombre(nombre: String) {
-        _uiState.value = _uiState.value.copy(nombre = nombre)
+        _uiState.value = _uiState.value.copy(nombre = nombre, error = null)
     }
 
     fun actualizarCorreo(correo: String) {
-        _uiState.value = _uiState.value.copy(correo = correo)
+        _uiState.value = _uiState.value.copy(correo = correo, error = null)
     }
 
     fun actualizarPassword(password: String) {
-        _uiState.value = _uiState.value.copy(password = password)
+        _uiState.value = _uiState.value.copy(password = password, error = null)
     }
 
     fun actualizarConfirmPassword(confirmPassword: String) {
-        _uiState.value = _uiState.value.copy(confirmPassword = confirmPassword)
+        _uiState.value = _uiState.value.copy(confirmPassword = confirmPassword, error = null)
+    }
+
+    fun actualizarError(error: String?) {
+        _uiState.value = _uiState.value.copy(error = error)
     }
 
     fun registrar() {
         val state = _uiState.value
 
-        if (state.nombre.isBlank() || state.correo.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(error = "Completa todos los campos")
+        if (state.nombre.isBlank() || state.correo.isBlank() || state.password.isBlank() || state.confirmPassword.isBlank()) {
+            _uiState.value = state.copy(error = "Por favor, completa todos los campos")
+            return
+        }
+
+        if (!state.correo.matches(emailRegex)) {
+            _uiState.value = state.copy(error = "El formato del correo no es válido")
             return
         }
 
         if (state.password.length < 6) {
-            _uiState.value = state.copy(error = "La contraseña debe tener mínimo 6 caracteres")
+            _uiState.value = state.copy(error = "La contraseña debe tener al menos 6 caracteres")
             return
         }
 
@@ -56,39 +67,24 @@ class AuthViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = state.copy(cargando = true, error = null, mensaje = null)
+            _uiState.value = state.copy(cargando = true, error = null)
 
-            val result = authRepository.registrarConCorreo(
+            // SIMULACIÓN DE ÉXITO LOCAL
+            val mockId = UUID.randomUUID().toString()
+            val usuario = UsuarioEntity(
+                idUsuario = mockId,
+                firebaseUid = mockId,
                 nombre = state.nombre,
-                correo = state.correo,
-                password = state.password
+                correo = state.correo
             )
+            
+            usuarioDao.insertarUsuario(usuario)
 
-            result.onSuccess { firebaseUser ->
-                val usuario = UsuarioEntity(
-                    idUsuario = firebaseUser.uid,
-                    firebaseUid = firebaseUser.uid,
-                    nombre = state.nombre,
-                    correo = state.correo,
-                    rol = RolUsuario.USUARIO,
-                    activo = true
-                )
-
-                usuarioDao.insertarUsuario(usuario)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    mensaje = "Registro exitoso"
-                )
-            }
-
-            result.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    error = error.message ?: "Error al registrar usuario"
-                )
-            }
+            _uiState.value = _uiState.value.copy(
+                cargando = false,
+                autenticado = true,
+                mensaje = "¡Bienvenido (Modo Offline)!"
+            )
         }
     }
 
@@ -96,82 +92,32 @@ class AuthViewModel(
         val state = _uiState.value
 
         if (state.correo.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(error = "Ingresa correo y contraseña")
+            _uiState.value = state.copy(error = "Ingresa tu correo y contraseña")
             return
         }
 
         viewModelScope.launch {
-            _uiState.value = state.copy(cargando = true, error = null, mensaje = null)
+            _uiState.value = state.copy(cargando = true, error = null)
 
-            val result = authRepository.iniciarSesionConCorreo(
-                correo = state.correo,
-                password = state.password
+            // SIMULACIÓN DE INICIO DE SESIÓN
+            _uiState.value = _uiState.value.copy(
+                cargando = false,
+                autenticado = true,
+                mensaje = "Sesión iniciada correctamente"
             )
-
-            result.onSuccess { firebaseUser ->
-                val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
-
-                if (usuarioExistente == null) {
-                    val usuario = UsuarioEntity(
-                        idUsuario = firebaseUser.uid,
-                        firebaseUid = firebaseUser.uid,
-                        nombre = firebaseUser.displayName ?: "Usuario",
-                        correo = firebaseUser.email ?: state.correo,
-                        rol = RolUsuario.USUARIO,
-                        activo = true,
-                        ultimoAcceso = System.currentTimeMillis()
-                    )
-
-                    usuarioDao.insertarUsuario(usuario)
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    mensaje = "Inicio de sesión exitoso"
-                )
-            }
-
-            result.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    error = error.message ?: "Credenciales incorrectas"
-                )
-            }
         }
+    }
+
+    fun iniciarSesionConGoogle(credential: AuthCredential) {
+        // En modo offline no funcionará Google, pero evitamos el crash
+        _uiState.value = _uiState.value.copy(error = "Google requiere configuración de Firebase")
     }
 
     fun recuperarPassword() {
-        val correo = _uiState.value.correo
-
-        if (correo.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Ingresa tu correo")
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(cargando = true, error = null)
-
-            val result = authRepository.recuperarPassword(correo)
-
-            result.onSuccess {
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    mensaje = "Si el correo está registrado, recibirás instrucciones"
-                )
-            }
-
-            result.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    mensaje = "Si el correo está registrado, recibirás instrucciones"
-                )
-            }
-        }
+        _uiState.value = _uiState.value.copy(mensaje = "Simulación: Enlace enviado")
     }
 
     fun cerrarSesion() {
-        authRepository.cerrarSesion()
         _uiState.value = AuthUiState()
     }
 }
