@@ -61,16 +61,7 @@ fun LoginScreen(
         CredentialManager.create(context)
     }
 
-    LaunchedEffect(uiState.autenticado) {
-        if (uiState.autenticado) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Login.route) {
-                    inclusive = true
-                }
-                launchSingleTop = true
-            }
-        }
-    }
+
 
     Box(
         modifier = Modifier
