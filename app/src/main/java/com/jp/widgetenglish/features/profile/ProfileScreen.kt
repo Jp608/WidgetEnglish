@@ -51,11 +51,21 @@ fun ProfileScreen(
                 Button(
                     onClick = {
                         showLogoutDialog = false
+
                         authViewModel.cerrarSesion()
+
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0)),
                     shape = RoundedCornerShape(10.dp)
-                ) { Text("Cerrar sesión") }
+                ) {
+                    Text("Cerrar sesión")
+                }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showLogoutDialog = false }, shape = RoundedCornerShape(10.dp)) { Text("Cancelar") }

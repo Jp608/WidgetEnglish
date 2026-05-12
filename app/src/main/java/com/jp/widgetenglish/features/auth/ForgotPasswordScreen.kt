@@ -7,7 +7,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LockReset
+import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,15 +24,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.widgetenglish.app.ui.Screen
+import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 
 @Composable
-fun ForgotPasswordScreen(navController: NavController) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    viewModel: AuthViewModel
+) {
+    val uiState by viewModel.uiState.collectAsState()
 
     var email by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-    var isSuccess by remember { mutableStateOf(false) }
     var isEmailSent by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.mensaje) {
+        if (uiState.mensaje != null) {
+            isEmailSent = true
+        }
+    }
 
     val blueGradient = listOf(
         Color(0xFF1A237E),
@@ -42,8 +53,6 @@ fun ForgotPasswordScreen(navController: NavController) {
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-
-        // ─── FRANJA SEMICIRCULAR SUPERIOR ───────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,14 +68,18 @@ fun ForgotPasswordScreen(navController: NavController) {
                     tint = Color.White,
                     modifier = Modifier.size(48.dp)
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "¿Olvidaste tu contraseña?",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = "Te ayudamos a recuperarla",
                     fontSize = 14.sp,
@@ -75,7 +88,6 @@ fun ForgotPasswordScreen(navController: NavController) {
             }
         }
 
-        // ─── CONTENIDO PRINCIPAL ─────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -95,9 +107,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
                     if (!isEmailSent) {
-
                         Text(
                             text = "Recuperar contraseña",
                             fontSize = 18.sp,
@@ -108,7 +118,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Ingresa tu correo y te enviaremos un código para restablecer tu contraseña.",
+                            text = "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = Color.Gray
@@ -118,27 +128,34 @@ fun ForgotPasswordScreen(navController: NavController) {
 
                         OutlinedTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = {
+                                email = it
+                                viewModel.actualizarCorreo(it)
+                            },
                             label = { Text("Correo electrónico") },
                             leadingIcon = {
-                                Icon(Icons.Filled.Email, contentDescription = null,
-                                    tint = Color(0xFF1565C0))
+                                Icon(
+                                    imageVector = Icons.Filled.Email,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1565C0)
+                                )
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email
+                            ),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            isError = uiState.error != null
                         )
 
-                        if (message.isNotEmpty()) {
+                        if (uiState.error != null) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = message,
-                                color = if (isSuccess)
-                                    Color(0xFF2E7D32)
-                                else
-                                    MaterialTheme.colorScheme.error,
-                                fontSize = 12.sp
+                                text = uiState.error ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
                             )
                         }
 
@@ -146,14 +163,10 @@ fun ForgotPasswordScreen(navController: NavController) {
 
                         Button(
                             onClick = {
-                                if (email.isBlank()) {
-                                    message = "Por favor ingresa tu correo"
-                                    isSuccess = false
-                                } else {
-                                    // Firebase Auth se conectará aquí
-                                    navController.navigate(Screen.VerifyResetCode.route)
-                                }
+                                viewModel.actualizarCorreo(email)
+                                viewModel.recuperarPassword()
                             },
+                            enabled = !uiState.cargando,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -162,13 +175,21 @@ fun ForgotPasswordScreen(navController: NavController) {
                                 containerColor = Color(0xFF1565C0)
                             )
                         ) {
-                            Text("Enviar enlace", fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold)
+                            if (uiState.cargando) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Enviar enlace",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
-
                     } else {
-
-                        // ─── PANTALLA DE CONFIRMACIÓN ────────────
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Icon(
@@ -181,7 +202,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "¡Correo enviado!",
+                            text = "Correo enviado",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1A237E)
@@ -190,7 +211,8 @@ fun ForgotPasswordScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.",
+                            text = uiState.mensaje
+                                ?: "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.",
                             textAlign = TextAlign.Center,
                             color = Color.Gray,
                             fontSize = 14.sp
@@ -199,7 +221,9 @@ fun ForgotPasswordScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
-                            onClick = { isEmailSent = false },
+                            onClick = {
+                                isEmailSent = false
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -208,8 +232,11 @@ fun ForgotPasswordScreen(navController: NavController) {
                                 containerColor = Color(0xFF1565C0)
                             )
                         ) {
-                            Text("Reenviar correo", fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "Enviar a otro correo",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -217,16 +244,25 @@ fun ForgotPasswordScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    TextButton(onClick = { navController.popBackStack() }) {
+                    TextButton(
+                        onClick = {
+                            navController.popBackStack()
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = null,
                             tint = Color(0xFF1565C0),
                             modifier = Modifier.size(16.dp)
                         )
+
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Volver al inicio de sesión",
-                            color = Color(0xFF1565C0), fontSize = 13.sp)
+
+                        Text(
+                            text = "Volver al inicio de sesión",
+                            color = Color(0xFF1565C0),
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }

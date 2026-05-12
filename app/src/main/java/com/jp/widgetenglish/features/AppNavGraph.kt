@@ -30,8 +30,7 @@ fun AppNavGraph() {
     // Inicialización de dependencias
     val database = DatabaseProvider.getDatabase(context)
     val authRepository = AuthRepositoryImpl(
-        firebaseAuth = FirebaseAuth.getInstance(),
-        usuarioDao = database.usuarioDao()
+        firebaseAuth = FirebaseAuth.getInstance()
     )
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(authRepository, database.usuarioDao())
@@ -61,7 +60,10 @@ fun AppNavGraph() {
             RegisterScreen(navController = navController, viewModel = authViewModel)
         }
         composable(Screen.ForgotPassword.route) {
-            ForgotPasswordScreen(navController = navController)
+            ForgotPasswordScreen(
+                navController = navController,
+                viewModel = authViewModel
+            )
         }
         composable(Screen.Home.route) {
             HomeScreen(
