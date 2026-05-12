@@ -11,14 +11,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 class AuthViewModel(
     private val authRepository: AuthRepository,
-    private val usuarioDao: UsuarioDao
-
+    private val usuarioDao: UsuarioDao,
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
 ) : ViewModel() {
 
+    private suspend fun guardarUsuarioFirestoreYRoom(usuario: UsuarioEntity): UsuarioEntity {
+        val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(usuario)
+
+        usuarioDao.insertarUsuario(usuarioConRol)
+
+        return usuarioConRol
+    }
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
     private val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
@@ -95,11 +102,12 @@ class AuthViewModel(
                     ultimoAcceso = System.currentTimeMillis()
                 )
 
-                usuarioDao.insertarUsuario(usuario)
+                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuario)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
                     autenticado = true,
+                    rolUsuario = usuarioConRol.rol,
                     mensaje = "Registro exitoso"
                 )
             }
@@ -139,32 +147,24 @@ class AuthViewModel(
             )
 
             result.onSuccess { firebaseUser ->
-                val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
+                val usuarioBase = UsuarioEntity(
+                    idUsuario = firebaseUser.uid,
+                    firebaseUid = firebaseUser.uid,
+                    nombre = firebaseUser.displayName ?: "Usuario",
+                    correo = firebaseUser.email ?: state.correo,
+                    avatar = firebaseUser.photoUrl?.toString(),
+                    rol = RolUsuario.USUARIO,
+                    activo = true,
+                    fechaRegistro = System.currentTimeMillis(),
+                    ultimoAcceso = System.currentTimeMillis()
+                )
 
-                if (usuarioExistente == null) {
-                    val usuario = UsuarioEntity(
-                        idUsuario = firebaseUser.uid,
-                        firebaseUid = firebaseUser.uid,
-                        nombre = firebaseUser.displayName ?: "Usuario",
-                        correo = firebaseUser.email ?: state.correo,
-                        rol = RolUsuario.USUARIO,
-                        activo = true,
-                        fechaRegistro = System.currentTimeMillis(),
-                        ultimoAcceso = System.currentTimeMillis()
-                    )
-
-                    usuarioDao.insertarUsuario(usuario)
-                } else {
-                    usuarioDao.actualizarUsuario(
-                        usuarioExistente.copy(
-                            ultimoAcceso = System.currentTimeMillis()
-                        )
-                    )
-                }
+                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
                     autenticado = true,
+                    rolUsuario = usuarioConRol.rol,
                     mensaje = "Inicio de sesión exitoso"
                 )
             }
@@ -233,33 +233,24 @@ class AuthViewModel(
             val result = authRepository.iniciarSesionConGoogle(credential)
 
             result.onSuccess { firebaseUser ->
-                val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
+                val usuarioBase = UsuarioEntity(
+                    idUsuario = firebaseUser.uid,
+                    firebaseUid = firebaseUser.uid,
+                    nombre = firebaseUser.displayName ?: "Usuario",
+                    correo = firebaseUser.email ?: "",
+                    avatar = firebaseUser.photoUrl?.toString(),
+                    rol = RolUsuario.USUARIO,
+                    activo = true,
+                    fechaRegistro = System.currentTimeMillis(),
+                    ultimoAcceso = System.currentTimeMillis()
+                )
 
-                if (usuarioExistente == null) {
-                    val usuario = UsuarioEntity(
-                        idUsuario = firebaseUser.uid,
-                        firebaseUid = firebaseUser.uid,
-                        nombre = firebaseUser.displayName ?: "Usuario",
-                        correo = firebaseUser.email ?: "",
-                        avatar = firebaseUser.photoUrl?.toString(),
-                        rol = RolUsuario.USUARIO,
-                        activo = true,
-                        fechaRegistro = System.currentTimeMillis(),
-                        ultimoAcceso = System.currentTimeMillis()
-                    )
-
-                    usuarioDao.insertarUsuario(usuario)
-                } else {
-                    usuarioDao.actualizarUsuario(
-                        usuarioExistente.copy(
-                            ultimoAcceso = System.currentTimeMillis()
-                        )
-                    )
-                }
+                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
                     autenticado = true,
+                    rolUsuario = usuarioConRol.rol,
                     mensaje = "Inicio de sesión con Google exitoso"
                 )
             }
@@ -280,38 +271,49 @@ class AuthViewModel(
             if (firebaseUser == null) {
                 _uiState.value = _uiState.value.copy(
                     autenticado = false,
-                    cargando = false
+                    cargando = false,
+                    rolUsuario = RolUsuario.USUARIO
                 )
                 return@launch
             }
 
-            val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
+            val usuarioFirestore = usuarioFirestoreDataSource.obtenerUsuario(firebaseUser.uid)
 
-            if (usuarioExistente == null) {
-                val usuario = UsuarioEntity(
-                    idUsuario = firebaseUser.uid,
-                    firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: "",
-                    avatar = firebaseUser.photoUrl?.toString(),
-                    rol = RolUsuario.USUARIO,
-                    activo = true,
-                    fechaRegistro = System.currentTimeMillis(),
+            if (usuarioFirestore != null) {
+                val usuarioActualizado = usuarioFirestore.copy(
                     ultimoAcceso = System.currentTimeMillis()
                 )
 
-                usuarioDao.insertarUsuario(usuario)
-            } else {
-                usuarioDao.actualizarUsuario(
-                    usuarioExistente.copy(
-                        ultimoAcceso = System.currentTimeMillis()
-                    )
+                usuarioDao.insertarUsuario(usuarioActualizado)
+                usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
+
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    autenticado = true,
+                    rolUsuario = usuarioActualizado.rol
                 )
+
+                return@launch
             }
+
+            val usuarioBase = UsuarioEntity(
+                idUsuario = firebaseUser.uid,
+                firebaseUid = firebaseUser.uid,
+                nombre = firebaseUser.displayName ?: "Usuario",
+                correo = firebaseUser.email ?: "",
+                avatar = firebaseUser.photoUrl?.toString(),
+                rol = RolUsuario.USUARIO,
+                activo = true,
+                fechaRegistro = System.currentTimeMillis(),
+                ultimoAcceso = System.currentTimeMillis()
+            )
+
+            val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
             _uiState.value = _uiState.value.copy(
                 cargando = false,
-                autenticado = true
+                autenticado = true,
+                rolUsuario = usuarioConRol.rol
             )
         }
     }

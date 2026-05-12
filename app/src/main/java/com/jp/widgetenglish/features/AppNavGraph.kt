@@ -1,5 +1,8 @@
 package com.widgetenglish.app.ui
-
+import com.google.firebase.firestore.FirebaseFirestore
+import com.jp.widgetenglish.data.local.entity.RolUsuario
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
+import com.jp.widgetenglish.features.admin.AdminDashboardScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +30,7 @@ import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
 import com.widgetenglish.app.ui.auth.NewPasswordScreen
 import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
+
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -36,6 +40,9 @@ fun AppNavGraph() {
 
     val authRepository = AuthRepositoryImpl(
         firebaseAuth = FirebaseAuth.getInstance()
+    )
+    val usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
+        firestore = FirebaseFirestore.getInstance()
     )
 
     val vocabularioRepository = VocabularioRepositoryImpl(
@@ -48,7 +55,8 @@ fun AppNavGraph() {
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource
         )
     )
 
@@ -67,19 +75,19 @@ fun AppNavGraph() {
         )
     )
 
+
     val authUiState by authViewModel.uiState.collectAsState()
 
-    LaunchedEffect(authUiState.autenticado) {
+    LaunchedEffect(authUiState.autenticado, authUiState.rolUsuario) {
         if (authUiState.autenticado) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Login.route) {
-                    inclusive = true
-                }
-                launchSingleTop = true
+            val destino = if (authUiState.rolUsuario == RolUsuario.ADMIN) {
+                Screen.AdminDashboard.route
+            } else {
+                Screen.Home.route
             }
-        } else if (FirebaseAuth.getInstance().currentUser == null) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) {
+
+            navController.navigate(destino) {
+                popUpTo(Screen.Login.route) {
                     inclusive = true
                 }
                 launchSingleTop = true
@@ -203,6 +211,21 @@ fun AppNavGraph() {
         composable(Screen.NewPassword.route) {
             NewPasswordScreen(
                 navController = navController
+            )
+        }
+
+        composable(Screen.AdminDashboard.route) {
+            AdminDashboardScreen(
+                onCerrarSesionClick = {
+                    authViewModel.cerrarSesion()
+
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }

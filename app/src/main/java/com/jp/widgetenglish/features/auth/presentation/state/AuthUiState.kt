@@ -1,5 +1,7 @@
 package com.jp.widgetenglish.features.auth.presentation.state
 
+import com.jp.widgetenglish.data.local.entity.RolUsuario
+
 data class AuthUiState(
     val nombre: String = "",
     val correo: String = "",
@@ -8,6 +10,8 @@ data class AuthUiState(
 
     val cargando: Boolean = false,
     val autenticado: Boolean = false,
+    val rolUsuario: RolUsuario = RolUsuario.USUARIO,
+
     val mensaje: String? = null,
     val error: String? = null
 )
