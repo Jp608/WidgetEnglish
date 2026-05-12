@@ -32,6 +32,9 @@ fun ProfileScreen(
     authViewModel: com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(Unit) {
+        viewModel.cargarDatosUsuario()
+    }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 

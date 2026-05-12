@@ -1,5 +1,6 @@
 package com.jp.widgetenglish.data.repository.auth
 
+import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseUser
 
 interface AuthRepository {
@@ -13,6 +14,10 @@ interface AuthRepository {
     suspend fun iniciarSesionConCorreo(
         correo: String,
         password: String
+    ): Result<FirebaseUser>
+
+    suspend fun iniciarSesionConGoogle(
+        credential: AuthCredential
     ): Result<FirebaseUser>
 
     suspend fun recuperarPassword(

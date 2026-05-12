@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.jp.widgetenglish.data.local.entity.RolUsuario
-
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao
@@ -175,11 +174,6 @@ class AuthViewModel(
         }
     }
 
-    fun iniciarSesionConGoogle(credential: AuthCredential) {
-        // En modo offline no funcionará Google, pero evitamos el crash
-        _uiState.value = _uiState.value.copy(error = "Google requiere configuración de Firebase")
-    }
-
     fun recuperarPassword() {
         val state = _uiState.value
         val correo = state.correo
@@ -222,5 +216,56 @@ class AuthViewModel(
     fun cerrarSesion() {
         authRepository.cerrarSesion()
         _uiState.value = AuthUiState()
+    }
+
+    fun iniciarSesionConGoogle(credential: AuthCredential) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                cargando = true,
+                error = null,
+                mensaje = null
+            )
+
+            val result = authRepository.iniciarSesionConGoogle(credential)
+
+            result.onSuccess { firebaseUser ->
+                val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
+
+                if (usuarioExistente == null) {
+                    val usuario = UsuarioEntity(
+                        idUsuario = firebaseUser.uid,
+                        firebaseUid = firebaseUser.uid,
+                        nombre = firebaseUser.displayName ?: "Usuario",
+                        correo = firebaseUser.email ?: "",
+                        avatar = firebaseUser.photoUrl?.toString(),
+                        rol = RolUsuario.USUARIO,
+                        activo = true,
+                        fechaRegistro = System.currentTimeMillis(),
+                        ultimoAcceso = System.currentTimeMillis()
+                    )
+
+                    usuarioDao.insertarUsuario(usuario)
+                } else {
+                    usuarioDao.actualizarUsuario(
+                        usuarioExistente.copy(
+                            ultimoAcceso = System.currentTimeMillis()
+                        )
+                    )
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    autenticado = true,
+                    mensaje = "Inicio de sesión con Google exitoso"
+                )
+            }
+
+            result.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    error = error.message ?: "No se pudo iniciar sesión con Google"
+                )
+            }
+        }
     }
 }
