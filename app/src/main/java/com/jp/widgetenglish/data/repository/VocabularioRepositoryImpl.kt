@@ -1,10 +1,10 @@
 package com.jp.widgetenglish.data.repository
 
-
 import com.jp.widgetenglish.data.local.dao.LoteDao
 import com.jp.widgetenglish.data.local.dao.PalabraDao
 import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.dao.VerboDao
+import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.LoteEntity
 import com.jp.widgetenglish.data.local.entity.PalabraEntity
@@ -21,32 +21,16 @@ class VocabularioRepositoryImpl(
     private val progresoDao: ProgresoDao
 ) : VocabularioRepository {
 
+    // -------------------------
+    // PALABRAS Y VERBOS
+    // -------------------------
+
     override fun observarPalabras(): Flow<List<PalabraEntity>> {
         return palabraDao.observarPalabras()
     }
 
     override fun observarVerbos(): Flow<List<VerboEntity>> {
         return verboDao.observarVerbos()
-    }
-
-    override fun observarLotes(): Flow<List<LoteEntity>> {
-        return loteDao.observarLotes()
-    }
-
-    override fun observarContenidoDeLote(loteId: String): Flow<List<LoteContenidoEntity>> {
-        return loteDao.observarContenidoDeLote(loteId)
-    }
-
-    override fun observarProgresoUsuario(usuarioId: String): Flow<List<ProgresoUsuarioEntity>> {
-        return progresoDao.observarProgresoUsuario(usuarioId)
-    }
-
-    override fun observarProgresoLotes(usuarioId: String): Flow<List<ProgresoLoteEntity>> {
-        return progresoDao.observarProgresoLotes(usuarioId)
-    }
-
-    override fun observarLoteActivo(usuarioId: String): Flow<ProgresoLoteEntity?> {
-        return progresoDao.observarLoteActivo(usuarioId)
     }
 
     override suspend fun obtenerPalabraPorId(idPalabra: String): PalabraEntity? {
@@ -57,8 +41,51 @@ class VocabularioRepositoryImpl(
         return verboDao.obtenerVerboPorId(idVerbo)
     }
 
+    // -------------------------
+    // LOTES
+    // -------------------------
+
+    override fun observarLotes(): Flow<List<LoteEntity>> {
+        return loteDao.observarLotes()
+    }
+
+    override fun observarContenidoDeLote(loteId: String): Flow<List<LoteContenidoEntity>> {
+        return loteDao.observarContenidoDeLote(loteId)
+    }
+
     override suspend fun obtenerLotePorId(idLote: String): LoteEntity? {
         return loteDao.obtenerLotePorId(idLote)
+    }
+
+    override suspend fun activarLote(usuarioId: String, loteId: String) {
+        progresoDao.desactivarLotes(usuarioId)
+        progresoDao.activarLote(usuarioId, loteId)
+    }
+
+    override suspend fun desactivarLotes(usuarioId: String) {
+        progresoDao.desactivarLotes(usuarioId)
+    }
+
+    // -------------------------
+    // PROGRESO DE USUARIO
+    // -------------------------
+
+    override fun observarProgresoUsuario(usuarioId: String): Flow<List<ProgresoUsuarioEntity>> {
+        return progresoDao.observarProgresoUsuario(usuarioId)
+    }
+
+    override fun observarContenidosAprendidos(usuarioId: String): Flow<List<ProgresoUsuarioEntity>> {
+        return progresoDao.observarContenidosAprendidos(usuarioId)
+    }
+
+    override fun observarContenidosPorEstado(
+        usuarioId: String,
+        estado: EstadoAprendizaje
+    ): Flow<List<ProgresoUsuarioEntity>> {
+        return progresoDao.observarContenidosPorEstado(
+            usuarioId = usuarioId,
+            estado = estado
+        )
     }
 
     override suspend fun obtenerProgresoContenido(
@@ -77,16 +104,103 @@ class VocabularioRepositoryImpl(
         progresoDao.insertarProgresoUsuario(progreso)
     }
 
+    override suspend fun marcarContenidoComoAprendido(
+        usuarioId: String,
+        contenidoId: String,
+        tipoContenido: TipoContenido
+    ) {
+        progresoDao.marcarContenidoComoAprendido(
+            usuarioId = usuarioId,
+            contenidoId = contenidoId,
+            tipoContenido = tipoContenido
+        )
+    }
+
+    override suspend fun marcarContenidoEnProgreso(
+        usuarioId: String,
+        contenidoId: String,
+        tipoContenido: TipoContenido
+    ) {
+        progresoDao.marcarContenidoEnProgreso(
+            usuarioId = usuarioId,
+            contenidoId = contenidoId,
+            tipoContenido = tipoContenido
+        )
+    }
+
+    override suspend fun marcarContenidoComoDificil(
+        usuarioId: String,
+        contenidoId: String,
+        tipoContenido: TipoContenido
+    ) {
+        progresoDao.marcarContenidoComoDificil(
+            usuarioId = usuarioId,
+            contenidoId = contenidoId,
+            tipoContenido = tipoContenido
+        )
+    }
+
+    override suspend fun revertirContenidoAprendido(
+        usuarioId: String,
+        contenidoId: String,
+        tipoContenido: TipoContenido
+    ) {
+        progresoDao.revertirContenidoAprendido(
+            usuarioId = usuarioId,
+            contenidoId = contenidoId,
+            tipoContenido = tipoContenido
+        )
+    }
+
+    override suspend fun actualizarFavorito(
+        usuarioId: String,
+        contenidoId: String,
+        tipoContenido: TipoContenido,
+        favorito: Boolean
+    ) {
+        progresoDao.actualizarFavorito(
+            usuarioId = usuarioId,
+            contenidoId = contenidoId,
+            tipoContenido = tipoContenido,
+            favorito = favorito
+        )
+    }
+
+    // -------------------------
+    // PROGRESO DE LOTES
+    // -------------------------
+
+    override fun observarProgresoLotes(usuarioId: String): Flow<List<ProgresoLoteEntity>> {
+        return progresoDao.observarProgresoLotes(usuarioId)
+    }
+
+    override fun observarLoteActivo(usuarioId: String): Flow<ProgresoLoteEntity?> {
+        return progresoDao.observarLoteActivo(usuarioId)
+    }
+
+    override suspend fun obtenerProgresoLote(
+        usuarioId: String,
+        loteId: String
+    ): ProgresoLoteEntity? {
+        return progresoDao.obtenerProgresoLote(
+            usuarioId = usuarioId,
+            loteId = loteId
+        )
+    }
+
     override suspend fun guardarProgresoLote(progreso: ProgresoLoteEntity) {
         progresoDao.insertarProgresoLote(progreso)
     }
 
-    override suspend fun activarLote(usuarioId: String, loteId: String) {
-        progresoDao.desactivarLotes(usuarioId)
-        progresoDao.activarLote(usuarioId, loteId)
-    }
-
-    override suspend fun desactivarLotes(usuarioId: String) {
-        progresoDao.desactivarLotes(usuarioId)
+    override suspend fun actualizarProgresoLotePorcentaje(
+        usuarioId: String,
+        loteId: String,
+        progresoPorcentaje: Float
+    ) {
+        progresoDao.actualizarProgresoLotePorcentaje(
+            usuarioId = usuarioId,
+            loteId = loteId,
+            progresoPorcentaje = progresoPorcentaje
+        )
     }
 }
