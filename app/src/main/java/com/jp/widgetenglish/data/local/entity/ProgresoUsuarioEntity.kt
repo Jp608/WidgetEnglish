@@ -1,7 +1,5 @@
 package com.jp.widgetenglish.data.local.entity
 
-
-
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -29,9 +27,9 @@ data class ProgresoUsuarioEntity(
 
     val usuarioId: String,
     val contenidoId: String,
-    val tipoContenido: com.jp.widgetenglish.data.local.entity.TipoContenido,
+    val tipoContenido: TipoContenido,
 
-    val estadoAprendizaje: com.jp.widgetenglish.data.local.entity.EstadoAprendizaje = _root_ide_package_.com.jp.widgetenglish.data.local.entity.EstadoAprendizaje.NO_VISTA,
+    val estadoAprendizaje: EstadoAprendizaje = EstadoAprendizaje.NO_VISTA,
     val nivelDominio: Float = 0f,
 
     val respuestasCorrectas: Int = 0,
