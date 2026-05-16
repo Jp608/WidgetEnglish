@@ -27,28 +27,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        /*lifecycleScope.launch {
+        lifecycleScope.launch {
             val database = DatabaseProvider.getDatabase(applicationContext)
-
             DatabaseSeeder.seed(database)
-
-            val usuario = database.usuarioDao()
-                .obtenerUsuarioPorId("usuario_prueba")
-
-            val palabra = database.palabraDao()
-                .obtenerPalabraPorId("palabra_dog")
-
-            val verbo = database.verboDao()
-                .obtenerVerboPorId("verbo_go")
-
-            val lote = database.loteDao()
-                .obtenerLotePorId("lote_basico")
-
-            Log.d("ROOM_TEST", "Usuario: $usuario")
-            Log.d("ROOM_TEST", "Palabra: $palabra")
-            Log.d("ROOM_TEST", "Verbo: $verbo")
-            Log.d("ROOM_TEST", "Lote: $lote")
-        }*/
+        }
         setContent {
             WidgetEnglishTheme {
                 val database = DatabaseProvider.getDatabase(applicationContext)

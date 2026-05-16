@@ -30,6 +30,9 @@ import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
 import com.widgetenglish.app.ui.auth.NewPasswordScreen
 import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
 
 @Composable
 fun AppNavGraph() {
@@ -69,6 +72,14 @@ fun AppNavGraph() {
 
     val homeViewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(
+            repository = vocabularioRepository,
+            authRepository = authRepository,
+            usuarioDao = database.usuarioDao()
+        )
+    )
+
+    val vocabularyViewModel: VocabularyViewModel = viewModel(
+        factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
             authRepository = authRepository,
             usuarioDao = database.usuarioDao()
@@ -143,15 +154,14 @@ fun AppNavGraph() {
         }
 
         composable(Screen.Vocabulario.route) {
-            ConstructionScreen(
-                titulo = "Vocabulario en construcción",
-                descripcion = "Aquí se mostrará la lista completa de palabras disponibles.",
-                onVolverInicio = { navegar(Screen.Home.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
+            VocabularyScreen(
+                viewModel = vocabularyViewModel,
+                onBackClick = { navegar(Screen.Home.route) },
                 onVocabularioClick = { navegar(Screen.Vocabulario.route) },
                 onLotesClick = { navegar(Screen.Lotes.route) },
                 onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) }
+                onIaClick = { navegar(Screen.Ia.route) },
+                onPerfilClick = { navegar(Screen.Profile.route) }
             )
         }
 
