@@ -12,6 +12,13 @@ data class PalabraConProgreso(
     val fonetica: String? = null,
     val dificultad: String = "Básico",
     val esVerbo: Boolean = false,
+
+    val ejemplo: String? = null,
+    val ejemploTraduccion: String? = null,
+
+    val ejemploIngles: String? = null,
+    val ejemploEspanol: String? = null,
+
     val pasadoSimple: String? = null,
     val participioPasado: String? = null,
     val esIrregular: Boolean = false

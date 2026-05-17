@@ -66,12 +66,14 @@ class VocabularyViewModel(
                         tipoPalabra = palabra.tipoPalabra,
                         estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                         fonetica = palabra.fonetica,
-                        dificultad = when(palabra.dificultad) {
+                        dificultad = when (palabra.dificultad) {
                             com.jp.widgetenglish.data.local.entity.Dificultad.FACIL -> "Básico"
                             com.jp.widgetenglish.data.local.entity.Dificultad.MEDIA -> "Intermedio"
                             com.jp.widgetenglish.data.local.entity.Dificultad.DIFICIL -> "Avanzado"
                         },
-                        esVerbo = false
+                        esVerbo = false,
+                        ejemplo = palabra.ejemplo,
+                        ejemploTraduccion = palabra.ejemploTraduccion
                     )
                 }
 
@@ -84,12 +86,14 @@ class VocabularyViewModel(
                         tipoPalabra = TipoPalabra.OTRO,
                         estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                         fonetica = verbo.fonetica,
-                        dificultad = when(verbo.dificultad) {
+                        dificultad = when (verbo.dificultad) {
                             com.jp.widgetenglish.data.local.entity.Dificultad.FACIL -> "Básico"
                             com.jp.widgetenglish.data.local.entity.Dificultad.MEDIA -> "Intermedio"
                             com.jp.widgetenglish.data.local.entity.Dificultad.DIFICIL -> "Avanzado"
                         },
                         esVerbo = true,
+                        ejemploIngles = verbo.ejemploIngles,
+                        ejemploEspanol = verbo.ejemploEspanol,
                         pasadoSimple = verbo.pasadoSimple,
                         participioPasado = verbo.participioPasado,
                         esIrregular = verbo.esIrregular

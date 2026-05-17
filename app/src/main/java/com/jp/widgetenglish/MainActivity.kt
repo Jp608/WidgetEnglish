@@ -22,11 +22,24 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
 import com.widgetenglish.app.ui.AppNavGraph
+import android.graphics.Color
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                scrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                scrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT
+            )
+        )
         lifecycleScope.launch {
             val database = DatabaseProvider.getDatabase(applicationContext)
             DatabaseSeeder.seed(database)
