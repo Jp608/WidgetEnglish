@@ -29,18 +29,21 @@ class VocabularyViewModel(
 
     private fun cargarVocabulario() {
         viewModelScope.launch {
-            val firebaseUser = authRepository.obtenerUsuarioActual() ?: return@launch
-            val userId = firebaseUser.uid
-
-            val dataFlow = combine(
+            // Flujo de datos base (Palabras y Verbos) - Siempre disponible
+            val contentFlow = combine(
                 repository.observarPalabras(),
-                repository.observarVerbos(),
-                repository.observarProgresoUsuario(userId)
-            ) { palabras, verbos, progresos ->
-                Triple(palabras, verbos, progresos)
+                repository.observarVerbos()
+            ) { palabras, verbos ->
+                palabras to verbos
             }
 
-            val filterFlow = combine(
+            // Flujo de usuario (Progreso) - Puede ser vacío inicialmente
+            val userProgressFlow = authRepository.obtenerUsuarioActual()?.let { user ->
+                repository.observarProgresoUsuario(user.uid)
+            } ?: flowOf(emptyList())
+
+            // Flujo de filtros de UI
+            val filtersFlow = combine(
                 _filtroActual,
                 _seccionActual,
                 _textoBusqueda,
@@ -49,8 +52,9 @@ class VocabularyViewModel(
                 FilterState(filtro, seccion, busqueda, dialogo)
             }
 
-            combine(dataFlow, filterFlow) { data, filters ->
-                val (palabras, verbos, progresos) = data
+            // Combinación final: Contenido + Progreso + Filtros
+            combine(contentFlow, userProgressFlow, filtersFlow) { content, progresos, filters ->
+                val (palabras, verbos) = content
                 val (filtro, seccion, busqueda, dialogo) = filters
 
                 val listaPalabras = palabras.map { palabra ->

@@ -13,7 +13,7 @@ object DatabaseProvider {
             val instance = Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
-                "widget_english_database"
+                "widget_english_master_v1.db"
             )
                 .fallbackToDestructiveMigration()
                 .build()

@@ -16,7 +16,7 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
-import com.jp.widgetenglish.data.local.database.DatabaseSeeder
+import com.jp.widgetenglish.data.local.seed.DatabaseSeeder
 import kotlinx.coroutines.launch
 
 import androidx.lifecycle.viewmodel.compose.viewModel

@@ -109,8 +109,10 @@ class VocabularioRepositoryImpl(
         contenidoId: String,
         tipoContenido: TipoContenido
     ) {
+        android.util.Log.d("VocabularioRepo", "Marking learned: $contenidoId for user $usuarioId")
         val progresoExistente = progresoDao.obtenerProgresoContenido(usuarioId, contenidoId, tipoContenido)
         if (progresoExistente == null) {
+            android.util.Log.d("VocabularioRepo", "Creating new progress entry")
             progresoDao.insertarProgresoUsuario(
                 ProgresoUsuarioEntity(
                     id = "pu_${usuarioId}_${contenidoId}",
@@ -122,6 +124,7 @@ class VocabularioRepositoryImpl(
                 )
             )
         } else {
+            android.util.Log.d("VocabularioRepo", "Updating existing progress entry")
             progresoDao.marcarContenidoComoAprendido(
                 usuarioId = usuarioId,
                 contenidoId = contenidoId,
