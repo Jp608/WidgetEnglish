@@ -72,7 +72,7 @@ import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.PalabraCo
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioFiltro
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioSeccion
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
-
+import androidx.compose.runtime.LaunchedEffect
 private val BackgroundColor = Color(0xFFF8FAFC)
 private val SurfaceColor = Color.White
 private val BluePrimary = Color(0xFF1E63D7)
@@ -101,6 +101,9 @@ fun VocabularyScreen(
     val focusManager = LocalFocusManager.current
     val ttsHelper = remember { TtsHelper(context) }
 
+    LaunchedEffect(Unit) {
+        viewModel.cargarUsuarioActual()
+    }
     DisposableEffect(Unit) {
         onDispose {
             ttsHelper.shutdown()

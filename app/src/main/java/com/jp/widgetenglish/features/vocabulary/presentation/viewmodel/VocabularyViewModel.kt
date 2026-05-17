@@ -2,14 +2,24 @@ package com.jp.widgetenglish.features.vocabulary.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jp.widgetenglish.data.local.entity.Dificultad
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.ProgresoUsuarioEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
 import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class VocabularyViewModel(
     private val repository: VocabularioRepository,
     private val authRepository: AuthRepository
@@ -20,16 +30,22 @@ class VocabularyViewModel(
     private val _textoBusqueda = MutableStateFlow("")
     private val _mostrarDialogoRevertir = MutableStateFlow<PalabraConProgreso?>(null)
 
-    private val _uiState = MutableStateFlow(VocabularyUiState())
+    private val _usuarioIdActual = MutableStateFlow<String?>(null)
+
+    private val _uiState = MutableStateFlow(VocabularyUiState(cargando = true))
     val uiState: StateFlow<VocabularyUiState> = _uiState.asStateFlow()
 
     init {
+        cargarUsuarioActual()
         cargarVocabulario()
+    }
+
+    fun cargarUsuarioActual() {
+        _usuarioIdActual.value = authRepository.obtenerUsuarioActual()?.uid
     }
 
     private fun cargarVocabulario() {
         viewModelScope.launch {
-            // Flujo de datos base (Palabras y Verbos) - Siempre disponible
             val contentFlow = combine(
                 repository.observarPalabras(),
                 repository.observarVerbos()
@@ -37,28 +53,44 @@ class VocabularyViewModel(
                 palabras to verbos
             }
 
-            // Flujo de usuario (Progreso) - Puede ser vacío inicialmente
-            val userProgressFlow = authRepository.obtenerUsuarioActual()?.let { user ->
-                repository.observarProgresoUsuario(user.uid)
-            } ?: flowOf(emptyList())
+            val userProgressFlow: Flow<List<ProgresoUsuarioEntity>> =
+                _usuarioIdActual.flatMapLatest { usuarioId ->
+                    if (usuarioId.isNullOrBlank()) {
+                        flowOf(emptyList())
+                    } else {
+                        repository.observarProgresoUsuario(usuarioId)
+                    }
+                }
 
-            // Flujo de filtros de UI
             val filtersFlow = combine(
                 _filtroActual,
                 _seccionActual,
                 _textoBusqueda,
                 _mostrarDialogoRevertir
             ) { filtro, seccion, busqueda, dialogo ->
-                FilterState(filtro, seccion, busqueda, dialogo)
+                FilterState(
+                    filtro = filtro,
+                    seccion = seccion,
+                    busqueda = busqueda,
+                    dialogo = dialogo
+                )
             }
 
-            // Combinación final: Contenido + Progreso + Filtros
-            combine(contentFlow, userProgressFlow, filtersFlow) { content, progresos, filters ->
+            combine(
+                contentFlow,
+                userProgressFlow,
+                filtersFlow
+            ) { content, progresos, filters ->
+
                 val (palabras, verbos) = content
                 val (filtro, seccion, busqueda, dialogo) = filters
 
                 val listaPalabras = palabras.map { palabra ->
-                    val progreso = progresos.find { it.contenidoId == palabra.idPalabra && it.tipoContenido == TipoContenido.PALABRA }
+                    val progreso = progresos.find {
+                        it.contenidoId == palabra.idPalabra &&
+                                it.tipoContenido == TipoContenido.PALABRA
+                    }
+
                     PalabraConProgreso(
                         id = palabra.idPalabra,
                         termino = palabra.termino,
@@ -66,11 +98,7 @@ class VocabularyViewModel(
                         tipoPalabra = palabra.tipoPalabra,
                         estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                         fonetica = palabra.fonetica,
-                        dificultad = when (palabra.dificultad) {
-                            com.jp.widgetenglish.data.local.entity.Dificultad.FACIL -> "Básico"
-                            com.jp.widgetenglish.data.local.entity.Dificultad.MEDIA -> "Intermedio"
-                            com.jp.widgetenglish.data.local.entity.Dificultad.DIFICIL -> "Avanzado"
-                        },
+                        dificultad = convertirDificultad(palabra.dificultad),
                         esVerbo = false,
                         ejemplo = palabra.ejemplo,
                         ejemploTraduccion = palabra.ejemploTraduccion
@@ -78,7 +106,11 @@ class VocabularyViewModel(
                 }
 
                 val listaVerbos = verbos.map { verbo ->
-                    val progreso = progresos.find { it.contenidoId == verbo.idVerbo && it.tipoContenido == TipoContenido.VERBO }
+                    val progreso = progresos.find {
+                        it.contenidoId == verbo.idVerbo &&
+                                it.tipoContenido == TipoContenido.VERBO
+                    }
+
                     PalabraConProgreso(
                         id = verbo.idVerbo,
                         termino = verbo.formaBase,
@@ -86,11 +118,7 @@ class VocabularyViewModel(
                         tipoPalabra = TipoPalabra.OTRO,
                         estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                         fonetica = verbo.fonetica,
-                        dificultad = when (verbo.dificultad) {
-                            com.jp.widgetenglish.data.local.entity.Dificultad.FACIL -> "Básico"
-                            com.jp.widgetenglish.data.local.entity.Dificultad.MEDIA -> "Intermedio"
-                            com.jp.widgetenglish.data.local.entity.Dificultad.DIFICIL -> "Avanzado"
-                        },
+                        dificultad = convertirDificultad(verbo.dificultad),
                         esVerbo = true,
                         ejemploIngles = verbo.ejemploIngles,
                         ejemploEspanol = verbo.ejemploEspanol,
@@ -100,7 +128,10 @@ class VocabularyViewModel(
                     )
                 }
 
-                val listaCompleta = if (seccion == VocabularioSeccion.PALABRAS) listaPalabras else listaVerbos
+                val listaCompleta = when (seccion) {
+                    VocabularioSeccion.PALABRAS -> listaPalabras
+                    VocabularioSeccion.VERBOS -> listaVerbos
+                }
 
                 val filtradas = listaCompleta.filter { item ->
                     val coincideTexto = item.termino.contains(busqueda, ignoreCase = true) ||
@@ -109,16 +140,26 @@ class VocabularyViewModel(
                     val coincideFiltro = when (filtro) {
                         VocabularioFiltro.TODAS -> true
                         VocabularioFiltro.PENDIENTES -> item.estado == EstadoAprendizaje.NO_VISTA
-                        VocabularioFiltro.EN_PROGRESO -> item.estado == EstadoAprendizaje.EN_PROGRESO || item.estado == EstadoAprendizaje.DIFICIL
+                        VocabularioFiltro.EN_PROGRESO ->
+                            item.estado == EstadoAprendizaje.EN_PROGRESO ||
+                                    item.estado == EstadoAprendizaje.DIFICIL
                         VocabularioFiltro.APRENDIDAS -> item.estado == EstadoAprendizaje.APRENDIDA
                     }
+
                     coincideTexto && coincideFiltro
                 }
 
                 val total = listaCompleta.size
-                val pendientes = listaCompleta.count { it.estado == EstadoAprendizaje.NO_VISTA }
-                val enProgreso = listaCompleta.count { it.estado == EstadoAprendizaje.EN_PROGRESO || it.estado == EstadoAprendizaje.DIFICIL }
-                val aprendidas = listaCompleta.count { it.estado == EstadoAprendizaje.APRENDIDA }
+                val pendientes = listaCompleta.count {
+                    it.estado == EstadoAprendizaje.NO_VISTA
+                }
+                val enProgreso = listaCompleta.count {
+                    it.estado == EstadoAprendizaje.EN_PROGRESO ||
+                            it.estado == EstadoAprendizaje.DIFICIL
+                }
+                val aprendidas = listaCompleta.count {
+                    it.estado == EstadoAprendizaje.APRENDIDA
+                }
 
                 VocabularyUiState(
                     cargando = false,
@@ -136,6 +177,14 @@ class VocabularyViewModel(
             }.collect { state ->
                 _uiState.value = state
             }
+        }
+    }
+
+    private fun convertirDificultad(dificultad: Dificultad): String {
+        return when (dificultad) {
+            Dificultad.FACIL -> "Básico"
+            Dificultad.MEDIA -> "Intermedio"
+            Dificultad.DIFICIL -> "Avanzado"
         }
     }
 
@@ -158,11 +207,47 @@ class VocabularyViewModel(
         _seccionActual.value = seccion
     }
 
-    fun marcarComoAprendido(palabraId: String, esVerbo: Boolean) {
+    fun marcarComoAprendido(
+        palabraId: String,
+        esVerbo: Boolean
+    ) {
         viewModelScope.launch {
             val userId = authRepository.obtenerUsuarioActual()?.uid ?: return@launch
             val tipo = if (esVerbo) TipoContenido.VERBO else TipoContenido.PALABRA
-            repository.marcarContenidoComoAprendido(userId, palabraId, tipo)
+
+            val progresoExistente = repository.obtenerProgresoContenido(
+                usuarioId = userId,
+                contenidoId = palabraId,
+                tipoContenido = tipo
+            )
+
+            if (progresoExistente == null) {
+                val progresoNuevo = ProgresoUsuarioEntity(
+                    id = "${userId}_${palabraId}_${tipo.name}",
+                    usuarioId = userId,
+                    contenidoId = palabraId,
+                    tipoContenido = tipo,
+                    estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                    nivelDominio = 1f,
+                    respuestasCorrectas = 1,
+                    respuestasIncorrectas = 0,
+                    vecesRepasado = 1,
+                    aprendido = true,
+                    favorito = false,
+                    ultimaRevision = System.currentTimeMillis(),
+                    proximaRevision = null
+                )
+
+                repository.guardarProgresoUsuario(progresoNuevo)
+            } else {
+                repository.marcarContenidoComoAprendido(
+                    usuarioId = userId,
+                    contenidoId = palabraId,
+                    tipoContenido = tipo
+                )
+            }
+
+            cargarUsuarioActual()
         }
     }
 
@@ -174,12 +259,48 @@ class VocabularyViewModel(
         _mostrarDialogoRevertir.value = null
     }
 
-    fun revertirEstadoAprendido(palabraId: String, esVerbo: Boolean) {
+    fun revertirEstadoAprendido(
+        palabraId: String,
+        esVerbo: Boolean
+    ) {
         viewModelScope.launch {
             val userId = authRepository.obtenerUsuarioActual()?.uid ?: return@launch
             val tipo = if (esVerbo) TipoContenido.VERBO else TipoContenido.PALABRA
-            repository.revertirContenidoAprendido(userId, palabraId, tipo)
+
+            val progresoExistente = repository.obtenerProgresoContenido(
+                usuarioId = userId,
+                contenidoId = palabraId,
+                tipoContenido = tipo
+            )
+
+            if (progresoExistente == null) {
+                val progresoNuevo = ProgresoUsuarioEntity(
+                    id = "${userId}_${palabraId}_${tipo.name}",
+                    usuarioId = userId,
+                    contenidoId = palabraId,
+                    tipoContenido = tipo,
+                    estadoAprendizaje = EstadoAprendizaje.EN_PROGRESO,
+                    nivelDominio = 0.5f,
+                    respuestasCorrectas = 0,
+                    respuestasIncorrectas = 0,
+                    vecesRepasado = 0,
+                    aprendido = false,
+                    favorito = false,
+                    ultimaRevision = System.currentTimeMillis(),
+                    proximaRevision = null
+                )
+
+                repository.guardarProgresoUsuario(progresoNuevo)
+            } else {
+                repository.revertirContenidoAprendido(
+                    usuarioId = userId,
+                    contenidoId = palabraId,
+                    tipoContenido = tipo
+                )
+            }
+
             ocultarConfirmacionRevertir()
+            cargarUsuarioActual()
         }
     }
 }
