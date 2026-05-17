@@ -1,0 +1,30 @@
+﻿idVerbo;formaBase;pasadoSimple;participioPasado;traduccion;dificultad;esIrregular;fonetica;ejemploIng;ejemploEsp;loteId
+verbo_be;be;was/were;been;ser o estar;FACIL;true;/biː/;I am happy today;Estoy feliz hoy;lote_A1
+verbo_have;have;had;had;tener;FACIL;true;/hæv/;I have a small dog;Tengo un perro pequeño;lote_A1
+verbo_do;do;did;done;hacer;FACIL;true;/duː/;I do my homework at night;Hago mi tarea en la noche;lote_A1
+verbo_go;go;went;gone;ir;FACIL;true;/ɡoʊ/;I go to school by bus;Voy a la escuela en autobús;lote_A1
+verbo_come;come;came;come;venir;FACIL;true;/kʌm/;They come to class early;Ellos vienen temprano a clase;lote_A1
+verbo_get;get;got;gotten;obtener o conseguir;FACIL;true;/ɡet/;I get a new book today;Consigo un libro nuevo hoy;lote_A1
+verbo_make;make;made;made;hacer o fabricar;FACIL;true;/meɪk/;She makes breakfast every morning;Ella prepara el desayuno cada mañana;lote_A1
+verbo_take;take;took;taken;tomar o llevar;FACIL;true;/teɪk/;Please take your notebook;Por favor toma tu cuaderno;lote_A1
+verbo_eat;eat;ate;eaten;comer;FACIL;true;/iːt/;We eat lunch at noon;Comemos el almuerzo al mediodía;lote_A1
+verbo_drink;drink;drank;drunk;beber;FACIL;true;/drɪŋk/;I drink water after exercise;Bebo agua después de hacer ejercicio;lote_A1
+verbo_sleep;sleep;slept;slept;dormir;FACIL;true;/sliːp/;The baby sleeps in the afternoon;El bebé duerme en la tarde;lote_A1
+verbo_read;read;read;read;leer;FACIL;true;/riːd/;I read a story before bed;Leo un cuento antes de dormir;lote_A1
+verbo_write;write;wrote;written;escribir;FACIL;true;/raɪt/;She writes her name on the paper;Ella escribe su nombre en el papel;lote_A1
+verbo_speak;speak;spoke;spoken;hablar;FACIL;true;/spiːk/;I speak English with my teacher;Hablo inglés con mi profesor;lote_A1
+verbo_listen;listen;listened;listened;escuchar;FACIL;false;/ˈlɪs.ən/;Listen to the word carefully;Escucha la palabra con atención;lote_A1
+verbo_walk;walk;walked;walked;caminar;FACIL;false;/wɑːk/;We walk in the park on Sunday;Caminamos en el parque el domingo;lote_A1
+verbo_play;play;played;played;jugar;FACIL;false;/pleɪ/;Children play after school;Los niños juegan después de la escuela;lote_A1
+verbo_work;work;worked;worked;trabajar;FACIL;false;/wɝːk/;My father works in an office;Mi padre trabaja en una oficina;lote_A1
+verbo_study;study;studied;studied;estudiar;FACIL;false;/ˈstʌd.i/;I study English every day;Estudio inglés todos los días;lote_A1
+verbo_live;live;lived;lived;vivir;FACIL;false;/lɪv/;They live near the university;Ellos viven cerca de la universidad;lote_A1
+verbo_like;like;liked;liked;gustar;FACIL;false;/laɪk/;I like this song;Me gusta esta canción;lote_A1
+verbo_love;love;loved;loved;amar o encantar;FACIL;false;/lʌv/;She loves her cat;A ella le encanta su gato;lote_A1
+verbo_want;want;wanted;wanted;querer;FACIL;false;/wɑːnt/;I want a glass of water;Quiero un vaso de agua;lote_A1
+verbo_need;need;needed;needed;necesitar;FACIL;false;/niːd/;We need more time;Necesitamos más tiempo;lote_A1
+verbo_close;close;closed;closed;cerrar;FACIL;false;/kloʊz/;Please close the window;Por favor cierra la ventana;lote_A1
+verbo_see;see;saw;seen;ver;FACIL;true;/siː/;I see a bird in the tree;Veo un pájaro en el árbol;lote_A1
+verbo_watch;watch;watched;watched;mirar o ver;FACIL;false;/wɑːtʃ/;We watch a movie at home;Vemos una película en casa;lote_A1
+verbo_buy;buy;bought;bought;comprar;FACIL;true;/baɪ/;She buys fruit at the market;Ella compra fruta en el mercado;lote_A1
+verbo_call;call;called;called;llamar;FACIL;false;/kɔːl/;I call my friend after class;Llamo a mi amigo después de clase;lote_A1

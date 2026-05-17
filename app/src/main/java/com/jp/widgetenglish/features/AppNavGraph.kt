@@ -34,13 +34,16 @@ import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyS
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
 
+import com.jp.widgetenglish.data.local.seed.DatabaseSeeder
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
     val database = DatabaseProvider.getDatabase(context)
-
+    LaunchedEffect(Unit) {
+        DatabaseSeeder.seed(database)
+    }
     val authRepository = AuthRepositoryImpl(
         firebaseAuth = FirebaseAuth.getInstance()
     )
