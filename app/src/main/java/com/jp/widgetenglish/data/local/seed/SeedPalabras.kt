@@ -291,6 +291,249 @@ object SeedPalabras {
             ejemploTraduccion = "Cierra la puerta cuando te vayas",
             dificultad = Dificultad.FACIL,
             activo = true
+        ),
+        // ADJETIVOS BÁSICOS
+        PalabraEntity(
+            idPalabra = "adj_big",
+            termino = "big",
+            traduccion = "grande",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/bɪɡ/",
+            ejemplo = "The elephant is very big",
+            ejemploTraduccion = "El elefante es muy grande",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_small",
+            termino = "small",
+            traduccion = "pequeño",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/smɔːl/",
+            ejemplo = "The mouse is small",
+            ejemploTraduccion = "El ratón es pequeño",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_happy",
+            termino = "happy",
+            traduccion = "feliz",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈhæpi/",
+            ejemplo = "I am happy to see you",
+            ejemploTraduccion = "Estoy feliz de verte",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_sad",
+            termino = "sad",
+            traduccion = "triste",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/sæd/",
+            ejemplo = "Don't be sad, everything is okay",
+            ejemploTraduccion = "No estés triste, todo está bien",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_hot",
+            termino = "hot",
+            traduccion = "caliente",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/hɒt/",
+            ejemplo = "The soup is very hot",
+            ejemploTraduccion = "La sopa está muy caliente",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_cold",
+            termino = "cold",
+            traduccion = "frío",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/koʊld/",
+            ejemplo = "It is cold in winter",
+            ejemploTraduccion = "Hace frío en invierno",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_fast",
+            termino = "fast",
+            traduccion = "rápido",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/fæst/",
+            ejemplo = "This car is very fast",
+            ejemploTraduccion = "Este coche es muy rápido",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_slow",
+            termino = "slow",
+            traduccion = "lento",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/sloʊ/",
+            ejemplo = "The turtle is slow",
+            ejemploTraduccion = "La tortuga es lenta",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_good",
+            termino = "good",
+            traduccion = "bueno",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ɡʊd/",
+            ejemplo = "You are a good student",
+            ejemploTraduccion = "Eres un buen estudiante",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_bad",
+            termino = "bad",
+            traduccion = "malo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/bæd/",
+            ejemplo = "This is a bad idea",
+            ejemploTraduccion = "Esta es una mala idea",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_new",
+            termino = "new",
+            traduccion = "nuevo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/njuː/",
+            ejemplo = "I have a new phone",
+            ejemploTraduccion = "Tengo un teléfono nuevo",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_old",
+            termino = "old",
+            traduccion = "viejo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/oʊld/",
+            ejemplo = "This building is very old",
+            ejemploTraduccion = "Este edificio es muy viejo",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_easy",
+            termino = "easy",
+            traduccion = "fácil",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈiːzi/",
+            ejemplo = "The exam was easy",
+            ejemploTraduccion = "El examen fue fácil",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_difficult",
+            termino = "difficult",
+            traduccion = "difícil",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈdɪfɪkəlt/",
+            ejemplo = "English can be difficult sometimes",
+            ejemploTraduccion = "El inglés puede ser difícil a veces",
+            dificultad = Dificultad.MEDIA,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_beautiful",
+            termino = "beautiful",
+            traduccion = "hermoso",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈbjuːtɪfl/",
+            ejemplo = "The flowers are beautiful",
+            ejemploTraduccion = "Las flores son hermosas",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_ugly",
+            termino = "ugly",
+            traduccion = "feo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈʌɡli/",
+            ejemplo = "That was an ugly sweater",
+            ejemploTraduccion = "Ese era un suéter feo",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_rich",
+            termino = "rich",
+            traduccion = "rico",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/rɪtʃ/",
+            ejemplo = "He is a very rich man",
+            ejemploTraduccion = "Él es un hombre muy rico",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_poor",
+            termino = "poor",
+            traduccion = "pobre",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/pʊər/",
+            ejemplo = "They help poor people",
+            ejemploTraduccion = "Ellos ayudan a la gente pobre",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_clean",
+            termino = "clean",
+            traduccion = "limpio",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/kliːn/",
+            ejemplo = "Your room is very clean",
+            ejemploTraduccion = "Tu habitación está muy limpia",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_dirty",
+            termino = "dirty",
+            traduccion = "sucio",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ˈdɜːrti/",
+            ejemplo = "The dog is dirty after playing",
+            ejemploTraduccion = "El perro está sucio después de jugar",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_long",
+            termino = "long",
+            traduccion = "largo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/lɒŋ/",
+            ejemplo = "It was a long journey",
+            ejemploTraduccion = "Fue un viaje largo",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "adj_short",
+            termino = "short",
+            traduccion = "corto/bajo",
+            tipoPalabra = TipoPalabra.ADJETIVO,
+            fonetica = "/ʃɔːrt/",
+            ejemplo = "Life is short",
+            ejemploTraduccion = "La vida es corta",
+            dificultad = Dificultad.FACIL,
+            activo = true
         )
     )
 }

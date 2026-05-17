@@ -354,6 +354,161 @@ object SeedLoteContenido {
             contenidoId = "verbo_call",
             tipoContenido = TipoContenido.VERBO,
             orden = 29
+        ),
+        // ADJETIVOS BÁSICOS
+        LoteContenidoEntity(
+            id = "lc_lote_adj_big",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_big",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 1
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_small",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_small",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 2
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_happy",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_happy",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 3
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_sad",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_sad",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 4
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_hot",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_hot",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 5
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_cold",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_cold",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 6
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_fast",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_fast",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 7
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_slow",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_slow",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 8
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_good",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_good",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 9
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_bad",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_bad",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 10
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_new",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_new",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 11
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_old",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_old",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 12
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_easy",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_easy",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 13
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_difficult",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_difficult",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 14
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_beautiful",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_beautiful",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 15
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_ugly",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_ugly",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 16
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_rich",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_rich",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 17
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_poor",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_poor",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 18
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_clean",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_clean",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 19
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_dirty",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_dirty",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 20
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_long",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_long",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 21
+        ),
+        LoteContenidoEntity(
+            id = "lc_lote_adj_short",
+            loteId = "lote_adjetivos_A1",
+            contenidoId = "adj_short",
+            tipoContenido = TipoContenido.PALABRA,
+            orden = 22
         )
     )
 }

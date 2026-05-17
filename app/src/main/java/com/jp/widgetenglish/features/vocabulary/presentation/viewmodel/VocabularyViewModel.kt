@@ -96,7 +96,11 @@ class VocabularyViewModel(
                     )
                 }
 
-                val listaCompleta = if (seccion == VocabularioSeccion.PALABRAS) listaPalabras else listaVerbos
+                val listaCompleta = when (seccion) {
+                    VocabularioSeccion.PALABRAS -> listaPalabras.filter { it.tipoPalabra == TipoPalabra.SUSTANTIVO }
+                    VocabularioSeccion.ADJETIVOS -> listaPalabras.filter { it.tipoPalabra == TipoPalabra.ADJETIVO }
+                    VocabularioSeccion.VERBOS -> listaVerbos
+                }
 
                 val filtradas = listaCompleta.filter { item ->
                     val coincideTexto = item.termino.contains(busqueda, ignoreCase = true) ||

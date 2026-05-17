@@ -13,11 +13,11 @@ object DatabaseSeeder {
             val verboDao = database.verboDao()
             val loteDao = database.loteDao()
 
-            // Verificar si hay palabras existentes
-            val gato = palabraDao.obtenerPalabraPorId("palabra_cat")
+            // Verificar si hay adjetivos existentes (para forzar re-seed si no están)
+            val big = palabraDao.obtenerPalabraPorId("adj_big")
             
-            if (gato == null) {
-                Log.d("DatabaseSeeder", "DB is empty. Force seeding all content...")
+            if (big == null) {
+                Log.d("DatabaseSeeder", "Adjectives not found or DB empty. Force seeding all content...")
                 
                 // Limpiar por si acaso quedaron restos corruptos
                 palabraDao.eliminarPalabras()

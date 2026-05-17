@@ -166,7 +166,11 @@ fun VocabularyScreen(
                     onValueChange = { viewModel.onSearchTextChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { 
-                        val placeholder = if (uiState.seccionActual == VocabularioSeccion.VERBOS) "Buscar verbo..." else "Buscar sustantivo..."
+                        val placeholder = when (uiState.seccionActual) {
+                            VocabularioSeccion.VERBOS -> "Buscar verbo..."
+                            VocabularioSeccion.ADJETIVOS -> "Buscar adjetivo..."
+                            else -> "Buscar sustantivo..."
+                        }
                         Text(placeholder, color = Color.Gray) 
                     },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF1565C0)) },
@@ -289,10 +293,17 @@ fun SectionSelector(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         SectionButton(
-            text = "Sustantivos",
+            text = "Sust.",
             icon = Icons.AutoMirrored.Filled.MenuBook,
             isSelected = seccionActual == VocabularioSeccion.PALABRAS,
             onClick = { onSeccionChanged(VocabularioSeccion.PALABRAS) },
+            modifier = Modifier.weight(1f)
+        )
+        SectionButton(
+            text = "Adj.",
+            icon = Icons.Default.Description,
+            isSelected = seccionActual == VocabularioSeccion.ADJETIVOS,
+            onClick = { onSeccionChanged(VocabularioSeccion.ADJETIVOS) },
             modifier = Modifier.weight(1f)
         )
         SectionButton(
