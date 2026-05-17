@@ -1,0 +1,22 @@
+﻿idPalabra;termino;traduccion;tipoPalabra;dificultad;fonetica;ejemplo;ejemploTraduccion;loteId
+palabra_cat;cat;gato;SUSTANTIVO;FACIL;/kæt/;The cat is sleeping on the sofa;El gato está durmiendo en el sofá;lote_mascotas
+palabra_hamster;hamster;hámster;SUSTANTIVO;FACIL;/ˈhæm(p)stɚ/;My hamster runs in its wheel every night;Mi hámster corre en su rueda todas las noches;lote_mascotas
+palabra_canary;canary;canario;SUSTANTIVO;FACIL;/kəˈnɛəɹi/;The canary sings in the morning;El canario canta en la mañana;lote_mascotas
+palabra_rabbit;rabbit;conejo;SUSTANTIVO;FACIL;/ˈɹæbət/;The rabbit eats a carrot;El conejo come una zanahoria;lote_mascotas
+palabra_guinea_pig;guinea pig;cobaya o cuyo;SUSTANTIVO;MEDIA;/ˈɡɪni pɪɡ/;The guinea pig likes fresh vegetables;La cobaya disfruta las verduras frescas;lote_mascotas
+palabra_parrot;parrot;loro;SUSTANTIVO;FACIL;/ˈpæɹət/;The parrot repeats some words;El loro repite algunas palabras;lote_mascotas
+palabra_parakeet;parakeet;perico o periquito;SUSTANTIVO;MEDIA;/paɹəˈkiːt/;The parakeet is small and colorful;El perico es pequeño y colorido;lote_mascotas
+palabra_fish;fish;pez;SUSTANTIVO;FACIL;/fɪʃ/;The fish swims in the aquarium;El pez nada en el acuario;lote_mascotas
+palabra_rat;rat;rata;SUSTANTIVO;FACIL;/ɹæt/;The rat hides under the table;La rata se esconde debajo de la mesa;lote_mascotas
+palabra_turtle;turtle;tortuga acuática;SUSTANTIVO;MEDIA;/ˈtɜːtəl/;The turtle swims slowly in the pond;La tortuga acuática nada lentamente en el estanque;lote_mascotas
+palabra_tortoise;tortoise;tortuga terrestre;SUSTANTIVO;MEDIA;/ˈtɔː.təs/;The tortoise walks slowly on the grass;La tortuga terrestre camina lentamente sobre el pasto;lote_mascotas
+palabra_chameleon;chameleon;camaleón;SUSTANTIVO;MEDIA;/kəˈmiːljən/;The chameleon changes color;El camaleón cambia de color;lote_mascotas
+palabra_birds;birds;pájaros;SUSTANTIVO;FACIL;/bɜːdz/;The birds are flying near the window;Los pájaros vuelan cerca de la ventana;lote_mascotas
+palabra_snake;snake;serpiente o víbora;SUSTANTIVO;FACIL;/ˈsneɪk/;The snake moves silently;La serpiente se mueve silenciosamente;lote_mascotas
+palabra_mouse;mouse;ratón;SUSTANTIVO;FACIL;/maʊs/;The mouse is very small;El ratón es muy pequeño;lote_mascotas
+palabra_goldfish;goldfish;pez dorado;SUSTANTIVO;FACIL;/ˈɡoʊld.fɪʃ/;The goldfish lives in a small tank;El pez dorado vive en una pecera pequeña;lote_mascotas
+palabra_ferret;ferret;hurón;SUSTANTIVO;MEDIA;/ˈfɛɹɪt/;The ferret is playful and curious;El hurón es juguetón y curioso;lote_mascotas
+palabra_frog;frog;rana;SUSTANTIVO;FACIL;/fɹɒɡ/;The frog jumps near the water;La rana salta cerca del agua;lote_mascotas
+palabra_axolotl;axolotl;ajolote;SUSTANTIVO;DIFICIL;/ˈak.səˌlɒ.təl/;The axolotl lives in water;El ajolote vive en el agua;lote_mascotas
+palabra_cockatiel;cockatiel;ninfa;SUSTANTIVO;DIFICIL;/ˌkɒk.əˈtil/;The cockatiel has a yellow crest;La ninfa tiene una cresta amarilla;lote_mascotas
+palabra_hedgehog;hedgehog;erizo;SUSTANTIVO;MEDIA;/ˈhedʒ.hɑːɡ/;The hedgehog curls into a ball;El erizo se enrolla como una bola;lote_mascotas

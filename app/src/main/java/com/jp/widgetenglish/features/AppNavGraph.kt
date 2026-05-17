@@ -30,14 +30,16 @@ import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
 import com.widgetenglish.app.ui.auth.NewPasswordScreen
 import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
-
+import com.jp.widgetenglish.data.local.seed.DatabaseSeeder
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
     val database = DatabaseProvider.getDatabase(context)
-
+    LaunchedEffect(Unit) {
+        DatabaseSeeder.seed(database)
+    }
     val authRepository = AuthRepositoryImpl(
         firebaseAuth = FirebaseAuth.getInstance()
     )
