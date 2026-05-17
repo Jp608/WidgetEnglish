@@ -17,4 +17,7 @@ sealed class Screen(val route: String) {
     object Estudio : Screen("estudio")
     object Ia : Screen("ia")
     object AdminDashboard : Screen("admin_dashboard")
+    object VocabularyDetail : Screen("vocabulary_detail/{itemId}/{isVerbo}") {
+        fun createRoute(itemId: String, isVerbo: Boolean) = "vocabulary_detail/$itemId/$isVerbo"
+    }
 }

@@ -16,39 +16,34 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
-import com.jp.widgetenglish.data.local.database.DatabaseSeeder
+import com.jp.widgetenglish.data.local.seed.DatabaseSeeder
 import kotlinx.coroutines.launch
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
 import com.widgetenglish.app.ui.AppNavGraph
+import android.graphics.Color
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        /*lifecycleScope.launch {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                scrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                scrim = Color.TRANSPARENT,
+                darkScrim = Color.TRANSPARENT
+            )
+        )
+        lifecycleScope.launch {
             val database = DatabaseProvider.getDatabase(applicationContext)
-
             DatabaseSeeder.seed(database)
-
-            val usuario = database.usuarioDao()
-                .obtenerUsuarioPorId("usuario_prueba")
-
-            val palabra = database.palabraDao()
-                .obtenerPalabraPorId("palabra_dog")
-
-            val verbo = database.verboDao()
-                .obtenerVerboPorId("verbo_go")
-
-            val lote = database.loteDao()
-                .obtenerLotePorId("lote_basico")
-
-            Log.d("ROOM_TEST", "Usuario: $usuario")
-            Log.d("ROOM_TEST", "Palabra: $palabra")
-            Log.d("ROOM_TEST", "Verbo: $verbo")
-            Log.d("ROOM_TEST", "Lote: $lote")
-        }*/
+        }
         setContent {
             WidgetEnglishTheme {
                 val database = DatabaseProvider.getDatabase(applicationContext)

@@ -30,16 +30,17 @@ import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
 import com.widgetenglish.app.ui.auth.NewPasswordScreen
 import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
-import com.jp.widgetenglish.data.local.seed.DatabaseSeeder
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
+
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
     val database = DatabaseProvider.getDatabase(context)
-    LaunchedEffect(Unit) {
-        DatabaseSeeder.seed(database)
-    }
     val authRepository = AuthRepositoryImpl(
         firebaseAuth = FirebaseAuth.getInstance()
     )
@@ -74,6 +75,13 @@ fun AppNavGraph() {
             repository = vocabularioRepository,
             authRepository = authRepository,
             usuarioDao = database.usuarioDao()
+        )
+    )
+
+    val vocabularyViewModel: VocabularyViewModel = viewModel(
+        factory = VocabularyViewModelFactory(
+            repository = vocabularioRepository,
+            authRepository = authRepository
         )
     )
 
@@ -145,15 +153,28 @@ fun AppNavGraph() {
         }
 
         composable(Screen.Vocabulario.route) {
-            ConstructionScreen(
-                titulo = "Vocabulario en construcción",
-                descripcion = "Aquí se mostrará la lista completa de palabras disponibles.",
-                onVolverInicio = { navegar(Screen.Home.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
+            VocabularyScreen(
+                viewModel = vocabularyViewModel,
+                onBackClick = { navegar(Screen.Home.route) },
                 onVocabularioClick = { navegar(Screen.Vocabulario.route) },
                 onLotesClick = { navegar(Screen.Lotes.route) },
                 onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) }
+                onIaClick = { navegar(Screen.Ia.route) },
+                onPerfilClick = { navegar(Screen.Profile.route) },
+                onItemClick = { item ->
+                    navController.navigate(Screen.VocabularyDetail.createRoute(item.id, item.esVerbo))
+                }
+            )
+        }
+
+        composable(Screen.VocabularyDetail.route) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+            val isVerbo = backStackEntry.arguments?.getString("isVerbo")?.toBoolean() ?: false
+            VocabularyDetailScreen(
+                itemId = itemId,
+                isVerbo = isVerbo,
+                viewModel = vocabularyViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 

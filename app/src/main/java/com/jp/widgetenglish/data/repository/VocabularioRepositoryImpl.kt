@@ -109,11 +109,28 @@ class VocabularioRepositoryImpl(
         contenidoId: String,
         tipoContenido: TipoContenido
     ) {
-        progresoDao.marcarContenidoComoAprendido(
-            usuarioId = usuarioId,
-            contenidoId = contenidoId,
-            tipoContenido = tipoContenido
-        )
+        android.util.Log.d("VocabularioRepo", "Marking learned: $contenidoId for user $usuarioId")
+        val progresoExistente = progresoDao.obtenerProgresoContenido(usuarioId, contenidoId, tipoContenido)
+        if (progresoExistente == null) {
+            android.util.Log.d("VocabularioRepo", "Creating new progress entry")
+            progresoDao.insertarProgresoUsuario(
+                ProgresoUsuarioEntity(
+                    id = "pu_${usuarioId}_${contenidoId}",
+                    usuarioId = usuarioId,
+                    contenidoId = contenidoId,
+                    tipoContenido = tipoContenido,
+                    estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                    aprendido = true
+                )
+            )
+        } else {
+            android.util.Log.d("VocabularioRepo", "Updating existing progress entry")
+            progresoDao.marcarContenidoComoAprendido(
+                usuarioId = usuarioId,
+                contenidoId = contenidoId,
+                tipoContenido = tipoContenido
+            )
+        }
     }
 
     override suspend fun marcarContenidoEnProgreso(
@@ -145,11 +162,25 @@ class VocabularioRepositoryImpl(
         contenidoId: String,
         tipoContenido: TipoContenido
     ) {
-        progresoDao.revertirContenidoAprendido(
-            usuarioId = usuarioId,
-            contenidoId = contenidoId,
-            tipoContenido = tipoContenido
-        )
+        val progresoExistente = progresoDao.obtenerProgresoContenido(usuarioId, contenidoId, tipoContenido)
+        if (progresoExistente == null) {
+            progresoDao.insertarProgresoUsuario(
+                ProgresoUsuarioEntity(
+                    id = "pu_${usuarioId}_${contenidoId}",
+                    usuarioId = usuarioId,
+                    contenidoId = contenidoId,
+                    tipoContenido = tipoContenido,
+                    estadoAprendizaje = EstadoAprendizaje.EN_PROGRESO,
+                    aprendido = false
+                )
+            )
+        } else {
+            progresoDao.revertirContenidoAprendido(
+                usuarioId = usuarioId,
+                contenidoId = contenidoId,
+                tipoContenido = tipoContenido
+            )
+        }
     }
 
     override suspend fun actualizarFavorito(
