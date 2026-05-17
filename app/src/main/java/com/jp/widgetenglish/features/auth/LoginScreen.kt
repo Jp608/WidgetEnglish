@@ -1,5 +1,5 @@
 package com.jp.widgetenglish.features.auth
-
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -35,13 +35,17 @@ import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 import com.widgetenglish.app.ui.Screen
 import kotlinx.coroutines.launch
 
+import androidx.compose.runtime.rememberCoroutineScope
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     navController: NavController,
     viewModel: AuthViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -51,13 +55,14 @@ fun LoginScreen(
         Color(0xFF0288D1)
     )
 
-    LaunchedEffect(uiState.autenticado) {
-        if (uiState.autenticado) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
-            }
-        }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var cargandoGoogle by remember { mutableStateOf(false) }
+    val credentialManager = remember {
+        CredentialManager.create(context)
     }
+
+
 
     Box(
         modifier = Modifier
@@ -117,6 +122,16 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    val textFieldColors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedLabelColor = Color(0xFF1565C0),
+                        unfocusedLabelColor = Color.Gray,
+                        focusedBorderColor = Color(0xFF1565C0),
+                        unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color(0xFF1565C0)
+                    )
+
                     OutlinedTextField(
                         value = uiState.correo,
                         onValueChange = { viewModel.actualizarCorreo(it) },
@@ -126,7 +141,8 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
-                        isError = uiState.error?.contains("correo", ignoreCase = true) == true
+                        isError = uiState.error?.contains("correo", ignoreCase = true) == true,
+                        colors = textFieldColors
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -149,7 +165,8 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors
                     )
 
                     uiState.error?.let {
@@ -194,38 +211,88 @@ fun LoginScreen(
 
                     OutlinedButton(
                         onClick = {
-                            val credentialManager = CredentialManager.create(context)
-                            val googleIdOption = GetGoogleIdOption.Builder()
-                                .setFilterByAuthorizedAccounts(false)
-                                .setServerClientId(context.getString(R.string.default_web_client_id))
-                                .build()
+                            cargandoGoogle = true
 
-                            val request = GetCredentialRequest.Builder()
-                                .addCredentialOption(googleIdOption)
-                                .build()
-
-                            scope.launch {
+                            coroutineScope.launch {
                                 try {
-                                    val result = credentialManager.getCredential(context, request)
-                                    val credential = GoogleAuthProvider.getCredential(result.credential.data.getString("com.google.android.libraries.identity.googleid.BUNDLE_KEY_ID_TOKEN"), null)
-                                    viewModel.iniciarSesionConGoogle(credential)
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .setServerClientId(context.getString(R.string.default_web_client_id))
+                                        .setAutoSelectEnabled(false)
+                                        .build()
+
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
+
+                                    val result = credentialManager.getCredential(
+                                        context = context,
+                                        request = request
+                                    )
+
+                                    val credential = result.credential
+
+                                    val googleIdTokenCredential = GoogleIdTokenCredential
+                                        .createFrom(credential.data)
+
+                                    val idToken = googleIdTokenCredential.idToken
+
+                                    val firebaseCredential = GoogleAuthProvider.getCredential(
+                                        idToken,
+                                        null
+                                    )
+
+                                    viewModel.iniciarSesionConGoogle(firebaseCredential)
+
                                 } catch (e: GetCredentialException) {
-                                    viewModel.actualizarError("Error de autenticación: ${e.message}")
+                                    cargandoGoogle = false
+
+                                    Toast.makeText(
+                                        context,
+                                        "No se pudo iniciar sesión con Google",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } catch (e: Exception) {
-                                    viewModel.actualizarError("Ocurrió un error inesperado")
+                                    cargandoGoogle = false
+
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Error inesperado con Google",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = !uiState.cargando && !cargandoGoogle,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(painter = painterResource(id = R.drawable.google), contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Unspecified)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Continuar con Google", color = Color(0xFF1A237E), fontWeight = FontWeight.Medium)
+                        if (cargandoGoogle || uiState.cargando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF1565C0)
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.google),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "Continuar con Google",
+                                color = Color(0xFF1A237E),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedButton(
                         onClick = { navController.navigate(Screen.Register.route) },
                         modifier = Modifier.fillMaxWidth().height(48.dp),

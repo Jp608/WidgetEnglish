@@ -1,19 +1,29 @@
 package com.jp.widgetenglish.data.repository.auth
 
-import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.jp.widgetenglish.data.local.dao.UsuarioDao
-import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
-
+import com.google.firebase.auth.AuthCredential
 class AuthRepositoryImpl(
-    private val firebaseAuth: FirebaseAuth,
-    private val usuarioDao: UsuarioDao
+    private val firebaseAuth: FirebaseAuth
 ) : AuthRepository {
 
-    // --- MODO DE PRUEBA LOCAL (Simulación sin Firebase) ---
+    override suspend fun iniciarSesionConGoogle(
+        credential: AuthCredential
+    ): Result<FirebaseUser> {
+        return try {
+            val result = firebaseAuth
+                .signInWithCredential(credential)
+                .await()
+
+            val user = result.user
+                ?: return Result.failure(Exception("No se pudo iniciar sesión con Google"))
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun registrarConCorreo(
         nombre: String,
@@ -21,22 +31,14 @@ class AuthRepositoryImpl(
         password: String
     ): Result<FirebaseUser> {
         return try {
-            // Simulamos un ID único como si viniera de Firebase
-            val mockUid = UUID.randomUUID().toString()
+            val result = firebaseAuth
+                .createUserWithEmailAndPassword(correo, password)
+                .await()
 
-            val nuevoUsuario = UsuarioEntity(
-                idUsuario = mockUid,
-                firebaseUid = mockUid,
-                nombre = nombre,
-                correo = correo
-            )
-            usuarioDao.insertarUsuario(nuevoUsuario)
+            val user = result.user
+                ?: return Result.failure(Exception("No se pudo crear el usuario"))
 
-            // Retornamos éxito manual (FirebaseUser será null en mock, pero el ViewModel lo manejará)
-            // Para fines de prueba, lanzamos una excepción controlada o devolvemos éxito vacío
-            // Como Result necesita un FirebaseUser, y no podemos crear uno manualmente fácil,
-            // vamos a simular el éxito devolviendo una excepción de "Modo Offline" o ajustando el ViewModel.
-            Result.success(null as FirebaseUser) 
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -47,19 +49,38 @@ class AuthRepositoryImpl(
         password: String
     ): Result<FirebaseUser> {
         return try {
-            // Buscamos si el usuario existe en Room (local)
-            // Como no tenemos búsqueda por correo en el DAO actual, simulamos éxito si hay datos
-            Result.success(null as FirebaseUser)
+            val result = firebaseAuth
+                .signInWithEmailAndPassword(correo, password)
+                .await()
+
+            val user = result.user
+                ?: return Result.failure(Exception("No se pudo iniciar sesión"))
+
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun iniciarSesionConGoogle(credential: AuthCredential): Result<FirebaseUser> {
-        return Result.failure(Exception("Google no disponible en modo offline"))
+    override suspend fun recuperarPassword(
+        correo: String
+    ): Result<Unit> {
+        return try {
+            firebaseAuth
+                .sendPasswordResetEmail(correo)
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun recuperarPassword(correo: String): Result<Unit> = Result.success(Unit)
-    override fun obtenerUsuarioActual(): FirebaseUser? = null
-    override fun cerrarSesion() {}
+    override fun obtenerUsuarioActual(): FirebaseUser? {
+        return firebaseAuth.currentUser
+    }
+
+    override fun cerrarSesion() {
+        firebaseAuth.signOut()
+    }
 }

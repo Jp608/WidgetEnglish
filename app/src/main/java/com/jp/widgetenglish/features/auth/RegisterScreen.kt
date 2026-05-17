@@ -41,13 +41,7 @@ fun RegisterScreen(
         Color(0xFF0288D1)
     )
 
-    LaunchedEffect(uiState.autenticado) {
-        if (uiState.autenticado) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
-            }
-        }
-    }
+
 
     Box(
         modifier = Modifier
