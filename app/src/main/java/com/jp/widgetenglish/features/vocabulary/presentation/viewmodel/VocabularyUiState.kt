@@ -10,7 +10,11 @@ data class PalabraConProgreso(
     val tipoPalabra: TipoPalabra,
     val estado: EstadoAprendizaje,
     val fonetica: String? = null,
-    val dificultad: String = "Básico"
+    val dificultad: String = "Básico",
+    val esVerbo: Boolean = false,
+    val pasadoSimple: String? = null,
+    val participioPasado: String? = null,
+    val esIrregular: Boolean = false
 )
 
 enum class VocabularioFiltro {
@@ -20,11 +24,17 @@ enum class VocabularioFiltro {
     APRENDIDAS
 }
 
+enum class VocabularioSeccion {
+    PALABRAS,
+    VERBOS
+}
+
 data class VocabularyUiState(
     val cargando: Boolean = true,
     val palabrasOriginales: List<PalabraConProgreso> = emptyList(),
     val palabrasFiltradas: List<PalabraConProgreso> = emptyList(),
     val filtroActual: VocabularioFiltro = VocabularioFiltro.TODAS,
+    val seccionActual: VocabularioSeccion = VocabularioSeccion.PALABRAS,
     val textoBusqueda: String = "",
     val error: String? = null,
     val totalPalabras: Int = 0,

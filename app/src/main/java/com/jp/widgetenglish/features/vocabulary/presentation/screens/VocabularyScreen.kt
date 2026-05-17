@@ -21,13 +21,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.common.TtsHelper
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.PalabraConProgreso
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioFiltro
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioSeccion
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +44,8 @@ fun VocabularyScreen(
     onVocabularioClick: () -> Unit,
     onLotesClick: () -> Unit,
     onEstudioClick: () -> Unit,
-    onIaClick: () -> Unit
+    onIaClick: () -> Unit,
+    onItemClick: (PalabraConProgreso) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -75,8 +81,8 @@ fun VocabularyScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(bottomStart = 60.dp, bottomEnd = 60.dp))
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -92,33 +98,31 @@ fun VocabularyScreen(
                     modifier = Modifier.padding(horizontal = 32.dp),
                     horizontalAlignment = Alignment.Start
                 ) {
-                    val titulo = if (uiState.filtroActual == VocabularioFiltro.APRENDIDAS) "Palabras Aprendidas" else "Vocabulario"
-                    val subtitulo = if (uiState.filtroActual == VocabularioFiltro.APRENDIDAS) "¡Excelente! Sigue reforzando tu conocimiento." else "Aprende nuevas palabras cada día"
-
                     Text(
-                        text = titulo,
-                        fontSize = 32.sp,
+                        text = "Vocabulario",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = subtitulo,
-                        fontSize = 18.sp,
-                        color = Color.White.copy(alpha = 0.88f)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Selector de Secciones (Sustantivos / Verbos)
+                SectionSelector(
+                    seccionActual = uiState.seccionActual,
+                    onSeccionChanged = { viewModel.onSeccionChanged(it) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Estadísticas estilo Home con navegación
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StatCard(
                         label = "Total",
@@ -161,7 +165,10 @@ fun VocabularyScreen(
                     value = uiState.textoBusqueda,
                     onValueChange = { viewModel.onSearchTextChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar palabra...", color = Color.Gray) },
+                    placeholder = { 
+                        val placeholder = if (uiState.seccionActual == VocabularioSeccion.VERBOS) "Buscar verbo..." else "Buscar sustantivo..."
+                        Text(placeholder, color = Color.Gray) 
+                    },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF1565C0)) },
                     trailingIcon = {
                         if (uiState.textoBusqueda.isNotEmpty()) {
@@ -185,7 +192,7 @@ fun VocabularyScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(VocabularioFiltro.entries.toTypedArray()) { filtro ->
                         val selected = uiState.filtroActual == filtro
-                        val (chipColor, chipContentColor) = when (filtro) {
+                        val (_, chipContentColor) = when (filtro) {
                             VocabularioFiltro.TODAS -> Color(0xFFE8EAF6) to Color(0xFF1A237E)
                             VocabularioFiltro.PENDIENTES -> Color(0xFFFFF3E0) to Color(0xFFE65100)
                             VocabularioFiltro.EN_PROGRESO -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
@@ -226,9 +233,10 @@ fun VocabularyScreen(
                         items(palabrasFiltradas) { palabra ->
                             WordCard(
                                 palabra = palabra,
-                                onMarkLearned = { viewModel.marcarComoAprendido(palabra.id) },
+                                onMarkLearned = { viewModel.marcarComoAprendido(palabra.id, palabra.esVerbo) },
                                 onRevert = { viewModel.mostrarConfirmacionRevertir(palabra) },
-                                onSpeak = { ttsHelper.speak(palabra.termino) }
+                                onSpeak = { ttsHelper.speak(palabra.termino) },
+                                onClick = { onItemClick(palabra) }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -248,7 +256,7 @@ fun VocabularyScreen(
                 text = { Text("La palabra pasará a \"En progreso\" y volverá a aparecer en tu lista de estudio.", textAlign = TextAlign.Center, color = Color.Gray) },
                 confirmButton = {
                     Button(
-                        onClick = { viewModel.revertirEstadoAprendido(palabra.id) },
+                        onClick = { viewModel.revertirEstadoAprendido(palabra.id, palabra.esVerbo) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -269,6 +277,62 @@ fun VocabularyScreen(
 }
 
 @Composable
+fun SectionSelector(
+    seccionActual: VocabularioSeccion,
+    onSeccionChanged: (VocabularioSeccion) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFEEEEEE), RoundedCornerShape(24.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        SectionButton(
+            text = "Sustantivos",
+            icon = Icons.AutoMirrored.Filled.MenuBook,
+            isSelected = seccionActual == VocabularioSeccion.PALABRAS,
+            onClick = { onSeccionChanged(VocabularioSeccion.PALABRAS) },
+            modifier = Modifier.weight(1f)
+        )
+        SectionButton(
+            text = "Verbos",
+            icon = Icons.AutoMirrored.Filled.DirectionsRun,
+            isSelected = seccionActual == VocabularioSeccion.VERBOS,
+            onClick = { onSeccionChanged(VocabularioSeccion.VERBOS) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun SectionButton(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = if (isSelected) Color(0xFF1565C0) else Color.Transparent,
+        contentColor = if (isSelected) Color.White else Color.Gray
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
 fun StatCard(
     label: String,
     value: String,
@@ -281,10 +345,10 @@ fun StatCard(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
@@ -298,18 +362,19 @@ fun WordCard(
     palabra: PalabraConProgreso,
     onMarkLearned: () -> Unit,
     onRevert: () -> Unit,
-    onSpeak: () -> Unit
+    onSpeak: () -> Unit,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Indicador de color lateral basado en estado
@@ -322,104 +387,115 @@ fun WordCard(
             Box(
                 modifier = Modifier
                     .width(6.dp)
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .fillMaxHeight()
                     .background(indicatorColor)
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = palabra.termino,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color(0xFF1A237E)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "• ${palabra.tipoPalabra.name.lowercase().replaceFirstChar { it.uppercase() }}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                }
-                Text(
-                    text = palabra.traduccion,
-                    color = Color.Gray,
-                    fontSize = 16.sp
-                )
-                if (!palabra.fonetica.isNullOrBlank()) {
-                    Text(
-                        text = palabra.fonetica,
-                        color = Color(0xFF039BE5),
-                        fontSize = 14.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusChip(palabra.estado)
-                }
-                Text(
-                    text = palabra.dificultad,
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onSpeak,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(Color(0xFFE3F2FD), RoundedCornerShape(8.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            tint = Color(0xFF1565C0),
-                            modifier = Modifier.size(20.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = palabra.termino,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF1A237E),
+                            maxLines = 1
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (palabra.esVerbo) {
+                                "• Verbo ${if (palabra.esIrregular) "irr." else "reg."}"
+                            } else {
+                                "• ${palabra.tipoPalabra.name.lowercase().take(4).replaceFirstChar { it.uppercase() }}."
+                            },
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            maxLines = 1
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    if (palabra.estado == EstadoAprendizaje.APRENDIDA) {
-                        Button(
-                            onClick = onRevert,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFE8F5E9),
-                                contentColor = Color(0xFF388E3C)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
+                    Text(
+                        text = palabra.traduccion,
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        maxLines = 1
+                    )
+                    
+                    if (palabra.esVerbo) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(text = "P: ${palabra.pasadoSimple}", fontSize = 11.sp, color = Color.Gray, maxLines = 1)
+                            Text(text = "PP: ${palabra.participioPasado}", fontSize = 11.sp, color = Color.Gray, maxLines = 1)
+                        }
+                    } else if (!palabra.fonetica.isNullOrBlank()) {
+                        Text(
+                            text = palabra.fonetica,
+                            color = Color(0xFF039BE5),
+                            fontSize = 12.sp,
+                            fontStyle = FontStyle.Italic,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    StatusChip(palabra.estado)
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onSpeak,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(Color(0xFFE3F2FD), RoundedCornerShape(6.dp))
                         ) {
-                            Text(
-                                text = "Volver a estudiar",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = null,
+                                tint = Color(0xFF1565C0),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                    } else {
-                        Button(
-                            onClick = onMarkLearned,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFE3F2FD),
-                                contentColor = Color(0xFF1565C0)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Text(
-                                text = "Marcar aprendida",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (palabra.estado == EstadoAprendizaje.APRENDIDA) {
+                            Button(
+                                onClick = onRevert,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE8F5E9),
+                                    contentColor = Color(0xFF388E3C)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    text = "Volver a estudiar",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = onMarkLearned,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE3F2FD),
+                                    contentColor = Color(0xFF1565C0)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    text = "Marcar aprendida",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -462,7 +538,7 @@ fun EmptyState(filtro: VocabularioFiltro, isSearch: Boolean, onClearSearch: () -
             Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(80.dp), tint = Color.LightGray)
             Spacer(modifier = Modifier.height(16.dp))
             Text("No se encontraron resultados", fontWeight = FontWeight.Bold)
-            Text("Intenta con otra palabra o revisa la ortografía.", color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("Intenta con otra palabra o revisa la ortografía.", color = Color.Gray, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onClearSearch) {
                 Icon(Icons.Default.Refresh, contentDescription = null)
@@ -470,12 +546,10 @@ fun EmptyState(filtro: VocabularioFiltro, isSearch: Boolean, onClearSearch: () -
                 Text("Limpiar búsqueda")
             }
         } else if (filtro == VocabularioFiltro.APRENDIDAS) {
-            // HU11: Si no hay palabras aprendidas, se muestra un mensaje motivacional.
             Text("Aún no tienes palabras aprendidas.", fontWeight = FontWeight.Bold)
-            Text("¡Sigue estudiando para ver tu progreso aquí!", color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("¡Sigue estudiando para ver tu progreso aquí!", color = Color.Gray, textAlign = TextAlign.Center)
         } else {
             Text("No hay palabras en esta categoría.")
         }
     }
 }
-

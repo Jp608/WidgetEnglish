@@ -31,6 +31,7 @@ import com.widgetenglish.app.ui.auth.NewPasswordScreen
 import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
 
@@ -84,8 +85,7 @@ fun AppNavGraph() {
     val vocabularyViewModel: VocabularyViewModel = viewModel(
         factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
-            authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            authRepository = authRepository
         )
     )
 
@@ -164,7 +164,21 @@ fun AppNavGraph() {
                 onLotesClick = { navegar(Screen.Lotes.route) },
                 onEstudioClick = { navegar(Screen.Estudio.route) },
                 onIaClick = { navegar(Screen.Ia.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) }
+                onPerfilClick = { navegar(Screen.Profile.route) },
+                onItemClick = { item ->
+                    navController.navigate(Screen.VocabularyDetail.createRoute(item.id, item.esVerbo))
+                }
+            )
+        }
+
+        composable(Screen.VocabularyDetail.route) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+            val isVerbo = backStackEntry.arguments?.getString("isVerbo")?.toBoolean() ?: false
+            VocabularyDetailScreen(
+                itemId = itemId,
+                isVerbo = isVerbo,
+                viewModel = vocabularyViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 

@@ -236,6 +236,61 @@ object SeedPalabras {
             ejemploTraduccion = "El erizo se enrolla como una bola",
             dificultad = Dificultad.MEDIA,
             activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_book",
+            termino = "book",
+            traduccion = "libro",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/bʊk/",
+            ejemplo = "I am reading a new book",
+            ejemploTraduccion = "Estoy leyendo un libro nuevo",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_table",
+            termino = "table",
+            traduccion = "mesa",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/ˈteɪ.bəl/",
+            ejemplo = "The food is on the table",
+            ejemploTraduccion = "La comida está en la mesa",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_chair",
+            termino = "chair",
+            traduccion = "silla",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/tʃɛər/",
+            ejemplo = "Please sit on the chair",
+            ejemploTraduccion = "Por favor siéntate en la silla",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_window",
+            termino = "window",
+            traduccion = "ventana",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/ˈwɪn.doʊ/",
+            ejemplo = "Open the window for fresh air",
+            ejemploTraduccion = "Abre la ventana para que entre aire fresco",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_door",
+            termino = "door",
+            traduccion = "puerta",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/dɔːr/",
+            ejemplo = "Close the door when you leave",
+            ejemploTraduccion = "Cierra la puerta cuando te vayas",
+            dificultad = Dificultad.FACIL,
+            activo = true
         )
     )
 }

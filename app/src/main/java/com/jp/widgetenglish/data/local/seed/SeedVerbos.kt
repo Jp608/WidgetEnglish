@@ -381,6 +381,71 @@ object SeedVerbos {
             dificultad = Dificultad.FACIL,
             esIrregular = false,
             activo = true
+        ),
+        VerboEntity(
+            idVerbo = "verbo_run",
+            formaBase = "run",
+            pasadoSimple = "ran",
+            participioPasado = "run",
+            traduccion = "correr",
+            fonetica = "/rʌn/",
+            ejemploIngles = "He runs fast in the morning",
+            ejemploEspanol = "Él corre rápido en la mañana",
+            dificultad = Dificultad.FACIL,
+            esIrregular = true,
+            activo = true
+        ),
+        VerboEntity(
+            idVerbo = "verbo_swim",
+            formaBase = "swim",
+            pasadoSimple = "swam",
+            participioPasado = "swum",
+            traduccion = "nadar",
+            fonetica = "/swɪm/",
+            ejemploIngles = "They swim in the ocean",
+            ejemploEspanol = "Ellos nadan en el océano",
+            dificultad = Dificultad.FACIL,
+            esIrregular = true,
+            activo = true
+        ),
+        VerboEntity(
+            idVerbo = "verbo_fly",
+            formaBase = "fly",
+            pasadoSimple = "flew",
+            participioPasado = "flown",
+            traduccion = "volar",
+            fonetica = "/flaɪ/",
+            ejemploIngles = "Birds fly high in the sky",
+            ejemploEspanol = "Los pájaros vuelan alto en el cielo",
+            dificultad = Dificultad.MEDIA,
+            esIrregular = true,
+            activo = true
+        ),
+        VerboEntity(
+            idVerbo = "verbo_dance",
+            formaBase = "dance",
+            pasadoSimple = "danced",
+            participioPasado = "danced",
+            traduccion = "bailar",
+            fonetica = "/dæns/",
+            ejemploIngles = "She dances ballet",
+            ejemploEspanol = "Ella baila ballet",
+            dificultad = Dificultad.FACIL,
+            esIrregular = false,
+            activo = true
+        ),
+        VerboEntity(
+            idVerbo = "verbo_sing",
+            formaBase = "sing",
+            pasadoSimple = "sang",
+            participioPasado = "sung",
+            traduccion = "cantar",
+            fonetica = "/sɪŋ/",
+            ejemploIngles = "We sing a song together",
+            ejemploEspanol = "Cantamos una canción juntos",
+            dificultad = Dificultad.FACIL,
+            esIrregular = true,
+            activo = true
         )
     )
 }
