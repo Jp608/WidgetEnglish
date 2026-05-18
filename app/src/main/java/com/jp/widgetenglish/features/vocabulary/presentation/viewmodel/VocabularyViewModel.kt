@@ -18,11 +18,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
+import kotlinx.coroutines.flow.first
 @OptIn(ExperimentalCoroutinesApi::class)
 class VocabularyViewModel(
     private val repository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
 ) : ViewModel() {
 
     private val _filtroActual = MutableStateFlow(VocabularioFiltro.TODAS)
@@ -246,7 +248,7 @@ class VocabularyViewModel(
                     tipoContenido = tipo
                 )
             }
-
+            sincronizarPalabrasAprendidasConFirestore(userId)
             cargarUsuarioActual()
         }
     }
@@ -299,8 +301,26 @@ class VocabularyViewModel(
                 )
             }
 
+            sincronizarPalabrasAprendidasConFirestore(userId)
             ocultarConfirmacionRevertir()
             cargarUsuarioActual()
         }
     }
+    private suspend fun sincronizarPalabrasAprendidasConFirestore(userId: String) {
+        val progresos = repository.observarProgresoUsuario(userId).first()
+
+        val totalAprendidas = progresos.count { progreso ->
+            progreso.estadoAprendizaje == EstadoAprendizaje.APRENDIDA &&
+                    (
+                            progreso.tipoContenido == TipoContenido.PALABRA ||
+                                    progreso.tipoContenido == TipoContenido.VERBO
+                            )
+        }
+
+        usuarioFirestoreDataSource.actualizarPalabrasAprendidas(
+            firebaseUid = userId,
+            cantidad = totalAprendidas
+        )
+    }
+
 }

@@ -81,7 +81,8 @@ fun AppNavGraph() {
     val vocabularyViewModel: VocabularyViewModel = viewModel(
         factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource
         )
     )
 
