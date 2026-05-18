@@ -18,6 +18,30 @@ class UsuarioFirestoreDataSource(
         return if (snapshot.exists()) {
             val rolTexto = snapshot.getString("rol") ?: RolUsuario.USUARIO.name
 
+            val camposFaltantes = mutableMapOf<String, Any>()
+
+            if (!snapshot.contains("palabrasAprendidas")) {
+                camposFaltantes["palabrasAprendidas"] = 0
+            }
+
+            if (!snapshot.contains("quizzesRealizados")) {
+                camposFaltantes["quizzesRealizados"] = 0
+            }
+
+            if (!snapshot.contains("lotesCompletados")) {
+                camposFaltantes["lotesCompletados"] = 0
+            }
+
+            if (!snapshot.contains("porcentajeProgreso")) {
+                camposFaltantes["porcentajeProgreso"] = 0
+            }
+
+            camposFaltantes["ultimoAcceso"] = System.currentTimeMillis()
+
+            if (camposFaltantes.isNotEmpty()) {
+                documentRef.update(camposFaltantes).await()
+            }
+
             usuario.copy(
                 nombre = snapshot.getString("nombre") ?: usuario.nombre,
                 correo = snapshot.getString("correo") ?: usuario.correo,
@@ -39,7 +63,13 @@ class UsuarioFirestoreDataSource(
                 "fechaRegistro" to usuario.fechaRegistro,
                 "ultimoAcceso" to System.currentTimeMillis(),
                 "rachaActual" to usuario.rachaActual,
-                "rachaMaxima" to usuario.rachaMaxima
+                "rachaMaxima" to usuario.rachaMaxima,
+
+                // Estadísticas base para ranking/admin
+                "palabrasAprendidas" to 0,
+                "quizzesRealizados" to 0,
+                "lotesCompletados" to 0,
+                "porcentajeProgreso" to 0
             )
 
             documentRef.set(data).await()
