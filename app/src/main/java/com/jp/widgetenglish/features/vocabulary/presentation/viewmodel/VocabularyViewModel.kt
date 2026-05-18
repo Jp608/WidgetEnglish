@@ -7,6 +7,7 @@ import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.ProgresoUsuarioEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
 import com.jp.widgetenglish.data.local.entity.TipoPalabra
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -22,7 +24,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class VocabularyViewModel(
     private val repository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
 ) : ViewModel() {
 
     private val _filtroActual = MutableStateFlow(VocabularioFiltro.TODAS)
@@ -133,30 +136,44 @@ class VocabularyViewModel(
                     VocabularioSeccion.VERBOS -> listaVerbos
                 }
 
+                val busquedaLimpia = busqueda.trim()
+
                 val filtradas = listaCompleta.filter { item ->
-                    val coincideTexto = item.termino.contains(busqueda, ignoreCase = true) ||
-                            item.traduccion.contains(busqueda, ignoreCase = true)
+                    val coincideTexto = if (busquedaLimpia.isBlank()) {
+                        true
+                    } else {
+                        item.termino.contains(busquedaLimpia, ignoreCase = true) ||
+                                item.traduccion.contains(busquedaLimpia, ignoreCase = true)
+                    }
 
                     val coincideFiltro = when (filtro) {
                         VocabularioFiltro.TODAS -> true
-                        VocabularioFiltro.PENDIENTES -> item.estado == EstadoAprendizaje.NO_VISTA
+
+                        VocabularioFiltro.PENDIENTES ->
+                            item.estado == EstadoAprendizaje.NO_VISTA
+
                         VocabularioFiltro.EN_PROGRESO ->
                             item.estado == EstadoAprendizaje.EN_PROGRESO ||
                                     item.estado == EstadoAprendizaje.DIFICIL
-                        VocabularioFiltro.APRENDIDAS -> item.estado == EstadoAprendizaje.APRENDIDA
+
+                        VocabularioFiltro.APRENDIDAS ->
+                            item.estado == EstadoAprendizaje.APRENDIDA
                     }
 
                     coincideTexto && coincideFiltro
                 }
 
                 val total = listaCompleta.size
+
                 val pendientes = listaCompleta.count {
                     it.estado == EstadoAprendizaje.NO_VISTA
                 }
+
                 val enProgreso = listaCompleta.count {
                     it.estado == EstadoAprendizaje.EN_PROGRESO ||
                             it.estado == EstadoAprendizaje.DIFICIL
                 }
+
                 val aprendidas = listaCompleta.count {
                     it.estado == EstadoAprendizaje.APRENDIDA
                 }
@@ -247,6 +264,7 @@ class VocabularyViewModel(
                 )
             }
 
+            sincronizarPalabrasAprendidasConFirestore(userId)
             cargarUsuarioActual()
         }
     }
@@ -299,8 +317,26 @@ class VocabularyViewModel(
                 )
             }
 
+            sincronizarPalabrasAprendidasConFirestore(userId)
             ocultarConfirmacionRevertir()
             cargarUsuarioActual()
         }
+    }
+
+    private suspend fun sincronizarPalabrasAprendidasConFirestore(userId: String) {
+        val progresos = repository.observarProgresoUsuario(userId).first()
+
+        val totalAprendidas = progresos.count { progreso ->
+            progreso.estadoAprendizaje == EstadoAprendizaje.APRENDIDA &&
+                    (
+                            progreso.tipoContenido == TipoContenido.PALABRA ||
+                                    progreso.tipoContenido == TipoContenido.VERBO
+                            )
+        }
+
+        usuarioFirestoreDataSource.actualizarPalabrasAprendidas(
+            firebaseUid = userId,
+            cantidad = totalAprendidas
+        )
     }
 }

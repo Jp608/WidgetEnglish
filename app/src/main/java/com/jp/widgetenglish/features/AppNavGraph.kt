@@ -34,7 +34,11 @@ import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyS
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
-
+import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
+import com.jp.widgetenglish.features.admin.AdminViewModel
+import com.jp.widgetenglish.features.admin.AdminViewModelFactory
+import com.jp.widgetenglish.features.admin.ranking.AdminRankingScreen
+import com.jp.widgetenglish.features.admin.activity.AdminActivityScreen
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -46,6 +50,15 @@ fun AppNavGraph() {
     )
     val usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
         firestore = FirebaseFirestore.getInstance()
+    )
+
+    val adminFirestoreDataSource = AdminFirestoreDataSource(
+        firestore = FirebaseFirestore.getInstance()
+    )
+    val adminViewModel: AdminViewModel = viewModel(
+        factory = AdminViewModelFactory(
+            adminFirestoreDataSource = adminFirestoreDataSource
+        )
     )
 
     val vocabularioRepository = VocabularioRepositoryImpl(
@@ -81,7 +94,8 @@ fun AppNavGraph() {
     val vocabularyViewModel: VocabularyViewModel = viewModel(
         factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource
         )
     )
 
@@ -239,6 +253,22 @@ fun AppNavGraph() {
 
         composable(Screen.AdminDashboard.route) {
             AdminDashboardScreen(
+                viewModel = adminViewModel,
+                onRankingClick = {
+                    navController.navigate(Screen.AdminRanking.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onActividadClick = {
+                    navController.navigate(Screen.AdminActivity.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onPerfilClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onCerrarSesionClick = {
                     authViewModel.cerrarSesion()
 
@@ -251,5 +281,48 @@ fun AppNavGraph() {
                 }
             )
         }
+        composable(Screen.AdminRanking.route) {
+            AdminRankingScreen(
+                viewModel = adminViewModel,
+                onResumenClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onActividadClick = {
+                    navController.navigate(Screen.AdminActivity.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onPerfilClick = {
+                    // Por ahora volvemos al panel admin o luego hacemos perfil admin
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(Screen.AdminActivity.route) {
+            AdminActivityScreen(
+                viewModel = adminViewModel,
+                onResumenClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onRankingClick = {
+                    navController.navigate(Screen.AdminRanking.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onPerfilClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
     }
 }

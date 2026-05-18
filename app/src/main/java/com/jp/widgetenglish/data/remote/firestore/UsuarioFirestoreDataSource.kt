@@ -105,6 +105,20 @@ class UsuarioFirestoreDataSource(
         )
     }
 
+    suspend fun actualizarPalabrasAprendidas(
+        firebaseUid: String,
+        cantidad: Int
+    ) {
+        usuariosCollection.document(firebaseUid)
+            .update(
+                mapOf(
+                    "palabrasAprendidas" to cantidad,
+                    "ultimoAcceso" to System.currentTimeMillis()
+                )
+            )
+            .await()
+    }
+
     suspend fun actualizarUltimoAcceso(firebaseUid: String) {
         usuariosCollection.document(firebaseUid)
             .update("ultimoAcceso", System.currentTimeMillis())
