@@ -1,4 +1,5 @@
 package com.widgetenglish.app.ui
+
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
@@ -39,15 +40,19 @@ import com.jp.widgetenglish.features.admin.AdminViewModel
 import com.jp.widgetenglish.features.admin.AdminViewModelFactory
 import com.jp.widgetenglish.features.admin.ranking.AdminRankingScreen
 import com.jp.widgetenglish.features.admin.activity.AdminActivityScreen
+import com.jp.widgetenglish.features.admin.profile.AdminProfileScreen
+
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
     val database = DatabaseProvider.getDatabase(context)
+
     val authRepository = AuthRepositoryImpl(
         firebaseAuth = FirebaseAuth.getInstance()
     )
+
     val usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
         firestore = FirebaseFirestore.getInstance()
     )
@@ -55,6 +60,7 @@ fun AppNavGraph() {
     val adminFirestoreDataSource = AdminFirestoreDataSource(
         firestore = FirebaseFirestore.getInstance()
     )
+
     val adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModelFactory(
             adminFirestoreDataSource = adminFirestoreDataSource
@@ -99,7 +105,6 @@ fun AppNavGraph() {
         )
     )
 
-
     val authUiState by authViewModel.uiState.collectAsState()
 
     LaunchedEffect(authUiState.autenticado, authUiState.rolUsuario) {
@@ -118,6 +123,7 @@ fun AppNavGraph() {
             }
         }
     }
+
     fun navegar(route: String) {
         navController.navigate(route) {
             launchSingleTop = true
@@ -133,7 +139,7 @@ fun AppNavGraph() {
     NavHost(
         navController = navController,
         startDestination = startDestination
-    )  {
+    ) {
         composable(Screen.Login.route) {
             LoginScreen(
                 navController = navController,
@@ -176,7 +182,12 @@ fun AppNavGraph() {
                 onIaClick = { navegar(Screen.Ia.route) },
                 onPerfilClick = { navegar(Screen.Profile.route) },
                 onItemClick = { item ->
-                    navController.navigate(Screen.VocabularyDetail.createRoute(item.id, item.esVerbo))
+                    navController.navigate(
+                        Screen.VocabularyDetail.createRoute(
+                            item.id,
+                            item.esVerbo
+                        )
+                    )
                 }
             )
         }
@@ -184,6 +195,7 @@ fun AppNavGraph() {
         composable(Screen.VocabularyDetail.route) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
             val isVerbo = backStackEntry.arguments?.getString("isVerbo")?.toBoolean() ?: false
+
             VocabularyDetailScreen(
                 itemId = itemId,
                 isVerbo = isVerbo,
@@ -265,7 +277,7 @@ fun AppNavGraph() {
                     }
                 },
                 onPerfilClick = {
-                    navController.navigate(Screen.AdminDashboard.route) {
+                    navController.navigate(Screen.AdminProfile.route) {
                         launchSingleTop = true
                     }
                 },
@@ -281,6 +293,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(Screen.AdminRanking.route) {
             AdminRankingScreen(
                 viewModel = adminViewModel,
@@ -295,8 +308,7 @@ fun AppNavGraph() {
                     }
                 },
                 onPerfilClick = {
-                    // Por ahora volvemos al panel admin o luego hacemos perfil admin
-                    navController.navigate(Screen.AdminDashboard.route) {
+                    navController.navigate(Screen.AdminProfile.route) {
                         launchSingleTop = true
                     }
                 }
@@ -317,12 +329,42 @@ fun AppNavGraph() {
                     }
                 },
                 onPerfilClick = {
-                    navController.navigate(Screen.AdminDashboard.route) {
+                    navController.navigate(Screen.AdminProfile.route) {
                         launchSingleTop = true
                     }
                 }
             )
         }
 
+        composable(Screen.AdminProfile.route) {
+            AdminProfileScreen(
+                profileViewModel = profileViewModel,
+                onResumenClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onRankingClick = {
+                    navController.navigate(Screen.AdminRanking.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onActividadClick = {
+                    navController.navigate(Screen.AdminActivity.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onCerrarSesionClick = {
+                    authViewModel.cerrarSesion()
+
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
 }
