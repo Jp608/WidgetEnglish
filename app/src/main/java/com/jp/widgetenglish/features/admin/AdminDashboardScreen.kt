@@ -112,15 +112,15 @@ fun AdminDashboardScreen(
     var showConstructionDialog by remember { mutableStateOf(false) }
     var constructionTitle by remember { mutableStateOf("") }
 
-    if (showLogoutDialog) {
-        LogoutDialog(
-            onDismiss = { showLogoutDialog = false },
-            onConfirm = {
-                showLogoutDialog = false
-                onCerrarSesionClick()
-            }
-        )
-    }
+//    if (showLogoutDialog) {
+//        LogoutDialog(
+//            onDismiss = { showLogoutDialog = false },
+//            onConfirm = {
+//                showLogoutDialog = false
+//                onCerrarSesionClick()
+//            }
+//        )
+//    }
 
     if (showConstructionDialog) {
         ConstructionDialog(
@@ -250,30 +250,30 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            Button(
-                onClick = { showLogoutDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Logout,
-                    contentDescription = null
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "Cerrar sesión",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+//            Button(
+//                onClick = { showLogoutDialog = true },
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(horizontal = 24.dp)
+//                    .height(56.dp),
+//                shape = RoundedCornerShape(18.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = PrimaryBlue
+//                )
+//            ) {
+//                Icon(
+//                    imageVector = Icons.Filled.Logout,
+//                    contentDescription = null
+//                )
+//
+//                Spacer(modifier = Modifier.width(8.dp))
+//
+//                Text(
+//                    text = "Cerrar sesión",
+//                    fontSize = 16.sp,
+//                    fontWeight = FontWeight.Bold
+//                )
+//            }
 
             Spacer(modifier = Modifier.height(26.dp))
         }
@@ -823,65 +823,65 @@ private fun ErrorCard(
     }
 }
 
-@Composable
-private fun LogoutDialog(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Surface(
-                modifier = Modifier.size(50.dp),
-                shape = CircleShape,
-                color = PrimaryBlueSoft
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Logout,
-                        contentDescription = null,
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-        },
-        title = {
-            Text(
-                text = "¿Cerrar sesión?",
-                fontWeight = FontWeight.Bold,
-                color = TextMain
-            )
-        },
-        text = {
-            Text(
-                text = "¿Deseas cerrar tu sesión de administrador?",
-                textAlign = TextAlign.Center,
-                color = TextMuted
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue
-                ),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text("Cerrar sesión")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text("Cancelar")
-            }
-        },
-        shape = RoundedCornerShape(26.dp)
-    )
-}
+//@Composable
+//private fun LogoutDialog(
+//    onDismiss: () -> Unit,
+//    onConfirm: () -> Unit
+//) {
+//    AlertDialog(
+//        onDismissRequest = onDismiss,
+//        icon = {
+//            Surface(
+//                modifier = Modifier.size(50.dp),
+//                shape = CircleShape,
+//                color = PrimaryBlueSoft
+//            ) {
+//                Box(contentAlignment = Alignment.Center) {
+//                    Icon(
+//                        imageVector = Icons.Filled.Logout,
+//                        contentDescription = null,
+//                        tint = PrimaryBlue,
+//                        modifier = Modifier.size(28.dp)
+//                    )
+//                }
+//            }
+//        },
+//        title = {
+//            Text(
+//                text = "¿Cerrar sesión?",
+//                fontWeight = FontWeight.Bold,
+//                color = TextMain
+//            )
+//        },
+//        text = {
+//            Text(
+//                text = "¿Deseas cerrar tu sesión de administrador?",
+//                textAlign = TextAlign.Center,
+//                color = TextMuted
+//            )
+//        },
+//        confirmButton = {
+//            Button(
+//                onClick = onConfirm,
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = PrimaryBlue
+//                ),
+//                shape = RoundedCornerShape(14.dp)
+//            ) {
+//                Text("Cerrar sesión")
+//            }
+//        },
+//        dismissButton = {
+//            OutlinedButton(
+//                onClick = onDismiss,
+//                shape = RoundedCornerShape(14.dp)
+//            ) {
+//                Text("Cancelar")
+//            }
+//        },
+//        shape = RoundedCornerShape(26.dp)
+//    )
+//}
 
 @Composable
 private fun ConstructionDialog(
