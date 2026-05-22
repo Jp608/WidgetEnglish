@@ -1,5 +1,6 @@
 package com.jp.widgetenglish.data.repository
 
+import com.jp.widgetenglish.data.local.dao.LoteConProgreso
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.LoteEntity
@@ -30,6 +31,8 @@ interface VocabularioRepository {
 
     fun observarLotes(): Flow<List<LoteEntity>>
 
+    fun observarLotesConProgreso(usuarioId: String): Flow<List<LoteConProgreso>>
+
     fun observarContenidoDeLote(loteId: String): Flow<List<LoteContenidoEntity>>
 
     suspend fun obtenerLotePorId(idLote: String): LoteEntity?
@@ -56,6 +59,8 @@ interface VocabularioRepository {
         contenidoId: String,
         tipoContenido: TipoContenido
     ): ProgresoUsuarioEntity?
+
+    suspend fun sincronizarProgresos(usuarioId: String)
 
     suspend fun guardarProgresoUsuario(progreso: ProgresoUsuarioEntity)
 
@@ -110,4 +115,8 @@ interface VocabularioRepository {
         loteId: String,
         progresoPorcentaje: Float
     )
+
+    suspend fun reiniciarProgresoLote(usuarioId: String, loteId: String)
+
+    suspend fun sincronizarLoteActivoConFirestore(usuarioId: String)
 }

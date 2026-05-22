@@ -8,7 +8,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.widgetDataStore by preferencesDataStore(name = "widget_prefs")
+import kotlinx.coroutines.flow.first
+
+val Context.widgetDataStore by preferencesDataStore(name = "widget_prefs")
 
 object WidgetPreferences {
 
@@ -50,5 +52,26 @@ object WidgetPreferences {
 
     suspend fun reiniciarIndice(context: Context) {
         context.widgetDataStore.edit { it[KEY_WORD_INDEX] = 0 }
+    }
+
+    suspend fun actualizarIndiceDirecto(context: Context, nuevoIndice: Int) {
+        context.widgetDataStore.edit { it[KEY_WORD_INDEX] = nuevoIndice }
+    }
+
+    data class PreferenciasSnapshot(
+        val loteId: String?,
+        val loteNombre: String?,
+        val wordIndex: Int,
+        val userId: String?
+    )
+
+    suspend fun obtenerTodasLasPreferenciasRapidas(context: Context): PreferenciasSnapshot {
+        val prefs = context.widgetDataStore.data.first()
+        return PreferenciasSnapshot(
+            loteId = prefs[KEY_LOTE_ID],
+            loteNombre = prefs[KEY_LOTE_NOMBRE],
+            wordIndex = prefs[KEY_WORD_INDEX] ?: 0,
+            userId = prefs[KEY_USER_ID]
+        )
     }
 }

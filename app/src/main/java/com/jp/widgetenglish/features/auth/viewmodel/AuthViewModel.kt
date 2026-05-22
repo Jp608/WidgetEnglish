@@ -13,11 +13,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.local.entity.RolUsuario
+import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
+import com.jp.widgetenglish.data.repository.VocabularioRepository
+import kotlinx.coroutines.flow.first
+
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
-    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource,
+    private val vocabularioRepository: VocabularioRepository,
+    private val context: android.content.Context
 ) : ViewModel() {
+
+    private fun sincronizarWidgetTrasLogin(userId: String) {
+        viewModelScope.launch {
+            val loteActivo = vocabularioRepository.observarLoteActivo(userId).first()
+            if (loteActivo != null) {
+                val info = vocabularioRepository.obtenerLotePorId(loteActivo.loteId)
+                if (info != null) {
+                    WidgetPreferences.guardarLoteActivo(context, info.idLote, info.nombre)
+                    WidgetPreferences.guardarUserId(context, userId)
+                }
+            }
+        }
+    }
 
     private suspend fun guardarUsuarioFirestoreYRoom(usuario: UsuarioEntity): UsuarioEntity {
         val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(usuario)
@@ -103,6 +122,7 @@ class AuthViewModel(
                 )
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuario)
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
@@ -160,6 +180,7 @@ class AuthViewModel(
                 )
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
@@ -246,6 +267,7 @@ class AuthViewModel(
                 )
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
@@ -286,6 +308,7 @@ class AuthViewModel(
 
                 usuarioDao.insertarUsuario(usuarioActualizado)
                 usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
@@ -309,6 +332,7 @@ class AuthViewModel(
             )
 
             val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+            sincronizarWidgetTrasLogin(firebaseUser.uid)
 
             _uiState.value = _uiState.value.copy(
                 cargando = false,

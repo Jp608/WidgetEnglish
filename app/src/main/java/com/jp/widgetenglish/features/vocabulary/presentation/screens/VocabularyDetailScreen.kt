@@ -295,6 +295,7 @@ fun VocabularyDetailScreen(
                     Button(
                         onClick = {
                             viewModel.marcarComoAprendido(
+                                context,
                                 palabra.id,
                                 palabra.esVerbo
                             )
@@ -407,6 +408,7 @@ fun VocabularyDetailScreen(
                     Button(
                         onClick = {
                             viewModel.revertirEstadoAprendido(
+                                context,
                                 palabraDialogo.id,
                                 palabraDialogo.esVerbo
                             )

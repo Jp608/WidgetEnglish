@@ -40,6 +40,7 @@ data class VocabularyUiState(
     val cargando: Boolean = true,
     val palabrasOriginales: List<PalabraConProgreso> = emptyList(),
     val palabrasFiltradas: List<PalabraConProgreso> = emptyList(),
+    val palabrasAgrupadas: Map<TipoPalabra, List<PalabraConProgreso>> = emptyMap(),
     val filtroActual: VocabularioFiltro = VocabularioFiltro.TODAS,
     val seccionActual: VocabularioSeccion = VocabularioSeccion.PALABRAS,
     val textoBusqueda: String = "",
@@ -48,5 +49,7 @@ data class VocabularyUiState(
     val palabrasPendientes: Int = 0,
     val palabrasEnProgreso: Int = 0,
     val palabrasAprendidas: Int = 0,
-    val mostrarDialogoRevertir: PalabraConProgreso? = null
+    val mostrarDialogoRevertir: PalabraConProgreso? = null,
+    val loteIdFiltro: String? = null,
+    val nombreLote: String? = null
 )

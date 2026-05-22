@@ -26,10 +26,48 @@ import android.graphics.Color
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
+import com.google.firebase.auth.FirebaseAuth
+import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
+import com.jp.widgetenglish.features.widget.WordWidget
+import kotlinx.coroutines.flow.first
+import androidx.glance.appwidget.updateAll
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Sincronizar estado del widget al iniciar la app
+        lifecycleScope.launch {
+            val db = DatabaseProvider.getDatabase(applicationContext)
+            DatabaseSeeder.seed(db)
+            
+            val auth = FirebaseAuth.getInstance()
+            val userId = auth.currentUser?.uid
+            if (userId != null) {
+                val repo = VocabularioRepositoryImpl(
+                    db.palabraDao(), db.verboDao(), db.loteDao(), db.progresoDao(),
+                    usuarioFirestoreDataSource = com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource(com.google.firebase.firestore.FirebaseFirestore.getInstance())
+                )
+                
+                // Sincronizar lote activo desde Firestore (Fix Persistencia Total)
+                repo.sincronizarLoteActivoConFirestore(userId)
+
+                val loteActivo = repo.observarLoteActivo(userId).first()
+                if (loteActivo != null) {
+                    val info = repo.obtenerLotePorId(loteActivo.loteId)
+                    if (info != null) {
+                        WidgetPreferences.guardarLoteActivo(applicationContext, info.idLote, info.nombre)
+                        WidgetPreferences.guardarUserId(applicationContext, userId)
+                        
+                        // Notificar al widget inmediatamente
+                        try {
+                            WordWidget().updateAll(applicationContext)
+                        } catch (e: Exception) {}
+                    }
+                }
+            }
+        }
+
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
                 scrim = Color.TRANSPARENT,
@@ -40,10 +78,6 @@ class MainActivity : ComponentActivity() {
                 darkScrim = Color.TRANSPARENT
             )
         )
-        lifecycleScope.launch {
-            val database = DatabaseProvider.getDatabase(applicationContext)
-            DatabaseSeeder.seed(database)
-        }
         setContent {
             WidgetEnglishTheme {
                 val database = DatabaseProvider.getDatabase(applicationContext)
