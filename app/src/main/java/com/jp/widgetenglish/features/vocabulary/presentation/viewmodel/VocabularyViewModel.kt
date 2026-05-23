@@ -1,7 +1,7 @@
 package com.jp.widgetenglish.features.vocabulary.presentation.viewmodel
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jp.widgetenglish.data.local.entity.Dificultad
@@ -12,7 +12,7 @@ import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
-import com.jp.widgetenglish.features.widget.WordWidget
+import com.jp.widgetenglish.features.widget.WordWidgetProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,21 +45,6 @@ class VocabularyViewModel(
     init {
         cargarUsuarioActual()
         cargarVocabulario()
-        observarCambiosParaWidget()
-    }
-
-    private fun observarCambiosParaWidget() {
-        viewModelScope.launch {
-            _usuarioIdActual.flatMapLatest { userId ->
-                if (userId.isNullOrBlank()) flowOf(emptyList<ProgresoUsuarioEntity>())
-                else repository.observarProgresoUsuario(userId)
-            }.collect {
-                // Cada vez que cambia el progreso en la DB, notificamos al widget
-                // Necesitamos un context, pero en ViewModel no es ideal.
-                // Sin embargo, las acciones de UI ya llaman a updateAll(context).
-                // Para cubrir cambios externos, podemos usar el context de la app si estuviera disponible.
-            }
-        }
     }
 
     fun cargarUsuarioActual() {
@@ -109,14 +94,17 @@ class VocabularyViewModel(
                 val (palabras, verbos) = content
                 val (filtro, seccion, busqueda, dialogo, loteId) = filters
 
-                // Filtrar por lote si aplica
                 val idsEnLote = if (loteId != null) {
                     repository.observarContenidoDeLote(loteId).first().map { it.contenidoId }
-                } else null
+                } else {
+                    null
+                }
 
                 val nombreLote = if (loteId != null) {
                     repository.obtenerLotePorId(loteId)?.nombre
-                } else null
+                } else {
+                    null
+                }
 
                 val listaPalabras = palabras.map { palabra ->
                     val progreso = progresos.find {
@@ -169,8 +157,7 @@ class VocabularyViewModel(
                 val busquedaLimpia = busqueda.trim()
 
                 val filtradas = listaCompleta.filter { item ->
-                    // Filtro de Lote
-                    val coincideLote = if (idsEnLote == null) true else idsEnLote.contains(item.id)
+                    val coincideLote = idsEnLote?.contains(item.id) ?: true
 
                     val coincideTexto = if (busquedaLimpia.isBlank()) {
                         true
@@ -211,7 +198,6 @@ class VocabularyViewModel(
                     it.estado == EstadoAprendizaje.APRENDIDA
                 }
 
-                // Agrupamiento por Tipo de Palabra (Fix para diferenciarlos visualmente)
                 val agrupadas = filtradas.groupBy { it.tipoPalabra }
 
                 VocabularyUiState(
@@ -243,14 +229,6 @@ class VocabularyViewModel(
             Dificultad.DIFICIL -> "Avanzado"
         }
     }
-
-    private data class FilterState(
-        val filtro: VocabularioFiltro,
-        val seccion: VocabularioSeccion,
-        val busqueda: String,
-        val dialogo: PalabraConProgreso?,
-        val loteId: String?
-    )
 
     fun establecerLote(loteId: String?) {
         _loteIdFiltro.value = loteId
@@ -309,13 +287,7 @@ class VocabularyViewModel(
                 )
             }
 
-            // Notificar al widget inmediatamente tras el cambio
-            try {
-                WordWidget().updateAll(context)
-            } catch (e: Exception) {
-                android.util.Log.e("VocabularyViewModel", "Error actualizando widget", e)
-            }
-
+            actualizarWidget(context)
             sincronizarPalabrasAprendidasConFirestore(userId)
             cargarUsuarioActual()
         }
@@ -370,13 +342,18 @@ class VocabularyViewModel(
                 )
             }
 
-            try {
-                WordWidget().updateAll(context)
-            } catch (e: Exception) {}
-
+            actualizarWidget(context)
             sincronizarPalabrasAprendidasConFirestore(userId)
             ocultarConfirmacionRevertir()
             cargarUsuarioActual()
+        }
+    }
+
+    private suspend fun actualizarWidget(context: Context) {
+        try {
+            WordWidgetProvider.updateAll(context.applicationContext)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error actualizando widget", e)
         }
     }
 
@@ -395,5 +372,17 @@ class VocabularyViewModel(
             firebaseUid = userId,
             cantidad = totalAprendidas
         )
+    }
+
+    private data class FilterState(
+        val filtro: VocabularioFiltro,
+        val seccion: VocabularioSeccion,
+        val busqueda: String,
+        val dialogo: PalabraConProgreso?,
+        val loteId: String?
+    )
+
+    companion object {
+        private const val TAG = "VocabularyViewModel"
     }
 }

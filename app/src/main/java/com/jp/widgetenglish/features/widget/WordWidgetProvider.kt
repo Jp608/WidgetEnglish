@@ -6,13 +6,20 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
+import com.google.firebase.firestore.FirebaseFirestore
 import com.jp.widgetenglish.MainActivity
 import com.jp.widgetenglish.R
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
+import com.jp.widgetenglish.data.local.datastore.LearningPreferences
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
+import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
+import com.jp.widgetenglish.domain.learning.LearningContentSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,7 +34,39 @@ class WordWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         appWidgetIds.forEach { appWidgetId ->
-            requestUpdateWidget(context, appWidgetManager, appWidgetId)
+            requestUpdateWidget(
+                context = context.applicationContext,
+                appWidgetManager = appWidgetManager,
+                appWidgetId = appWidgetId
+            )
+        }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(
+            context,
+            appWidgetManager,
+            appWidgetId,
+            newOptions
+        )
+
+        val pendingResult = goAsync()
+
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                updateWidget(
+                    context = context.applicationContext,
+                    appWidgetManager = appWidgetManager,
+                    appWidgetId = appWidgetId
+                )
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -40,8 +79,8 @@ class WordWidgetProvider : AppWidgetProvider() {
 
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        avanzarPalabra(context)
-                        updateAll(context)
+                        avanzarPalabra(context.applicationContext)
+                        updateAll(context.applicationContext)
                     } finally {
                         pendingResult.finish()
                     }
@@ -50,11 +89,16 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             ACTION_PLAY_SOUND -> {
                 val text = intent.getStringExtra(EXTRA_TEXT).orEmpty()
+
                 if (text.isNotBlank()) {
-                    val ttsIntent = Intent(context, TtsReceiver::class.java).apply {
+                    val ttsIntent = Intent(
+                        context.applicationContext,
+                        TtsReceiver::class.java
+                    ).apply {
                         putExtra("text", text)
                     }
-                    context.sendBroadcast(ttsIntent)
+
+                    context.applicationContext.sendBroadcast(ttsIntent)
                 }
             }
 
@@ -63,7 +107,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        updateAll(context)
+                        updateAll(context.applicationContext)
                     } finally {
                         pendingResult.finish()
                     }
@@ -78,21 +122,34 @@ class WordWidgetProvider : AppWidgetProvider() {
         const val ACTION_REFRESH_WIDGET = "com.jp.widgetenglish.widget.ACTION_REFRESH_WIDGET"
         const val EXTRA_TEXT = "extra_text"
 
+        private const val REQUEST_CODE_OPEN_APP = 20_000
+        private const val REQUEST_CODE_SOUND_OFFSET = 10_000
+
+        private const val COMPACT_MAX_WIDTH = 170
+        private const val COMPACT_MAX_HEIGHT = 100
+        private const val LARGE_MIN_WIDTH = 260
+        private const val LARGE_MIN_HEIGHT = 150
+
         private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun requestUpdateAll(context: Context) {
             widgetScope.launch {
-                updateAll(context)
+                updateAll(context.applicationContext)
             }
         }
 
         suspend fun updateAll(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, WordWidgetProvider::class.java)
+            val appContext = context.applicationContext
+            val appWidgetManager = AppWidgetManager.getInstance(appContext)
+            val componentName = ComponentName(appContext, WordWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
             appWidgetIds.forEach { appWidgetId ->
-                updateWidget(context, appWidgetManager, appWidgetId)
+                updateWidget(
+                    context = appContext,
+                    appWidgetManager = appWidgetManager,
+                    appWidgetId = appWidgetId
+                )
             }
         }
 
@@ -102,24 +159,26 @@ class WordWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             widgetScope.launch {
-                updateWidget(context, appWidgetManager, appWidgetId)
+                updateWidget(
+                    context = context.applicationContext,
+                    appWidgetManager = appWidgetManager,
+                    appWidgetId = appWidgetId
+                )
             }
         }
 
         private suspend fun avanzarPalabra(context: Context) {
-            val loteId = WidgetPreferences.obtenerLoteId(context).first()
-            val userId = WidgetPreferences.obtenerUserId(context).first()
+            val contenidosSesion = obtenerContenidoSesionActual(context)
 
-            if (loteId.isNullOrBlank() || userId.isNullOrBlank()) return
+            if (contenidosSesion.isEmpty()) return
 
-            val db = DatabaseProvider.getDatabase(context)
-            val total = db.loteDao().obtenerConteoPendientesLote(loteId, userId)
+            val currentIndex = WidgetPreferences.obtenerWordIndex(context).first()
+            val nextIndex = (currentIndex + 1) % contenidosSesion.size
 
-            if (total > 0) {
-                val currentIndex = WidgetPreferences.obtenerWordIndex(context).first()
-                val nextIndex = (currentIndex + 1) % total
-                WidgetPreferences.actualizarIndiceDirecto(context, nextIndex)
-            }
+            WidgetPreferences.actualizarIndiceDirecto(
+                context,
+                nextIndex
+            )
         }
 
         private suspend fun updateWidget(
@@ -129,13 +188,121 @@ class WordWidgetProvider : AppWidgetProvider() {
         ) {
             val data = obtenerContenidoWidget(context)
 
-            val views = RemoteViews(context.packageName, R.layout.widget_word)
+            val layoutId = seleccionarLayout(
+                appWidgetManager = appWidgetManager,
+                appWidgetId = appWidgetId
+            )
 
+            val views = RemoteViews(
+                context.packageName,
+                layoutId
+            )
+
+            when (layoutId) {
+                R.layout.widget_word_compact -> {
+                    configurarWidgetCompacto(
+                        context = context,
+                        views = views,
+                        appWidgetId = appWidgetId,
+                        data = data
+                    )
+                }
+
+                R.layout.widget_word_large -> {
+                    configurarWidgetGrande(
+                        context = context,
+                        views = views,
+                        appWidgetId = appWidgetId,
+                        data = data
+                    )
+                }
+
+                else -> {
+                    configurarWidgetNormal(
+                        context = context,
+                        views = views,
+                        appWidgetId = appWidgetId,
+                        data = data
+                    )
+                }
+            }
+
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private fun seleccionarLayout(
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ): Int {
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+
+            val minWidth = options.getInt(
+                AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+                0
+            )
+
+            val minHeight = options.getInt(
+                AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+                0
+            )
+
+            return when {
+                minWidth <= COMPACT_MAX_WIDTH || minHeight <= COMPACT_MAX_HEIGHT -> {
+                    R.layout.widget_word_compact
+                }
+
+                minWidth >= LARGE_MIN_WIDTH && minHeight >= LARGE_MIN_HEIGHT -> {
+                    R.layout.widget_word_large
+                }
+
+                else -> {
+                    R.layout.widget_word_normal
+                }
+            }
+        }
+
+        private fun configurarWidgetCompacto(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            data: WidgetData
+        ) {
+            views.setTextViewText(R.id.widget_termino, data.termino)
+            views.setTextViewText(R.id.widget_traduccion, data.traduccion)
+
+            views.setOnClickPendingIntent(
+                R.id.widget_root,
+                pendingIntentAbrirApp(context)
+            )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_next,
+                pendingIntentSiguiente(context, appWidgetId)
+            )
+        }
+
+        private fun configurarWidgetNormal(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            data: WidgetData
+        ) {
             views.setTextViewText(R.id.widget_lote_nombre, data.loteNombre)
             views.setTextViewText(R.id.widget_progreso, data.progreso)
             views.setTextViewText(R.id.widget_termino, data.termino)
             views.setTextViewText(R.id.widget_fonetica, data.fonetica)
             views.setTextViewText(R.id.widget_traduccion, data.traduccion)
+
+            if (data.tipo == WidgetContentType.VERBO) {
+                views.setTextViewText(
+                    R.id.widget_extra,
+                    data.textoVerbo
+                )
+                views.setViewVisibility(R.id.widget_extra, View.VISIBLE)
+            } else {
+                views.setTextViewText(R.id.widget_extra, "")
+                views.setViewVisibility(R.id.widget_extra, View.GONE)
+            }
 
             views.setOnClickPendingIntent(
                 R.id.widget_root,
@@ -151,8 +318,49 @@ class WordWidgetProvider : AppWidgetProvider() {
                 R.id.widget_btn_sound,
                 pendingIntentSonido(context, appWidgetId, data.termino)
             )
+        }
 
-            appWidgetManager.updateAppWidget(appWidgetId, views)
+        private fun configurarWidgetGrande(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            data: WidgetData
+        ) {
+            views.setTextViewText(R.id.widget_lote_nombre, data.loteNombre)
+            views.setTextViewText(R.id.widget_progreso, data.progreso)
+            views.setTextViewText(R.id.widget_termino, data.termino)
+            views.setTextViewText(R.id.widget_fonetica, data.fonetica)
+            views.setTextViewText(R.id.widget_traduccion, data.traduccion)
+
+            if (data.tipo == WidgetContentType.VERBO) {
+                views.setViewVisibility(R.id.widget_verbo_box, View.VISIBLE)
+                views.setTextViewText(R.id.widget_verbo_base, data.termino)
+                views.setTextViewText(R.id.widget_verbo_pasado, data.pasadoSimple)
+                views.setTextViewText(
+                    R.id.widget_verbo_participio,
+                    data.participioPasado
+                )
+            } else {
+                views.setViewVisibility(R.id.widget_verbo_box, View.GONE)
+                views.setTextViewText(R.id.widget_verbo_base, "")
+                views.setTextViewText(R.id.widget_verbo_pasado, "")
+                views.setTextViewText(R.id.widget_verbo_participio, "")
+            }
+
+            views.setOnClickPendingIntent(
+                R.id.widget_root,
+                pendingIntentAbrirApp(context)
+            )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_next,
+                pendingIntentSiguiente(context, appWidgetId)
+            )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_sound,
+                pendingIntentSonido(context, appWidgetId, data.termino)
+            )
         }
 
         private suspend fun obtenerContenidoWidget(context: Context): WidgetData {
@@ -165,14 +373,22 @@ class WordWidgetProvider : AppWidgetProvider() {
             val wordIndex = prefs.wordIndex
 
             if (loteId.isNullOrBlank() && !userId.isNullOrBlank()) {
-                val loteActivo = db.progresoDao().observarLoteActivo(userId).first()
+                val loteActivo = db.progresoDao()
+                    .observarLoteActivo(userId)
+                    .first()
 
                 if (loteActivo != null) {
                     loteId = loteActivo.loteId
-                    loteNombre = db.loteDao().obtenerLotePorId(loteActivo.loteId)?.nombre
+                    loteNombre = db.loteDao()
+                        .obtenerLotePorId(loteActivo.loteId)
+                        ?.nombre
 
                     if (!loteId.isNullOrBlank() && !loteNombre.isNullOrBlank()) {
-                        WidgetPreferences.guardarLoteActivo(context, loteId, loteNombre)
+                        WidgetPreferences.guardarLoteActivo(
+                            context = context,
+                            loteId = loteId,
+                            loteNombre = loteNombre
+                        )
                     }
                 }
             }
@@ -181,49 +397,112 @@ class WordWidgetProvider : AppWidgetProvider() {
                 return WidgetData(
                     loteNombre = "WidgetEnglish",
                     progreso = "",
+                    tipo = WidgetContentType.PALABRA,
                     termino = "Sin lote activo",
                     fonetica = "",
                     traduccion = "Activa un lote en la app"
                 )
             }
 
-            val pendientes: List<LoteContenidoEntity> =
-                db.loteDao().obtenerPendientesLoteDirecto(loteId, userId)
+            val contenidosSesion = obtenerContenidoSesionActual(
+                context = context,
+                loteId = loteId,
+                userId = userId
+            )
 
-            if (pendientes.isEmpty()) {
+            if (contenidosSesion.isEmpty()) {
                 return WidgetData(
                     loteNombre = loteNombre ?: "WidgetEnglish",
                     progreso = "",
-                    termino = "¡Todo aprendido!",
+                    tipo = WidgetContentType.PALABRA,
+                    termino = "Sin contenido",
                     fonetica = "",
-                    traduccion = "Has completado este lote 🎉"
+                    traduccion = "No hay palabras para estudiar"
                 )
             }
 
-            val safeIndex = wordIndex % pendientes.size
-            val item = pendientes[safeIndex]
+            val safeIndex = wordIndex.coerceAtLeast(0) % contenidosSesion.size
+            val item = contenidosSesion[safeIndex]
 
             return if (item.tipoContenido == TipoContenido.VERBO) {
                 val verbo = db.verboDao().obtenerVerboPorId(item.contenidoId)
 
                 WidgetData(
                     loteNombre = loteNombre ?: "WidgetEnglish",
-                    progreso = "${safeIndex + 1} / ${pendientes.size}",
+                    progreso = "${safeIndex + 1} / ${contenidosSesion.size}",
+                    tipo = WidgetContentType.VERBO,
                     termino = verbo?.formaBase.orEmpty(),
                     fonetica = verbo?.fonetica.orEmpty(),
-                    traduccion = verbo?.traduccion.orEmpty()
+                    traduccion = verbo?.traduccion.orEmpty(),
+                    pasadoSimple = verbo?.pasadoSimple.orEmpty(),
+                    participioPasado = verbo?.participioPasado.orEmpty()
                 )
             } else {
                 val palabra = db.palabraDao().obtenerPalabraPorId(item.contenidoId)
 
                 WidgetData(
                     loteNombre = loteNombre ?: "WidgetEnglish",
-                    progreso = "${safeIndex + 1} / ${pendientes.size}",
+                    progreso = "${safeIndex + 1} / ${contenidosSesion.size}",
+                    tipo = WidgetContentType.PALABRA,
                     termino = palabra?.termino.orEmpty(),
                     fonetica = palabra?.fonetica.orEmpty(),
                     traduccion = palabra?.traduccion.orEmpty()
                 )
             }
+        }
+
+        private suspend fun obtenerContenidoSesionActual(
+            context: Context
+        ): List<LoteContenidoEntity> {
+            val prefs = WidgetPreferences.obtenerTodasLasPreferenciasRapidas(context)
+            val loteId = prefs.loteId
+            val userId = prefs.userId
+
+            if (loteId.isNullOrBlank() || userId.isNullOrBlank()) {
+                return emptyList()
+            }
+
+            return obtenerContenidoSesionActual(
+                context = context,
+                loteId = loteId,
+                userId = userId
+            )
+        }
+
+        private suspend fun obtenerContenidoSesionActual(
+            context: Context,
+            loteId: String,
+            userId: String
+        ): List<LoteContenidoEntity> {
+            val db = DatabaseProvider.getDatabase(context)
+
+            val repository = VocabularioRepositoryImpl(
+                palabraDao = db.palabraDao(),
+                verboDao = db.verboDao(),
+                loteDao = db.loteDao(),
+                progresoDao = db.progresoDao(),
+                usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
+                    FirebaseFirestore.getInstance()
+                )
+            )
+
+            val configuracion = LearningPreferences.obtenerConfiguracionRapida(context)
+
+            val contenidosDelLote = repository
+                .observarContenidoDeLote(loteId)
+                .first()
+                .sortedBy { it.orden }
+
+            val progresosUsuario = repository
+                .observarProgresoUsuario(userId)
+                .first()
+
+            return LearningContentSelector.seleccionarContenido(
+                contenidos = contenidosDelLote,
+                progresos = progresosUsuario,
+                modo = configuracion.modoSeleccionContenido,
+                limite = configuracion.objetivoEfectivo
+            )
         }
 
         private fun pendingIntentSiguiente(
@@ -255,18 +534,20 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             return PendingIntent.getBroadcast(
                 context,
-                appWidgetId + 10_000,
+                appWidgetId + REQUEST_CODE_SOUND_OFFSET,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
 
         private fun pendingIntentAbrirApp(context: Context): PendingIntent {
-            val intent = Intent(context, MainActivity::class.java)
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
 
             return PendingIntent.getActivity(
                 context,
-                20_000,
+                REQUEST_CODE_OPEN_APP,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -274,10 +555,29 @@ class WordWidgetProvider : AppWidgetProvider() {
     }
 }
 
-data class WidgetData(
+private enum class WidgetContentType {
+    PALABRA,
+    VERBO
+}
+
+private data class WidgetData(
     val loteNombre: String,
     val progreso: String,
+    val tipo: WidgetContentType,
     val termino: String,
     val fonetica: String,
-    val traduccion: String
-)
+    val traduccion: String,
+    val pasadoSimple: String = "",
+    val participioPasado: String = ""
+) {
+    val textoVerbo: String
+        get() {
+            val formas = listOf(
+                termino,
+                pasadoSimple,
+                participioPasado
+            ).filter { it.isNotBlank() }
+
+            return formas.joinToString(" · ")
+        }
+}
