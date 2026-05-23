@@ -21,6 +21,9 @@ interface ProgresoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarProgresoUsuario(progreso: ProgresoUsuarioEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarProgreso(progreso: ProgresoUsuarioEntity)
+
     @Update
     suspend fun actualizarProgresoUsuario(progreso: ProgresoUsuarioEntity)
 
@@ -38,6 +41,9 @@ interface ProgresoDao {
         contenidoId: String,
         tipoContenido: TipoContenido
     ): ProgresoUsuarioEntity?
+
+    @Query("SELECT * FROM progreso_usuario WHERE usuarioId = :usuarioId AND contenidoId = :contenidoId AND tipoContenido = :tipo LIMIT 1")
+    suspend fun obtenerProgreso(usuarioId: String, contenidoId: String, tipo: TipoContenido): ProgresoUsuarioEntity?
 
     @Query(
         """
@@ -116,6 +122,9 @@ interface ProgresoDao {
         tipoContenido: TipoContenido,
         fechaRevision: Long = System.currentTimeMillis()
     )
+
+    @Query("UPDATE progreso_usuario SET estadoAprendizaje = 'APRENDIDA', aprendido = 1, nivelDominio = 1.0 WHERE usuarioId = :usuarioId AND contenidoId = :contenidoId AND tipoContenido = :tipo")
+    suspend fun marcarComoAprendido(usuarioId: String, contenidoId: String, tipo: TipoContenido)
 
     @Query(
         """
@@ -203,6 +212,27 @@ interface ProgresoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarProgresoLote(progreso: ProgresoLoteEntity)
 
+    @Query("""
+    UPDATE progreso_lote
+    SET 
+        activo = :activo,
+        progresoPorcentaje = :progresoPorcentaje,
+        contenidosAprendidos = :aprendidas,
+        totalContenidos = :total,
+        fechaUltimoEstudio = :fecha
+    WHERE usuarioId = :usuarioId 
+    AND loteId = :loteId
+    """)
+    suspend fun actualizarProgresoLoteFull(
+        usuarioId: String, 
+        loteId: String, 
+        activo: Boolean,
+        progresoPorcentaje: Float,
+        aprendidas: Int,
+        total: Int,
+        fecha: Long = System.currentTimeMillis()
+    )
+
     @Update
     suspend fun actualizarProgresoLote(progreso: ProgresoLoteEntity)
 
@@ -281,4 +311,41 @@ interface ProgresoDao {
         progresoPorcentaje: Float,
         fechaUltimoEstudio: Long = System.currentTimeMillis()
     )
+
+    @Query(
+        """
+    UPDATE progreso_lote
+    SET 
+        progresoPorcentaje = 0,
+        contenidosAprendidos = 0,
+        completado = 0,
+        fechaUltimoEstudio = :fecha
+    WHERE usuarioId = :usuarioId
+    AND loteId = :loteId
+    """
+    )
+    suspend fun reiniciarProgresoLote(
+        usuarioId: String,
+        loteId: String,
+        fecha: Long = System.currentTimeMillis()
+    )
+
+    @Query(
+        """
+        UPDATE progreso_usuario
+        SET 
+            estadoAprendizaje = 'NO_VISTA',
+            aprendido = 0,
+            nivelDominio = 0.0,
+            respuestasCorrectas = 0,
+            respuestasIncorrectas = 0,
+            vecesRepasado = 0,
+            ultimaRevision = NULL
+        WHERE usuarioId = :usuarioId
+        AND (contenidoId, tipoContenido) IN (
+            SELECT contenidoId, tipoContenido FROM lote_contenido WHERE loteId = :loteId
+        )
+        """
+    )
+    suspend fun reiniciarProgresoContenidosLote(usuarioId: String, loteId: String)
 }

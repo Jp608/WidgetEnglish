@@ -26,7 +26,7 @@ import com.jp.widgetenglish.data.local.entity.VerboEntity
         ProgresoUsuarioEntity::class,
         ProgresoLoteEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -6,34 +6,42 @@ import android.util.Log
 object DatabaseSeeder {
     suspend fun seed(database: AppDatabase) {
         try {
-            // Log para debug
-            Log.d("DatabaseSeeder", "DATABASE_SEED_CHECK_START")
+            Log.d("DatabaseSeeder", "DATABASE_SEED_START")
             
             val palabraDao = database.palabraDao()
             val verboDao = database.verboDao()
             val loteDao = database.loteDao()
 
-            // Verificar si hay palabras existentes
-            val gato = palabraDao.obtenerPalabraPorId("palabra_cat")
-            
-            if (gato == null) {
-                Log.d("DatabaseSeeder", "DB is empty. Force seeding all content...")
-                
-                // Limpiar por si acaso quedaron restos corruptos
-                palabraDao.eliminarPalabras()
-                verboDao.eliminarVerbos()
-                loteDao.eliminarLotes()
-
-                // Insertar datos maestros
-                palabraDao.insertarPalabras(SeedPalabras.palabras)
-                verboDao.insertarVerbos(SeedVerbos.verbos)
-                loteDao.insertarLotes(SeedLotes.lotes)
-                loteDao.insertarContenidosLote(SeedLoteContenido.contenidos)
-                
-                Log.d("DatabaseSeeder", "Force seed finished successfully.")
-            } else {
-                Log.d("DatabaseSeeder", "Data found. Skipping seed to protect user progress.")
+            // 1. Sincronizar nombres y metadatos de lotes sin borrar progreso (Evita CASCADE DELETE)
+            SeedLotes.lotes.forEach { lote ->
+                val existe = loteDao.obtenerLotePorId(lote.idLote)
+                if (existe == null) {
+                    Log.d("DatabaseSeeder", "Inserting new batch: ${lote.nombre}")
+                    loteDao.insertarLote(lote)
+                } else {
+                    Log.d("DatabaseSeeder", "Updating metadata for batch: ${lote.nombre} (count: ${lote.cantidadContenido})")
+                    loteDao.actualizarMetadatos(
+                        lote.idLote, 
+                        lote.nombre, 
+                        lote.descripcion, 
+                        lote.nivel, 
+                        lote.tipoLote,
+                        lote.cantidadContenido
+                    )
+                }
             }
+
+            // 2. Cargar palabras y verbos maestros (Sincronización total)
+            Log.d("DatabaseSeeder", "Syncing master words and verbs...")
+            palabraDao.insertarPalabras(SeedPalabras.palabras)
+            verboDao.insertarVerbos(SeedVerbos.verbos)
+
+            // 3. Sincronizar relaciones de contenido (junction table)
+            // Se usa REPLACE aquí porque no tiene hijos en cascada
+            loteDao.eliminarContenidoDeLote("lote_A1") // Limpiar para asegurar sincronización completa de verbos
+            loteDao.insertarContenidosLote(SeedLoteContenido.contenidos)
+            
+            Log.d("DatabaseSeeder", "Database Sync Finished.")
         } catch (e: Exception) {
             Log.e("DatabaseSeeder", "CRITICAL ERROR in Seeder", e)
         }

@@ -33,8 +33,12 @@ import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
 import com.jp.widgetenglish.features.common.ConstructionScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.LoteDetailScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.LotesScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModelFactory
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
 import com.jp.widgetenglish.features.admin.AdminViewModel
 import com.jp.widgetenglish.features.admin.AdminViewModelFactory
@@ -71,14 +75,17 @@ fun AppNavGraph() {
         palabraDao = database.palabraDao(),
         verboDao = database.verboDao(),
         loteDao = database.loteDao(),
-        progresoDao = database.progresoDao()
+        progresoDao = database.progresoDao(),
+        usuarioFirestoreDataSource = usuarioFirestoreDataSource
     )
 
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
             authRepository = authRepository,
             usuarioDao = database.usuarioDao(),
-            usuarioFirestoreDataSource = usuarioFirestoreDataSource
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+            vocabularioRepository = vocabularioRepository,
+            context = context.applicationContext
         )
     )
 
@@ -102,6 +109,13 @@ fun AppNavGraph() {
             repository = vocabularioRepository,
             authRepository = authRepository,
             usuarioFirestoreDataSource = usuarioFirestoreDataSource
+        )
+    )
+
+    val lotesViewModel: LotesViewModel = viewModel(
+        factory = LotesViewModelFactory(
+            vocabularioRepository = vocabularioRepository,
+            authRepository = authRepository
         )
     )
 
@@ -176,8 +190,14 @@ fun AppNavGraph() {
             VocabularyScreen(
                 viewModel = vocabularyViewModel,
                 onBackClick = { navegar(Screen.Home.route) },
-                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                onLotesClick = { navegar(Screen.Lotes.route) },
+                onVocabularioClick = { 
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Vocabulario.route) 
+                },
+                onLotesClick = { 
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Lotes.route) 
+                },
                 onEstudioClick = { navegar(Screen.Estudio.route) },
                 onIaClick = { navegar(Screen.Ia.route) },
                 onPerfilClick = { navegar(Screen.Profile.route) },
@@ -205,15 +225,36 @@ fun AppNavGraph() {
         }
 
         composable(Screen.Lotes.route) {
-            ConstructionScreen(
-                titulo = "Lotes en construcción",
-                descripcion = "Aquí podrás ver y activar tus lotes de aprendizaje.",
-                onVolverInicio = { navegar(Screen.Home.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
-                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                onLotesClick = { navegar(Screen.Lotes.route) },
+            LotesScreen(
+                viewModel = lotesViewModel,
+                onBackClick = { navController.popBackStack() },
+                onInicioClick = { navegar(Screen.Home.route) },
+                onVocabularioClick = { 
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Vocabulario.route) 
+                },
+                onLotesClick = { 
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Lotes.route) 
+                },
                 onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) }
+                onIaClick = { navegar(Screen.Ia.route) },
+                onPerfilClick = { navegar(Screen.Profile.route) },
+                onVerContenido = { loteId ->
+                    navController.navigate(Screen.LoteDetail.createRoute(loteId))
+                }
+            )
+        }
+
+        composable(Screen.LoteDetail.route) { backStackEntry ->
+            val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
+            LoteDetailScreen(
+                loteId = loteId,
+                viewModel = lotesViewModel,
+                onBack = { navController.popBackStack() },
+                onItemClick = { itemId, isVerbo ->
+                    navController.navigate(Screen.VocabularyDetail.createRoute(itemId, isVerbo))
+                }
             )
         }
 

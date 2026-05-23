@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.common.TtsHelper
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.PalabraConProgreso
@@ -113,7 +114,7 @@ fun VocabularyScreen(
     Scaffold(
         containerColor = BackgroundColor,
         topBar = {
-            VocabularyTopHeader()
+            VocabularyTopHeader(uiState.nombreLote)
         },
         bottomBar = {
             AppBottomBar(
@@ -304,26 +305,47 @@ fun VocabularyScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(palabrasFiltradas) { palabra ->
-                        WordCard(
-                            palabra = palabra,
-                            onMarkLearned = {
-                                focusManager.clearFocus()
-                                viewModel.marcarComoAprendido(palabra.id, palabra.esVerbo)
-                            },
-                            onRevert = {
-                                focusManager.clearFocus()
-                                viewModel.mostrarConfirmacionRevertir(palabra)
-                            },
-                            onSpeak = {
-                                focusManager.clearFocus()
-                                ttsHelper.speak(palabra.termino)
-                            },
-                            onClick = {
-                                focusManager.clearFocus()
-                                onItemClick(palabra)
+                    uiState.palabrasAgrupadas.forEach { (tipo, palabras) ->
+                        // Mostrar encabezado (Sustantivos, Expresiones, etc.)
+                        if (uiState.seccionActual == VocabularioSeccion.PALABRAS) {
+                            item {
+                                val titulo = when(tipo) {
+                                    TipoPalabra.EXPRESION -> "Otros / Expresiones"
+                                    TipoPalabra.SUSTANTIVO -> "Sustantivos"
+                                    else -> tipo.name.lowercase().replaceFirstChar { it.uppercase() } + "s"
+                                }
+                                
+                                Text(
+                                    text = titulo,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = BluePrimary,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                )
                             }
-                        )
+                        }
+
+                        items(palabras) { palabra ->
+                            WordCard(
+                                palabra = palabra,
+                                onMarkLearned = {
+                                    focusManager.clearFocus()
+                                    viewModel.marcarComoAprendido(context, palabra.id, palabra.esVerbo)
+                                },
+                                onRevert = {
+                                    focusManager.clearFocus()
+                                    viewModel.mostrarConfirmacionRevertir(palabra)
+                                },
+                                onSpeak = {
+                                    focusManager.clearFocus()
+                                    ttsHelper.speak(palabra.termino)
+                                },
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    onItemClick(palabra)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -364,7 +386,7 @@ fun VocabularyScreen(
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.revertirEstadoAprendido(palabra.id, palabra.esVerbo)
+                            viewModel.revertirEstadoAprendido(context, palabra.id, palabra.esVerbo)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
                         shape = RoundedCornerShape(12.dp)
@@ -389,7 +411,7 @@ fun VocabularyScreen(
 }
 
 @Composable
-private fun VocabularyTopHeader() {
+private fun VocabularyTopHeader(nombreLote: String? = null) {
     Surface(
         color = BluePrimary,
         shadowElevation = 0.dp
@@ -403,7 +425,7 @@ private fun VocabularyTopHeader() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Vocabulario",
+                text = nombreLote ?: "Vocabulario",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold,

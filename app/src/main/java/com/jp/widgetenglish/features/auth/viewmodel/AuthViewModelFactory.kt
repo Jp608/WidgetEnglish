@@ -6,10 +6,14 @@ import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 
+import com.jp.widgetenglish.data.repository.VocabularioRepository
+
 class AuthViewModelFactory(
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
-    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource,
+    private val vocabularioRepository: VocabularioRepository,
+    private val context: android.content.Context
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -18,7 +22,9 @@ class AuthViewModelFactory(
             return AuthViewModel(
                 authRepository = authRepository,
                 usuarioDao = usuarioDao,
-                usuarioFirestoreDataSource = usuarioFirestoreDataSource
+                usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+                vocabularioRepository = vocabularioRepository,
+                context = context
             ) as T
         }
 

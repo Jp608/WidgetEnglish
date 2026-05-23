@@ -291,6 +291,117 @@ object SeedPalabras {
             ejemploTraduccion = "Cierra la puerta cuando te vayas",
             dificultad = Dificultad.FACIL,
             activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_hello",
+            termino = "hello",
+            traduccion = "hola",
+            tipoPalabra = TipoPalabra.EXPRESION,
+            fonetica = "/həˈloʊ/",
+            ejemplo = "Hello, how are you?",
+            ejemploTraduccion = "Hola, ¿cómo estás?",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_thank_you",
+            termino = "thank you",
+            traduccion = "gracias",
+            tipoPalabra = TipoPalabra.EXPRESION,
+            fonetica = "/θæŋk juː/",
+            ejemplo = "Thank you for your help",
+            ejemploTraduccion = "Gracias por tu ayuda",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_please",
+            termino = "please",
+            traduccion = "por favor",
+            tipoPalabra = TipoPalabra.EXPRESION,
+            fonetica = "/pliːz/",
+            ejemplo = "Could you help me, please?",
+            ejemploTraduccion = "¿Podrías ayudarme, por favor?",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_goodbye",
+            termino = "goodbye",
+            traduccion = "adiós",
+            tipoPalabra = TipoPalabra.EXPRESION,
+            fonetica = "/ˌɡʊdˈbaɪ/",
+            ejemplo = "It's time to say goodbye",
+            ejemploTraduccion = "Es hora de decir adiós",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_sorry",
+            termino = "sorry",
+            traduccion = "lo siento o perdón",
+            tipoPalabra = TipoPalabra.EXPRESION,
+            fonetica = "/ˈsɔːr.i/",
+            ejemplo = "I'm sorry for being late",
+            ejemploTraduccion = "Lo siento por llegar tarde",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        // Lote Comida (Nuevas)
+        PalabraEntity(
+            idPalabra = "palabra_apple",
+            termino = "apple",
+            traduccion = "manzana",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/ˈæp.əl/",
+            ejemplo = "I eat an apple every day",
+            ejemploTraduccion = "Como una manzana cada día",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_bread",
+            termino = "bread",
+            traduccion = "pan",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/bred/",
+            ejemplo = "I buy fresh bread in the morning",
+            ejemploTraduccion = "Compro pan fresco por la mañana",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_milk",
+            termino = "milk",
+            traduccion = "leche",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/mɪlk/",
+            ejemplo = "The baby drinks milk",
+            ejemploTraduccion = "El bebé bebe leche",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_rice",
+            termino = "rice",
+            traduccion = "arroz",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/raɪs/",
+            ejemplo = "Rice is common in many dishes",
+            ejemploTraduccion = "El arroz es común en muchos platos",
+            dificultad = Dificultad.FACIL,
+            activo = true
+        ),
+        PalabraEntity(
+            idPalabra = "palabra_water",
+            termino = "water",
+            traduccion = "agua",
+            tipoPalabra = TipoPalabra.SUSTANTIVO,
+            fonetica = "/ˈwɔː.tər/",
+            ejemplo = "Drink plenty of water",
+            ejemploTraduccion = "Bebe mucha agua",
+            dificultad = Dificultad.FACIL,
+            activo = true
         )
     )
 }

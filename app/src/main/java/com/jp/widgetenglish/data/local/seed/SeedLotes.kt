@@ -8,8 +8,8 @@ object SeedLotes {
     val lotes = listOf(
         LoteEntity(
             idLote = "lote_mascotas",
-            nombre = "Mascotas",
-            descripcion = "Vocabulario de animales domésticos y mascotas comunes.",
+            nombre = "Animales",
+            descripcion = "Vocabulario de animales comunes.",
             tipoLote = TipoLote.TEMATICO,
             nivel = NivelLote.GENERAL,
             colorHex = "#43A047",
@@ -21,15 +21,54 @@ object SeedLotes {
         ),
         LoteEntity(
             idLote = "lote_A1",
-            nombre = "Verbos A1",
-            descripcion = "Verbos básicos frecuentes para nivel A1.",
+            nombre = "Verbos",
+            descripcion = "Verbos básicos frecuentes.",
             tipoLote = TipoLote.VERBOS,
             nivel = NivelLote.A1,
             colorHex = "#1565C0",
             icono = "school",
             activo = true,
             orden = 2,
-            cantidadContenido = 29,
+            cantidadContenido = 34,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_saludos",
+            nombre = "Saludos y Cortesía",
+            descripcion = "Palabras básicas para saludar y cortesía.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#673AB7",
+            icono = "waving_hand",
+            activo = true,
+            orden = 3,
+            cantidadContenido = 5,
+            cantidadSugeridaEstudio = 5
+        ),
+        LoteEntity(
+            idLote = "lote_comida",
+            nombre = "Comida",
+            descripcion = "Vocabulario sobre alimentos y bebidas.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#E64A19",
+            icono = "restaurant",
+            activo = true,
+            orden = 4,
+            cantidadContenido = 5,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_casa",
+            nombre = "La Casa",
+            descripcion = "Objetos y partes de la casa.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#5D4037",
+            icono = "home",
+            activo = true,
+            orden = 5,
+            cantidadContenido = 5,
             cantidadSugeridaEstudio = 10
         )
     )

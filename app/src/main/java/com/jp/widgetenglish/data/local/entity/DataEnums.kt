@@ -9,6 +9,7 @@ enum class RolUsuario {
 
 enum class TipoPalabra {
     SUSTANTIVO,
+    VERBO,
     ADJETIVO,
     ADVERBIO,
     PRONOMBRE,

@@ -1,5 +1,7 @@
 package com.jp.widgetenglish.features.vocabulary.presentation.viewmodel
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jp.widgetenglish.data.local.entity.Dificultad
@@ -10,6 +12,7 @@ import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
+import com.jp.widgetenglish.features.widget.WordWidgetProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +34,7 @@ class VocabularyViewModel(
     private val _filtroActual = MutableStateFlow(VocabularioFiltro.TODAS)
     private val _seccionActual = MutableStateFlow(VocabularioSeccion.PALABRAS)
     private val _textoBusqueda = MutableStateFlow("")
+    private val _loteIdFiltro = MutableStateFlow<String?>(null)
     private val _mostrarDialogoRevertir = MutableStateFlow<PalabraConProgreso?>(null)
 
     private val _usuarioIdActual = MutableStateFlow<String?>(null)
@@ -69,13 +73,15 @@ class VocabularyViewModel(
                 _filtroActual,
                 _seccionActual,
                 _textoBusqueda,
-                _mostrarDialogoRevertir
-            ) { filtro, seccion, busqueda, dialogo ->
+                _mostrarDialogoRevertir,
+                _loteIdFiltro
+            ) { filtro, seccion, busqueda, dialogo, loteId ->
                 FilterState(
                     filtro = filtro,
                     seccion = seccion,
                     busqueda = busqueda,
-                    dialogo = dialogo
+                    dialogo = dialogo,
+                    loteId = loteId
                 )
             }
 
@@ -86,7 +92,19 @@ class VocabularyViewModel(
             ) { content, progresos, filters ->
 
                 val (palabras, verbos) = content
-                val (filtro, seccion, busqueda, dialogo) = filters
+                val (filtro, seccion, busqueda, dialogo, loteId) = filters
+
+                val idsEnLote = if (loteId != null) {
+                    repository.observarContenidoDeLote(loteId).first().map { it.contenidoId }
+                } else {
+                    null
+                }
+
+                val nombreLote = if (loteId != null) {
+                    repository.obtenerLotePorId(loteId)?.nombre
+                } else {
+                    null
+                }
 
                 val listaPalabras = palabras.map { palabra ->
                     val progreso = progresos.find {
@@ -118,7 +136,7 @@ class VocabularyViewModel(
                         id = verbo.idVerbo,
                         termino = verbo.formaBase,
                         traduccion = verbo.traduccion,
-                        tipoPalabra = TipoPalabra.OTRO,
+                        tipoPalabra = TipoPalabra.VERBO,
                         estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                         fonetica = verbo.fonetica,
                         dificultad = convertirDificultad(verbo.dificultad),
@@ -139,6 +157,8 @@ class VocabularyViewModel(
                 val busquedaLimpia = busqueda.trim()
 
                 val filtradas = listaCompleta.filter { item ->
+                    val coincideLote = idsEnLote?.contains(item.id) ?: true
+
                     val coincideTexto = if (busquedaLimpia.isBlank()) {
                         true
                     } else {
@@ -160,7 +180,7 @@ class VocabularyViewModel(
                             item.estado == EstadoAprendizaje.APRENDIDA
                     }
 
-                    coincideTexto && coincideFiltro
+                    coincideTexto && coincideFiltro && coincideLote
                 }
 
                 val total = listaCompleta.size
@@ -178,10 +198,13 @@ class VocabularyViewModel(
                     it.estado == EstadoAprendizaje.APRENDIDA
                 }
 
+                val agrupadas = filtradas.groupBy { it.tipoPalabra }
+
                 VocabularyUiState(
                     cargando = false,
                     palabrasOriginales = listaCompleta,
                     palabrasFiltradas = filtradas,
+                    palabrasAgrupadas = agrupadas,
                     filtroActual = filtro,
                     seccionActual = seccion,
                     textoBusqueda = busqueda,
@@ -189,7 +212,9 @@ class VocabularyViewModel(
                     palabrasPendientes = pendientes,
                     palabrasEnProgreso = enProgreso,
                     palabrasAprendidas = aprendidas,
-                    mostrarDialogoRevertir = dialogo
+                    mostrarDialogoRevertir = dialogo,
+                    loteIdFiltro = loteId,
+                    nombreLote = nombreLote
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -205,12 +230,9 @@ class VocabularyViewModel(
         }
     }
 
-    private data class FilterState(
-        val filtro: VocabularioFiltro,
-        val seccion: VocabularioSeccion,
-        val busqueda: String,
-        val dialogo: PalabraConProgreso?
-    )
+    fun establecerLote(loteId: String?) {
+        _loteIdFiltro.value = loteId
+    }
 
     fun onSearchTextChanged(text: String) {
         _textoBusqueda.value = text
@@ -225,6 +247,7 @@ class VocabularyViewModel(
     }
 
     fun marcarComoAprendido(
+        context: Context,
         palabraId: String,
         esVerbo: Boolean
     ) {
@@ -264,6 +287,7 @@ class VocabularyViewModel(
                 )
             }
 
+            actualizarWidget(context)
             sincronizarPalabrasAprendidasConFirestore(userId)
             cargarUsuarioActual()
         }
@@ -278,6 +302,7 @@ class VocabularyViewModel(
     }
 
     fun revertirEstadoAprendido(
+        context: Context,
         palabraId: String,
         esVerbo: Boolean
     ) {
@@ -317,9 +342,18 @@ class VocabularyViewModel(
                 )
             }
 
+            actualizarWidget(context)
             sincronizarPalabrasAprendidasConFirestore(userId)
             ocultarConfirmacionRevertir()
             cargarUsuarioActual()
+        }
+    }
+
+    private suspend fun actualizarWidget(context: Context) {
+        try {
+            WordWidgetProvider.updateAll(context.applicationContext)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error actualizando widget", e)
         }
     }
 
@@ -338,5 +372,17 @@ class VocabularyViewModel(
             firebaseUid = userId,
             cantidad = totalAprendidas
         )
+    }
+
+    private data class FilterState(
+        val filtro: VocabularioFiltro,
+        val seccion: VocabularioSeccion,
+        val busqueda: String,
+        val dialogo: PalabraConProgreso?,
+        val loteId: String?
+    )
+
+    companion object {
+        private const val TAG = "VocabularyViewModel"
     }
 }

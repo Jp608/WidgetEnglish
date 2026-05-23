@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">WidgetEnglish</string>
     <string name="default_web_client_id">1006993171824-fgn0aqctefrc1l93aokvb7n1sh51slf7.apps.googleusercontent.com</string>
+    <string name="widget_description">Widget de WidgetEnglish — Aprende inglés desde tu pantalla de inicio</string>
+    <string name="widget_no_lote">Sin lote activo</string>
+    <string name="widget_marcar_aprendida">Aprendida ✓</string>
+    <string name="widget_siguiente">Siguiente →</string>
 </resources>

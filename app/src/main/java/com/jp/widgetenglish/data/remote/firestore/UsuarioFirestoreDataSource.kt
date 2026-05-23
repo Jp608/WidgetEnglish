@@ -36,6 +36,10 @@ class UsuarioFirestoreDataSource(
                 camposFaltantes["porcentajeProgreso"] = 0
             }
 
+            if (!snapshot.contains("loteActivoId")) {
+                camposFaltantes["loteActivoId"] = ""
+            }
+
             camposFaltantes["ultimoAcceso"] = System.currentTimeMillis()
 
             if (camposFaltantes.isNotEmpty()) {
@@ -69,7 +73,8 @@ class UsuarioFirestoreDataSource(
                 "palabrasAprendidas" to 0,
                 "quizzesRealizados" to 0,
                 "lotesCompletados" to 0,
-                "porcentajeProgreso" to 0
+                "porcentajeProgreso" to 0,
+                "loteActivoId" to ""
             )
 
             documentRef.set(data).await()
@@ -123,5 +128,16 @@ class UsuarioFirestoreDataSource(
         usuariosCollection.document(firebaseUid)
             .update("ultimoAcceso", System.currentTimeMillis())
             .await()
+    }
+
+    suspend fun guardarLoteActivo(firebaseUid: String, loteId: String) {
+        usuariosCollection.document(firebaseUid)
+            .update("loteActivoId", loteId)
+            .await()
+    }
+
+    suspend fun obtenerLoteActivoId(firebaseUid: String): String? {
+        val snapshot = usuariosCollection.document(firebaseUid).get().await()
+        return snapshot.getString("loteActivoId")
     }
 }

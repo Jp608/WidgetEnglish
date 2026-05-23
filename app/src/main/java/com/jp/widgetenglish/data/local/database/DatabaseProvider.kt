@@ -16,6 +16,8 @@ object DatabaseProvider {
                 "widget_english_master_v1.db"
             )
                 .fallbackToDestructiveMigration()
+                .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
+                .enableMultiInstanceInvalidation()
                 .build()
 
             INSTANCE = instance
