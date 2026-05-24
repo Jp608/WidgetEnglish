@@ -119,4 +119,6 @@ interface VocabularioRepository {
     suspend fun reiniciarProgresoLote(usuarioId: String, loteId: String)
 
     suspend fun sincronizarLoteActivoConFirestore(usuarioId: String)
+
+    suspend fun obtenerDistractores(excluirIds: List<String>, cantidad: Int): List<Pair<String, String>>
 }

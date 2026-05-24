@@ -30,7 +30,8 @@ fun LoteDetailScreen(
     loteId: String,
     viewModel: LotesViewModel,
     onBack: () -> Unit,
-    onItemClick: (String, Boolean) -> Unit
+    onItemClick: (String, Boolean) -> Unit,
+    onEstudiarClick: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -103,7 +104,7 @@ fun LoteDetailScreen(
                             ) {
                                 Text(if (idActivo) "Activo" else "Activar Lote")
                             }
-                            OutlinedButton(onClick = { /* Modo Estudio */ }) {
+                            OutlinedButton(onClick = { onEstudiarClick(lote.idLote) }) {
                                 Text("Estudiar")
                             }
                         }

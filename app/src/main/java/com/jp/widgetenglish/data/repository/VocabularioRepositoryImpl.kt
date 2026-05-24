@@ -203,4 +203,16 @@ class VocabularioRepositoryImpl(
             }
         } catch (e: Exception) {}
     }
+
+    override suspend fun obtenerDistractores(excluirIds: List<String>, cantidad: Int): List<Pair<String, String>> {
+        val palabras = palabraDao.observarPalabras().first()
+        val verbos = verboDao.observarVerbos().first()
+
+        val todas = (palabras.map { it.idPalabra to it.traduccion } + 
+                     verbos.map { it.idVerbo to it.traduccion })
+            .filter { it.first !in excluirIds }
+            .shuffled()
+
+        return todas.take(cantidad)
+    }
 }

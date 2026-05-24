@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -39,6 +40,13 @@ import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.Vocabular
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizResultScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.StudyDashboardScreen
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
 import com.jp.widgetenglish.features.admin.AdminViewModel
 import com.jp.widgetenglish.features.admin.AdminViewModelFactory
@@ -114,6 +122,20 @@ fun AppNavGraph() {
 
     val lotesViewModel: LotesViewModel = viewModel(
         factory = LotesViewModelFactory(
+            vocabularioRepository = vocabularioRepository,
+            authRepository = authRepository
+        )
+    )
+
+    val quizViewModel: QuizViewModel = viewModel(
+        factory = QuizViewModelFactory(
+            vocabularioRepository = vocabularioRepository,
+            authRepository = authRepository
+        )
+    )
+
+    val studyViewModel: StudyViewModel = viewModel(
+        factory = StudyViewModelFactory(
             vocabularioRepository = vocabularioRepository,
             authRepository = authRepository
         )
@@ -254,20 +276,80 @@ fun AppNavGraph() {
                 onBack = { navController.popBackStack() },
                 onItemClick = { itemId, isVerbo ->
                     navController.navigate(Screen.VocabularyDetail.createRoute(itemId, isVerbo))
+                },
+                onEstudiarClick = { id ->
+                    navController.navigate(Screen.Quiz.createRoute(id))
                 }
             )
         }
 
+        composable(Screen.Quiz.route) { backStackEntry ->
+            val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
+            val repasarFalladas = backStackEntry.arguments?.getString("repasarFalladas").toBoolean()
+            val limite = backStackEntry.arguments?.getString("limite")?.toIntOrNull() ?: 10
+            
+            // Obtenemos el estado actual del quizViewModel antes de que se limpie (si es posible)
+            // o simplemente confiamos en que el ViewModel ya tiene la info si no ha sido destruido.
+            // Pero para ser más robustos, podemos pasar los IDs fallados como argumento de navegación si fuera necesario.
+            // Por ahora, vamos a forzar que el ViewModel use lo que tiene en memoria antes de resetear.
+            
+            QuizScreen(
+                loteId = loteId,
+                repasarFalladas = repasarFalladas,
+                limite = limite,
+                viewModel = quizViewModel,
+                onBack = { navController.popBackStack() },
+                onFinish = { _, _, _ ->
+                    navController.navigate(Screen.QuizResult.route) {
+                        popUpTo(Screen.Quiz.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Screen.QuizResult.route) {
+            val quizState by quizViewModel.uiState.collectAsState()
+            val failedIds = remember { quizState.respuestasFalladas.map { it.id } }
+            
+            QuizResultScreen(
+                score = quizState.score,
+                total = quizState.preguntas.size,
+                failedWords = quizState.respuestasFalladas,
+                onRepasarFalladas = {
+                    // Al navegar, pasamos la información de que queremos repasar Y los IDs
+                    // Pero nuestra ruta actual no soporta pasar una lista de IDs fácilmente.
+                    // Vamos a disparar el inicio del quiz en el ViewModel justo ANTES de navegar
+                    // para que el estado ya esté preparado.
+                    quizViewModel.iniciarQuiz(quizState.loteId, true, failedIds)
+                    
+                    navController.navigate(Screen.Quiz.createRoute(quizState.loteId, true)) {
+                        popUpTo(Screen.QuizResult.route) { inclusive = true }
+                    }
+                },
+                onRepetirQuiz = {
+                    quizViewModel.iniciarQuiz(quizState.loteId, false)
+
+                    navController.navigate(Screen.Quiz.createRoute(quizState.loteId, false)) {
+                        popUpTo(Screen.QuizResult.route) { inclusive = true }
+                    }
+                },
+                onVolverInicio = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Screen.Estudio.route) {
-            ConstructionScreen(
-                titulo = "Modo estudio en construcción",
-                descripcion = "Aquí estudiarás el vocabulario del lote activo con tarjetas.",
-                onVolverInicio = { navegar(Screen.Home.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
-                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                onLotesClick = { navegar(Screen.Lotes.route) },
-                onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) }
+            StudyDashboardScreen(
+                viewModel = studyViewModel,
+                onBack = { navController.popBackStack() },
+                onStartQuiz = { loteId, limite ->
+                    quizViewModel.iniciarQuiz(loteId, false, limite = limite)
+                    navController.navigate(Screen.Quiz.createRoute(loteId, false, limite))
+                }
             )
         }
 

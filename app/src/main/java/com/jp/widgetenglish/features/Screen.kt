@@ -18,6 +18,11 @@ sealed class Screen(val route: String) {
         fun createRoute(loteId: String) = "lote_detail/$loteId"
     }
     object Estudio : Screen("estudio")
+    object Quiz : Screen("quiz/{loteId}/{repasarFalladas}/{limite}") {
+        fun createRoute(loteId: String, repasarFalladas: Boolean = false, limite: Int = 10) = 
+            "quiz/$loteId/$repasarFalladas/$limite"
+    }
+    object QuizResult : Screen("quiz_result")
     object Ia : Screen("ia")
     object AdminDashboard : Screen("admin_dashboard")
     object AdminRanking : Screen("admin_ranking")
