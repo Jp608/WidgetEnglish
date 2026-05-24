@@ -30,6 +30,7 @@ import android.media.MediaPlayer
 fun QuizScreen(
     loteId: String,
     repasarFalladas: Boolean,
+    limite: Int = 10,
     viewModel: QuizViewModel,
     onBack: () -> Unit,
     onFinish: (Int, Int, List<String>) -> Unit
@@ -42,11 +43,11 @@ fun QuizScreen(
         onDispose { ttsHelper.shutdown() }
     }
 
-    LaunchedEffect(loteId, repasarFalladas) {
+    LaunchedEffect(loteId, repasarFalladas, limite) {
         // Ya no llamamos a iniciarQuiz aquí si venimos de la navegación que ya lo llamó
         // Pero por seguridad (si se entra directo por link), comprobamos si el estado está cargando/finalizado
         if (!state.cargando && state.preguntas.isEmpty()) {
-            viewModel.iniciarQuiz(loteId, repasarFalladas)
+            viewModel.iniciarQuiz(loteId, repasarFalladas, limite = limite)
         }
     }
 

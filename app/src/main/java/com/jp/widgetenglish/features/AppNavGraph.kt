@@ -42,8 +42,11 @@ import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesView
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizResultScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.StudyDashboardScreen
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
 import com.jp.widgetenglish.features.admin.AdminViewModel
 import com.jp.widgetenglish.features.admin.AdminViewModelFactory
@@ -126,6 +129,13 @@ fun AppNavGraph() {
 
     val quizViewModel: QuizViewModel = viewModel(
         factory = QuizViewModelFactory(
+            vocabularioRepository = vocabularioRepository,
+            authRepository = authRepository
+        )
+    )
+
+    val studyViewModel: StudyViewModel = viewModel(
+        factory = StudyViewModelFactory(
             vocabularioRepository = vocabularioRepository,
             authRepository = authRepository
         )
@@ -276,6 +286,7 @@ fun AppNavGraph() {
         composable(Screen.Quiz.route) { backStackEntry ->
             val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
             val repasarFalladas = backStackEntry.arguments?.getString("repasarFalladas").toBoolean()
+            val limite = backStackEntry.arguments?.getString("limite")?.toIntOrNull() ?: 10
             
             // Obtenemos el estado actual del quizViewModel antes de que se limpie (si es posible)
             // o simplemente confiamos en que el ViewModel ya tiene la info si no ha sido destruido.
@@ -285,6 +296,7 @@ fun AppNavGraph() {
             QuizScreen(
                 loteId = loteId,
                 repasarFalladas = repasarFalladas,
+                limite = limite,
                 viewModel = quizViewModel,
                 onBack = { navController.popBackStack() },
                 onFinish = { _, _, _ ->
@@ -331,27 +343,14 @@ fun AppNavGraph() {
         }
 
         composable(Screen.Estudio.route) {
-            val homeState by homeViewModel.uiState.collectAsState()
-            val loteActivoId = homeState.loteActivo?.loteId
-            
-            if (loteActivoId != null) {
-                LaunchedEffect(Unit) {
-                    navController.navigate(Screen.Quiz.createRoute(loteActivoId)) {
-                        popUpTo(Screen.Estudio.route) { inclusive = true }
-                    }
+            StudyDashboardScreen(
+                viewModel = studyViewModel,
+                onBack = { navController.popBackStack() },
+                onStartQuiz = { loteId, limite ->
+                    quizViewModel.iniciarQuiz(loteId, false, limite = limite)
+                    navController.navigate(Screen.Quiz.createRoute(loteId, false, limite))
                 }
-            } else {
-                ConstructionScreen(
-                    titulo = "Sin lote activo",
-                    descripcion = "Activa un lote en la sección de 'Lotes' para comenzar a estudiar.",
-                    onVolverInicio = { navegar(Screen.Home.route) },
-                    onPerfilClick = { navegar(Screen.Profile.route) },
-                    onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                    onLotesClick = { navegar(Screen.Lotes.route) },
-                    onEstudioClick = { navegar(Screen.Estudio.route) },
-                    onIaClick = { navegar(Screen.Ia.route) }
-                )
-            }
+            )
         }
 
         composable(Screen.Ia.route) {

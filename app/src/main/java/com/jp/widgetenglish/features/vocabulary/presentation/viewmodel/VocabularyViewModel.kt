@@ -152,6 +152,7 @@ class VocabularyViewModel(
                 val listaCompleta = when (seccion) {
                     VocabularioSeccion.PALABRAS -> listaPalabras
                     VocabularioSeccion.VERBOS -> listaVerbos
+                    else -> emptyList() // HU25: Add support for adjectives later if needed
                 }
 
                 val busquedaLimpia = busqueda.trim()

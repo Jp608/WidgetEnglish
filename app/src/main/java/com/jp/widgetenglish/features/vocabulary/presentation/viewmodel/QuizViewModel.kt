@@ -43,8 +43,8 @@ class QuizViewModel(
     private val _uiState = MutableStateFlow(QuizUiState())
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
-    fun iniciarQuiz(loteId: String, repasarFalladas: Boolean, failedIds: List<String> = emptyList()) {
-        // Resetear el estado inmediatamente para evitar que efectos secundarios detecten el estado anterior
+    fun iniciarQuiz(loteId: String, repasarFalladas: Boolean, failedIds: List<String> = emptyList(), limite: Int = 10) {
+        // Resetear el estado inmediatamente
         _uiState.update { 
             it.copy(
                 cargando = true, 
@@ -105,7 +105,8 @@ class QuizViewModel(
                         all.filter { it.estado == EstadoAprendizaje.DIFICIL }
                     }
                 } else {
-                    all
+                    // Si no es repaso, aplicamos el límite configurado
+                    all.shuffled().take(limite)
                 }
             }
 
