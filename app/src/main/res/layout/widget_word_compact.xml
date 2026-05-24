@@ -6,7 +6,10 @@
     android:background="@drawable/widget_bg"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingStart="10dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="6dp">
 
     <TextView
         android:id="@+id/widget_termino"
@@ -15,7 +18,7 @@
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
-        android:text="Learn"
+        android:text="be"
         android:textColor="@color/blue_primary"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -24,25 +27,24 @@
         android:id="@+id/widget_traduccion"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
-        android:text="Aprender"
+        android:text="ser o estar"
         android:textColor="@color/text_dark"
-        android:textSize="12sp" />
+        android:textSize="13sp" />
 
     <TextView
         android:id="@+id/widget_btn_next"
-        android:layout_width="wrap_content"
-        android:layout_height="26dp"
-        android:layout_marginTop="6dp"
+        android:layout_width="54dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="8dp"
         android:background="@drawable/widget_button_bg"
         android:gravity="center"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
         android:text="→"
         android:textColor="@color/white"
-        android:textSize="14sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
 </LinearLayout>
