@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModel
@@ -42,10 +44,10 @@ fun StudyDashboardScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                title = { Text("Estudio", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("Plan de Estudio", fontWeight = FontWeight.ExtraBold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = Color.White)
                     }
                 }
             )
@@ -56,132 +58,69 @@ fun StudyDashboardScreen(
                 CircularProgressIndicator(color = Color(0xFF2563EB))
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Estadísticas
-                item {
-                    Text("Tus Estadísticas", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatsSmallCard(
-                            label = "Aprendidas",
-                            value = state.palabrasAprendidas.toString(),
-                            icon = Icons.Default.EmojiEvents,
-                            color = Color(0xFF2563EB),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatsSmallCard(
-                            label = "Precisión",
-                            value = "${state.precisionGlobal}%",
-                            icon = Icons.Default.TrackChanges,
-                            color = Color(0xFF10B981),
-                            modifier = Modifier.weight(1f)
+                // Header con Gradiente y Stats
+                StudyHeader(
+                    aprendidas = state.palabrasAprendidas,
+                    precision = state.precisionGlobal
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(28.dp)
+                ) {
+                    // Lote Activo - Mejorado
+                    item {
+                        SectionTitle("Tu Progreso Actual")
+                        Spacer(Modifier.height(16.dp))
+                        ActiveLotCard(
+                            nombre = state.loteActivo?.nombre ?: "Sin lote activo",
+                            progreso = state.progresoLote
                         )
                     }
-                }
 
-                // Lote Activo
-                item {
-                    Text("Lote Activo", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(Modifier.padding(20.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    color = Color(0xFFEFF6FF),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Icon(Icons.Default.Book, null, tint = Color(0xFF2563EB), modifier = Modifier.padding(12.dp))
-                                }
-                                Spacer(Modifier.width(16.dp))
-                                Column {
-                                    Text(state.loteActivo?.nombre ?: "Sin lote activo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                    Text("Progreso: ${state.progresoLote.toInt()}%", color = Color.Gray, fontSize = 14.sp)
-                                }
-                            }
-                            Spacer(Modifier.height(16.dp))
-                            LinearProgressIndicator(
-                                progress = { state.progresoLote / 100f },
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                                color = Color(0xFF2563EB),
-                                trackColor = Color(0xFFE5E7EB)
+                    // Configuración de Quiz - Mejorado
+                    item {
+                        SectionTitle("Configurar Sesión")
+                        Spacer(Modifier.height(16.dp))
+                        QuizConfigCard(
+                            selectedAmount = state.cantidadPalabrasQuiz,
+                            onAmountSelected = { viewModel.setCantidadPalabras(it) }
+                        )
+                    }
+
+                    item {
+                        Button(
+                            onClick = { 
+                                state.loteActivo?.let { onStartQuiz(it.idLote, state.cantidadPalabrasQuiz) }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(64.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2563EB),
+                                disabledContainerColor = Color(0xFFE5E7EB)
+                            ),
+                            enabled = state.loteActivo != null,
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(28.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Iniciar Entrenamiento", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                        }
+                        
+                        if (state.loteActivo == null) {
+                            Text(
+                                "Selecciona un lote en la sección de Lotes para comenzar",
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                color = Color(0xFFEF4444),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
                             )
                         }
-                    }
-                }
-
-                // Configuración de Quiz
-                item {
-                    Text("Configurar Próximo Quiz", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
-                    ) {
-                        Column(Modifier.padding(20.dp)) {
-                            Text("Cantidad de palabras", fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf(5, 10, 15, 20).forEach { cant ->
-                                    val selected = state.cantidadPalabrasQuiz == cant
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(if (selected) Color(0xFF2563EB) else Color(0xFFF3F4F6))
-                                            .clickable { viewModel.setCantidadPalabras(cant) },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            cant.toString(),
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (selected) Color.White else Color(0xFF6B7280)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = { 
-                            state.loteActivo?.let { onStartQuiz(it.idLote, state.cantidadPalabrasQuiz) }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(60.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
-                        enabled = state.loteActivo != null
-                    ) {
-                        Icon(Icons.Default.PlayArrow, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Iniciar Quiz", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    }
-                    if (state.loteActivo == null) {
-                        Text(
-                            "Activa un lote para comenzar a estudiar",
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            color = Color.Red,
-                            fontSize = 12.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
                     }
                 }
             }
@@ -190,29 +129,130 @@ fun StudyDashboardScreen(
 }
 
 @Composable
-fun StatsSmallCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+private fun StudyHeader(aprendidas: Int, precision: Int) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF2563EB), Color(0xFF7C3AED))
+                )
+            )
+            .padding(top = 60.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HeaderStatItem("Aprendidas", aprendidas.toString(), Icons.Default.EmojiEvents)
+            Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.White.copy(alpha = 0.3f)))
+            HeaderStatItem("Precisión", "$precision%", Icons.Default.TrackChanges)
+        }
+    }
+}
+
+@Composable
+private fun HeaderStatItem(label: String, value: String, icon: ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(icon, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(value, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.ExtraBold,
+        color = Color(0xFF111827)
+    )
+}
+
+@Composable
+private fun ActiveLotCard(nombre: String, progreso: Float) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
-                modifier = Modifier.size(32.dp).background(color.copy(alpha = 0.1f), CircleShape),
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFEFF6FF)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Book, null, tint = Color(0xFF2563EB), modifier = Modifier.size(28.dp))
             }
-            Spacer(Modifier.height(12.dp))
-            Text(label, fontSize = 12.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Bold)
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF111827))
+            Spacer(Modifier.width(20.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(nombre, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF111827))
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { progreso / 100f },
+                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(10.dp)),
+                    color = Color(0xFF2563EB),
+                    trackColor = Color(0xFFE5E7EB)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("${progreso.toInt()}% completado", color = Color(0xFF6B7280), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuizConfigCard(selectedAmount: Int, onAmountSelected: (Int) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+    ) {
+        Column(Modifier.padding(24.dp)) {
+            Text(
+                "¿Cuántas palabras quieres practicar?",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF6B7280),
+                fontSize = 15.sp
+            )
+            Spacer(Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                listOf(5, 10, 15, 20).forEach { cant ->
+                    val selected = selectedAmount == cant
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (selected) Color(0xFF2563EB) else Color(0xFFF3F4F6))
+                            .clickable { onAmountSelected(cant) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            cant.toString(),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
+                            color = if (selected) Color.White else Color(0xFF4B5563)
+                        )
+                    }
+                }
+            }
         }
     }
 }
