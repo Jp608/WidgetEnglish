@@ -25,7 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
+import android.widget.Toast
 class WordWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -113,6 +113,10 @@ class WordWidgetProvider : AppWidgetProvider() {
                     }
                 }
             }
+
+            ACTION_OPEN_APP_REQUEST -> {
+                manejarSolicitudAbrirApp(context.applicationContext)
+            }
         }
     }
 
@@ -121,14 +125,19 @@ class WordWidgetProvider : AppWidgetProvider() {
         const val ACTION_PLAY_SOUND = "com.jp.widgetenglish.widget.ACTION_PLAY_SOUND"
         const val ACTION_REFRESH_WIDGET = "com.jp.widgetenglish.widget.ACTION_REFRESH_WIDGET"
         const val EXTRA_TEXT = "extra_text"
+        const val ACTION_OPEN_APP_REQUEST = "com.jp.widgetenglish.widget.ACTION_OPEN_APP_REQUEST"
 
         private const val REQUEST_CODE_OPEN_APP = 20_000
         private const val REQUEST_CODE_SOUND_OFFSET = 10_000
 
-        private const val COMPACT_MAX_WIDTH = 170
-        private const val COMPACT_MAX_HEIGHT = 100
-        private const val LARGE_MIN_WIDTH = 260
-        private const val LARGE_MIN_HEIGHT = 150
+        private const val COMPACT_MAX_WIDTH = 180
+        private const val COMPACT_MAX_HEIGHT = 110
+        private const val LARGE_MIN_WIDTH = 280
+        private const val LARGE_MIN_HEIGHT = 160
+
+        private const val DOUBLE_TAP_WINDOW_MS = 1_500L
+        private const val WIDGET_PREFS_NAME = "widget_open_prefs"
+        private const val KEY_LAST_OPEN_TAP = "last_open_tap"
 
         private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -272,7 +281,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(
                 R.id.widget_root,
-                pendingIntentAbrirApp(context)
+                pendingIntentSolicitarAbrirApp(context)
             )
 
             views.setOnClickPendingIntent(
@@ -306,7 +315,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(
                 R.id.widget_root,
-                pendingIntentAbrirApp(context)
+                pendingIntentSolicitarAbrirApp(context)
             )
 
             views.setOnClickPendingIntent(
@@ -349,7 +358,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(
                 R.id.widget_root,
-                pendingIntentAbrirApp(context)
+                pendingIntentSolicitarAbrirApp(context)
             )
 
             views.setOnClickPendingIntent(
@@ -540,17 +549,54 @@ class WordWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        private fun pendingIntentAbrirApp(context: Context): PendingIntent {
-            val intent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        private fun pendingIntentSolicitarAbrirApp(context: Context): PendingIntent {
+            val intent = Intent(context, WordWidgetProvider::class.java).apply {
+                action = ACTION_OPEN_APP_REQUEST
             }
 
-            return PendingIntent.getActivity(
+            return PendingIntent.getBroadcast(
                 context,
                 REQUEST_CODE_OPEN_APP,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+        }
+
+        private fun manejarSolicitudAbrirApp(context: Context) {
+            val prefs = context.getSharedPreferences(
+                WIDGET_PREFS_NAME,
+                Context.MODE_PRIVATE
+            )
+
+            val now = System.currentTimeMillis()
+            val lastTap = prefs.getLong(KEY_LAST_OPEN_TAP, 0L)
+            val dentroDelTiempo = now - lastTap <= DOUBLE_TAP_WINDOW_MS
+
+            if (dentroDelTiempo) {
+                prefs.edit()
+                    .putLong(KEY_LAST_OPEN_TAP, 0L)
+                    .apply()
+
+                abrirApp(context)
+            } else {
+                prefs.edit()
+                    .putLong(KEY_LAST_OPEN_TAP, now)
+                    .apply()
+
+                Toast.makeText(
+                    context,
+                    "Toca otra vez para abrir WidgetEnglish",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        private fun abrirApp(context: Context) {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
+            context.startActivity(intent)
         }
     }
 }
