@@ -94,7 +94,7 @@ fun StudyDashboardScreen(
 
                     item {
                         Button(
-                            onClick = { 
+                            onClick = {
                                 state.loteActivo?.let { onStartQuiz(it.idLote, state.cantidadPalabrasQuiz) }
                             },
                             modifier = Modifier.fillMaxWidth().height(64.dp),
@@ -110,7 +110,7 @@ fun StudyDashboardScreen(
                             Spacer(Modifier.width(12.dp))
                             Text("Iniciar Entrenamiento", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                         }
-                        
+
                         if (state.loteActivo == null) {
                             Text(
                                 "Selecciona un lote en la sección de Lotes para comenzar",

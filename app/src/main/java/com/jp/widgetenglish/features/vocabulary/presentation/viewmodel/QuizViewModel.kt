@@ -1,11 +1,15 @@
 package com.jp.widgetenglish.features.vocabulary.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.TipoContenido
 import com.jp.widgetenglish.data.local.entity.TipoPalabra
+import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,39 +36,57 @@ data class QuizUiState(
     val cargando: Boolean = true,
     val mensajeError: String? = null,
     val opcionSeleccionada: String? = null,
-    val mostrarFeedback: Boolean = false
+    val mostrarFeedback: Boolean = false,
+    val quizRegistrado: Boolean = false
 )
 
 class QuizViewModel(
     private val vocabularioRepository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val usuarioDao: UsuarioDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuizUiState())
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
-    fun iniciarQuiz(loteId: String, repasarFalladas: Boolean, failedIds: List<String> = emptyList(), limite: Int = 10) {
-        // Resetear el estado inmediatamente
-        _uiState.update { 
-            it.copy(
-                cargando = true, 
-                mensajeError = null, 
+    fun iniciarQuiz(
+        loteId: String,
+        repasarFalladas: Boolean,
+        failedIds: List<String> = emptyList(),
+        limite: Int = 10
+    ) {
+        _uiState.update {
+            QuizUiState(
+                loteId = loteId,
+                cargando = true,
+                mensajeError = null,
                 estaFinalizado = false,
-                indicePreguntaActual = 0,
-                opcionSeleccionada = null,
-                mostrarFeedback = false
-            ) 
+                quizRegistrado = false
+            )
         }
 
         viewModelScope.launch {
             val usuarioId = authRepository.obtenerUsuarioActual()?.uid
+
             if (usuarioId == null) {
-                _uiState.update { it.copy(cargando = false, mensajeError = "Usuario no identificado") }
+                _uiState.update {
+                    it.copy(
+                        cargando = false,
+                        mensajeError = "Usuario no identificado"
+                    )
+                }
                 return@launch
             }
 
-            val contenidos = vocabularioRepository.observarContenidoDeLote(loteId).first()
-            val progresos = vocabularioRepository.observarProgresoUsuario(usuarioId).first()
+            asegurarUsuarioLocal(usuarioId)
+
+            val contenidos = vocabularioRepository
+                .observarContenidoDeLote(loteId)
+                .first()
+
+            val progresos = vocabularioRepository
+                .observarProgresoUsuario(usuarioId)
+                .first()
 
             val palabras = contenidos.mapNotNull { contenido ->
                 val progreso = progresos.find {
@@ -73,29 +95,40 @@ class QuizViewModel(
                 }
 
                 if (contenido.tipoContenido == TipoContenido.VERBO) {
-                    vocabularioRepository.obtenerVerboPorId(contenido.contenidoId)?.let { verbo ->
-                        PalabraConProgreso(
-                            id = verbo.idVerbo,
-                            termino = verbo.formaBase,
-                            traduccion = verbo.traduccion,
-                            fonetica = verbo.fonetica,
-                            estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
-                            esVerbo = true,
-                            tipoPalabra = TipoPalabra.VERBO
-                        )
-                    }
+                    vocabularioRepository.obtenerVerboPorId(contenido.contenidoId)
+                        ?.let { verbo ->
+                            PalabraConProgreso(
+                                id = verbo.idVerbo,
+                                termino = verbo.formaBase,
+                                traduccion = verbo.traduccion,
+                                fonetica = verbo.fonetica,
+                                estado = progreso?.estadoAprendizaje
+                                    ?: EstadoAprendizaje.NO_VISTA,
+                                esVerbo = true,
+                                tipoPalabra = TipoPalabra.VERBO,
+                                pasadoSimple = verbo.pasadoSimple,
+                                participioPasado = verbo.participioPasado,
+                                esIrregular = verbo.esIrregular,
+                                ejemploIngles = verbo.ejemploIngles,
+                                ejemploEspanol = verbo.ejemploEspanol
+                            )
+                        }
                 } else {
-                    vocabularioRepository.obtenerPalabraPorId(contenido.contenidoId)?.let { palabra ->
-                        PalabraConProgreso(
-                            id = palabra.idPalabra,
-                            termino = palabra.termino,
-                            traduccion = palabra.traduccion,
-                            fonetica = palabra.fonetica,
-                            estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
-                            esVerbo = false,
-                            tipoPalabra = palabra.tipoPalabra
-                        )
-                    }
+                    vocabularioRepository.obtenerPalabraPorId(contenido.contenidoId)
+                        ?.let { palabra ->
+                            PalabraConProgreso(
+                                id = palabra.idPalabra,
+                                termino = palabra.termino,
+                                traduccion = palabra.traduccion,
+                                fonetica = palabra.fonetica,
+                                estado = progreso?.estadoAprendizaje
+                                    ?: EstadoAprendizaje.NO_VISTA,
+                                esVerbo = false,
+                                tipoPalabra = palabra.tipoPalabra,
+                                ejemplo = palabra.ejemplo,
+                                ejemploTraduccion = palabra.ejemploTraduccion
+                            )
+                        }
                 }
             }.let { all ->
                 if (repasarFalladas) {
@@ -105,25 +138,45 @@ class QuizViewModel(
                         all.filter { it.estado == EstadoAprendizaje.DIFICIL }
                     }
                 } else {
-                    // Si no es repaso, aplicamos el límite configurado
                     all.shuffled().take(limite)
                 }
             }
 
             if (palabras.size < 4 && !repasarFalladas) {
-                _uiState.update { it.copy(cargando = false, mensajeError = "El lote debe tener al menos 4 palabras para iniciar el quiz.") }
+                _uiState.update {
+                    it.copy(
+                        cargando = false,
+                        mensajeError = "El lote debe tener al menos 4 palabras para iniciar el quiz."
+                    )
+                }
                 return@launch
             }
-            
+
             if (palabras.isEmpty()) {
-                _uiState.update { it.copy(cargando = false, mensajeError = "No hay palabras para repasar.") }
+                _uiState.update {
+                    it.copy(
+                        cargando = false,
+                        mensajeError = "No hay palabras para repasar."
+                    )
+                }
                 return@launch
             }
 
             val preguntas = palabras.shuffled().map { palabra ->
-                val distractores = vocabularioRepository.obtenerDistractores(listOf(palabra.id), 3)
-                val opciones = (distractores.map { it.second } + palabra.traduccion).shuffled()
-                QuizQuestion(palabra, opciones, palabra.traduccion)
+                val distractores = vocabularioRepository.obtenerDistractores(
+                    excluirIds = listOf(palabra.id),
+                    cantidad = 3
+                )
+
+                val opciones = (
+                        distractores.map { it.second } + palabra.traduccion
+                        ).shuffled()
+
+                QuizQuestion(
+                    palabra = palabra,
+                    opciones = opciones,
+                    respuestaCorrecta = palabra.traduccion
+                )
             }
 
             _uiState.update {
@@ -132,21 +185,24 @@ class QuizViewModel(
                     preguntas = preguntas,
                     indicePreguntaActual = 0,
                     score = 0,
-                    // Si no estamos repasando, limpiamos la lista de falladas. 
-                    // Si estamos repasando, mantenemos la lista anterior para que el filtro funcione si el LaunchedEffect se dispara de nuevo? 
-                    // En realidad, 'palabras' ya contiene el filtro.
-                    respuestasFalladas = if (repasarFalladas) it.respuestasFalladas else emptyList(),
+                    respuestasFalladas = emptyList(),
+                    respuestasAcertadas = emptyList(),
                     estaFinalizado = false,
                     cargando = false,
+                    mensajeError = null,
                     opcionSeleccionada = null,
-                    mostrarFeedback = false
+                    mostrarFeedback = false,
+                    quizRegistrado = false
                 )
             }
         }
     }
 
     fun seleccionarOpcion(opcion: String) {
-        if (_uiState.value.mostrarFeedback) return
+        val currentState = _uiState.value
+
+        if (currentState.estaFinalizado) return
+        if (currentState.mostrarFeedback) return
 
         _uiState.update {
             it.copy(
@@ -158,11 +214,22 @@ class QuizViewModel(
 
     fun siguientePregunta() {
         val currentState = _uiState.value
+
+        if (currentState.estaFinalizado) return
+        if (currentState.quizRegistrado) return
+        if (currentState.preguntas.isEmpty()) return
+        if (currentState.indicePreguntaActual !in currentState.preguntas.indices) return
+        if (currentState.opcionSeleccionada == null) return
+
         val preguntaActual = currentState.preguntas[currentState.indicePreguntaActual]
         val fueCorrecta = currentState.opcionSeleccionada == preguntaActual.respuestaCorrecta
 
-        val newScore = if (fueCorrecta) currentState.score + 1 else currentState.score
-        
+        val newScore = if (fueCorrecta) {
+            currentState.score + 1
+        } else {
+            currentState.score
+        }
+
         val newFalladas = if (!fueCorrecta) {
             currentState.respuestasFalladas + preguntaActual.palabra
         } else {
@@ -187,54 +254,162 @@ class QuizViewModel(
                 )
             }
         } else {
-            // Finalizar Quiz
-            finalizarQuiz(newScore, newFalladas, newAcertadas)
+            finalizarQuiz(
+                finalScore = newScore,
+                falladas = newFalladas,
+                acertadas = newAcertadas
+            )
         }
     }
 
-    private fun finalizarQuiz(finalScore: Int, falladas: List<PalabraConProgreso>, acertadas: List<PalabraConProgreso>) {
+    private fun finalizarQuiz(
+        finalScore: Int,
+        falladas: List<PalabraConProgreso>,
+        acertadas: List<PalabraConProgreso>
+    ) {
+        val estadoActual = _uiState.value
+
+        if (estadoActual.estaFinalizado || estadoActual.quizRegistrado) return
+
+        _uiState.update {
+            it.copy(
+                quizRegistrado = true
+            )
+        }
+
         viewModelScope.launch {
-            val usuarioId = authRepository.obtenerUsuarioActual()?.uid ?: return@launch
-            
-            // Marcar falladas como DIFICIL
+            val usuarioId = authRepository.obtenerUsuarioActual()?.uid
+
+            if (usuarioId == null) {
+                _uiState.update {
+                    it.copy(
+                        mensajeError = "Usuario no identificado",
+                        quizRegistrado = false
+                    )
+                }
+                return@launch
+            }
+
+            asegurarUsuarioLocal(usuarioId)
+
             falladas.forEach { palabra ->
                 vocabularioRepository.marcarContenidoComoDificil(
-                    usuarioId,
-                    palabra.id,
-                    if (palabra.esVerbo) TipoContenido.VERBO else TipoContenido.PALABRA
+                    usuarioId = usuarioId,
+                    contenidoId = palabra.id,
+                    tipoContenido = if (palabra.esVerbo) {
+                        TipoContenido.VERBO
+                    } else {
+                        TipoContenido.PALABRA
+                    }
                 )
             }
-            
-            // Marcar acertadas como APRENDIDA (Nueva solicitud)
+
             acertadas.forEach { palabra ->
                 vocabularioRepository.marcarContenidoComoAprendido(
-                    usuarioId,
-                    palabra.id,
-                    if (palabra.esVerbo) TipoContenido.VERBO else TipoContenido.PALABRA
+                    usuarioId = usuarioId,
+                    contenidoId = palabra.id,
+                    tipoContenido = if (palabra.esVerbo) {
+                        TipoContenido.VERBO
+                    } else {
+                        TipoContenido.PALABRA
+                    }
                 )
             }
+
+            registrarQuizCompletado(usuarioId)
 
             _uiState.update {
                 it.copy(
                     score = finalScore,
                     respuestasFalladas = falladas,
                     respuestasAcertadas = acertadas,
-                    estaFinalizado = true
+                    estaFinalizado = true,
+                    quizRegistrado = true,
+                    mostrarFeedback = false,
+                    opcionSeleccionada = null
                 )
             }
         }
+    }
+
+    private suspend fun registrarQuizCompletado(usuarioId: String) {
+        try {
+            val usuarioActual = asegurarUsuarioLocal(usuarioId)
+
+            val usuarioActualizado = usuarioActual.copy(
+                quizzesRealizados = usuarioActual.quizzesRealizados + 1,
+                ultimoAcceso = System.currentTimeMillis()
+            )
+
+            usuarioDao.actualizarUsuario(usuarioActualizado)
+
+            Log.d(
+                TAG,
+                "Quiz registrado localmente. Usuario: $usuarioId, total: ${usuarioActualizado.quizzesRealizados}"
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registrando quiz completado en Room", e)
+        }
+    }
+
+    private suspend fun asegurarUsuarioLocal(usuarioId: String): UsuarioEntity {
+        val usuarioExistente = usuarioDao.obtenerUsuarioPorFirebaseUid(usuarioId)
+
+        if (usuarioExistente != null) {
+            return usuarioExistente
+        }
+
+        val firebaseUser = authRepository.obtenerUsuarioActual()
+
+        val nuevoUsuario = UsuarioEntity(
+            idUsuario = usuarioId,
+            firebaseUid = usuarioId,
+            nombre = firebaseUser?.displayName ?: "Usuario",
+            correo = firebaseUser?.email ?: "",
+            avatar = firebaseUser?.photoUrl?.toString(),
+            rol = RolUsuario.USUARIO,
+            activo = true,
+            fechaRegistro = System.currentTimeMillis(),
+            ultimoAcceso = System.currentTimeMillis(),
+            rachaActual = 0,
+            rachaMaxima = 0,
+            palabrasAprendidas = 0,
+            quizzesRealizados = 0,
+            lotesCompletados = 0,
+            porcentajeProgreso = 0
+        )
+
+        usuarioDao.insertarUsuario(nuevoUsuario)
+
+        Log.d(
+            TAG,
+            "Usuario local creado para quiz. Usuario: $usuarioId"
+        )
+
+        return nuevoUsuario
+    }
+
+    companion object {
+        private const val TAG = "QuizViewModel"
     }
 }
 
 class QuizViewModelFactory(
     private val vocabularioRepository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val usuarioDao: UsuarioDao
 ) : ViewModelProvider.Factory {
+
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(QuizViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return QuizViewModel(vocabularioRepository, authRepository) as T
+            return QuizViewModel(
+                vocabularioRepository = vocabularioRepository,
+                authRepository = authRepository,
+                usuarioDao = usuarioDao
+            ) as T
         }
+
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
