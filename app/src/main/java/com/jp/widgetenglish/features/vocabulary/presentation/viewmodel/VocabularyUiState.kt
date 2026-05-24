@@ -33,7 +33,8 @@ enum class VocabularioFiltro {
 
 enum class VocabularioSeccion {
     PALABRAS,
-    VERBOS
+    VERBOS,
+    ADJETIVOS
 }
 
 data class VocabularyUiState(
