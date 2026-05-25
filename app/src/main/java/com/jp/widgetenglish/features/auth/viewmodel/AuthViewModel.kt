@@ -86,7 +86,10 @@ class AuthViewModel(
                 palabrasAprendidas = usuarioLocal.palabrasAprendidas,
                 quizzesRealizados = usuarioLocal.quizzesRealizados,
                 lotesCompletados = usuarioLocal.lotesCompletados,
-                porcentajeProgreso = usuarioLocal.porcentajeProgreso
+                porcentajeProgreso = usuarioLocal.porcentajeProgreso,
+
+                ultimaFechaRacha = usuarioLocal.ultimaFechaRacha,
+                fechaUltimaActividad = usuarioLocal.fechaUltimaActividad
             )
         } else {
             usuarioNuevo.copy(

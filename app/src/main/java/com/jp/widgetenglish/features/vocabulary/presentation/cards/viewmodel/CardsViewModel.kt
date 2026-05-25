@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.jp.widgetenglish.data.repository.StreakRepository
 
 enum class CardsAnswerType {
     LA_CONOZCO,
@@ -93,7 +94,8 @@ data class CardsUiState(
 
 class CardsViewModel(
     private val vocabularioRepository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val streakRepository: StreakRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CardsUiState())
@@ -576,6 +578,7 @@ class CardsViewModel(
     fun finalizarSesion() {
         val current = _uiState.value
         val lote = current.loteActivo ?: return
+        val userId = current.usuarioId ?: return
 
         val resumen = CardsSessionSummary(
             loteId = lote.idLote,
@@ -595,6 +598,17 @@ class CardsViewModel(
                 resumen = resumen
             )
         }
+
+        viewModelScope.launch {
+            try {
+                streakRepository.registrarTarjetasEstudiadas(
+                    usuarioId = userId,
+                    cantidad = current.tarjetasSesion.size
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun reiniciarSesion() {
@@ -610,7 +624,8 @@ class CardsViewModel(
 
 class CardsViewModelFactory(
     private val vocabularioRepository: VocabularioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val streakRepository: StreakRepository
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -618,7 +633,8 @@ class CardsViewModelFactory(
             @Suppress("UNCHECKED_CAST")
             return CardsViewModel(
                 vocabularioRepository = vocabularioRepository,
-                authRepository = authRepository
+                authRepository = authRepository,
+                streakRepository = streakRepository
             ) as T
         }
 

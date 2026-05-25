@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -61,6 +62,8 @@ private val SoftBlue = Color(0xFFEFF6FF)
 private val SoftPurple = Color(0xFFF3E8FF)
 private val SoftGreen = Color(0xFFEAFBF2)
 private val SoftOrange = Color(0xFFFFF3E6)
+
+private val SuccessGreen = Color(0xFF10B981)
 
 @Composable
 fun HomeScreen(
@@ -120,7 +123,8 @@ fun HomeScreen(
         ) {
             HeaderHome(
                 nombreUsuario = state.nombreUsuario,
-                rachaActual = state.rachaActual
+                rachaActual = state.rachaActual,
+                objetivoCumplido = state.objetivoDiarioCumplido
             )
 
             Spacer(modifier = Modifier.height(26.dp))
@@ -149,13 +153,33 @@ fun HomeScreen(
 
                 HomeProgressCard(
                     titulo = "Objetivo diario",
-                    subtitulo = "Ver ${state.objetivoDiario} palabras",
+                    subtitulo = if (state.objetivoDiarioCumplido) {
+                        "Cumplido hoy 🎉"
+                    } else {
+                        "Ver ${state.objetivoDiario} palabras"
+                    },
                     progreso = progresoObjetivo,
                     detalle = "${state.progresoDiario} / ${state.objetivoDiario} completadas",
-                    icono = Icons.Filled.Flag,
-                    iconBackground = SoftPurple,
-                    iconColor = Color(0xFF7C3AED),
-                    progressColor = Color(0xFF7C3AED),
+                    icono = if (state.objetivoDiarioCumplido) {
+                        Icons.Filled.CheckCircle
+                    } else {
+                        Icons.Filled.Flag
+                    },
+                    iconBackground = if (state.objetivoDiarioCumplido) {
+                        SoftGreen
+                    } else {
+                        SoftPurple
+                    },
+                    iconColor = if (state.objetivoDiarioCumplido) {
+                        SuccessGreen
+                    } else {
+                        Color(0xFF7C3AED)
+                    },
+                    progressColor = if (state.objetivoDiarioCumplido) {
+                        SuccessGreen
+                    } else {
+                        Color(0xFF7C3AED)
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -248,7 +272,8 @@ private fun TopStatusBarBackground() {
 @Composable
 private fun HeaderHome(
     nombreUsuario: String,
-    rachaActual: Int
+    rachaActual: Int,
+    objetivoCumplido: Boolean
 ) {
     val primerNombre = nombreUsuario
         .trim()
@@ -256,6 +281,12 @@ private fun HeaderHome(
         .firstOrNull()
         ?.takeIf { it.isNotBlank() }
         ?: "Usuario"
+
+    val textoRacha = if (rachaActual == 1) {
+        "🔥  1 día de racha"
+    } else {
+        "🔥  $rachaActual días de racha"
+    }
 
     Box(
         modifier = Modifier
@@ -308,7 +339,11 @@ private fun HeaderHome(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Sigue aprendiendo cada día",
+                text = if (objetivoCumplido) {
+                    "¡Objetivo diario cumplido!"
+                } else {
+                    "Sigue aprendiendo cada día"
+                },
                 fontSize = 17.sp,
                 color = Color.White.copy(alpha = 0.90f)
             )
@@ -322,7 +357,7 @@ private fun HeaderHome(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "🔥  $rachaActual días de racha",
+                    text = textoRacha,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

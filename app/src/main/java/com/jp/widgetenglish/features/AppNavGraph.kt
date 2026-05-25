@@ -59,6 +59,7 @@ import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.Cards
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsSessionScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModelFactory
+import com.jp.widgetenglish.data.repository.StreakRepository
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -92,6 +93,11 @@ fun AppNavGraph() {
         usuarioFirestoreDataSource = usuarioFirestoreDataSource
     )
 
+    val streakRepository = StreakRepository(
+        actividadDiariaDao = database.actividadDiariaDao(),
+        usuarioDao = database.usuarioDao()
+    )
+
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
             authRepository = authRepository,
@@ -113,7 +119,8 @@ fun AppNavGraph() {
         factory = HomeViewModelFactory(
             repository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao()
         )
     )
 
@@ -136,7 +143,8 @@ fun AppNavGraph() {
         factory = QuizViewModelFactory(
             vocabularioRepository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            streakRepository = streakRepository
         )
     )
 
@@ -150,7 +158,8 @@ fun AppNavGraph() {
     val cardsViewModel: CardsViewModel = viewModel(
         factory = CardsViewModelFactory(
             vocabularioRepository = vocabularioRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            streakRepository = streakRepository
         )
     )
 
