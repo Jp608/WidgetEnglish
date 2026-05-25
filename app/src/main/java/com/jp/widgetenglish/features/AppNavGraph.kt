@@ -1,59 +1,64 @@
 package com.widgetenglish.app.ui
 
-import com.google.firebase.firestore.FirebaseFirestore
-import com.jp.widgetenglish.data.local.entity.RolUsuario
-import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
-import com.jp.widgetenglish.features.admin.AdminDashboardScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
+import com.jp.widgetenglish.data.local.entity.RolUsuario
+import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
 import com.jp.widgetenglish.data.repository.auth.AuthRepositoryImpl
+import com.jp.widgetenglish.features.admin.AdminDashboardScreen
+import com.jp.widgetenglish.features.admin.AdminViewModel
+import com.jp.widgetenglish.features.admin.AdminViewModelFactory
+import com.jp.widgetenglish.features.admin.activity.AdminActivityScreen
+import com.jp.widgetenglish.features.admin.profile.AdminProfileScreen
+import com.jp.widgetenglish.features.admin.ranking.AdminRankingScreen
 import com.jp.widgetenglish.features.auth.LoginScreen
 import com.jp.widgetenglish.features.auth.RegisterScreen
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModelFactory
+import com.jp.widgetenglish.features.common.ConstructionScreen
 import com.jp.widgetenglish.features.home.presentation.screens.HomeScreen
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModelFactory
 import com.jp.widgetenglish.features.profile.ProfileScreen
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModelFactory
-import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
-import com.widgetenglish.app.ui.auth.NewPasswordScreen
-import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
-import com.jp.widgetenglish.features.common.ConstructionScreen
-import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
-import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.LoteDetailScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.LotesScreen
-import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
-import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizResultScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.StudyDashboardScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.StudyModeScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyDetailScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.screens.VocabularyScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.StudyViewModelFactory
-import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizScreen
-import com.jp.widgetenglish.features.vocabulary.presentation.screens.QuizResultScreen
-import com.jp.widgetenglish.features.vocabulary.presentation.screens.StudyDashboardScreen
-import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
-import com.jp.widgetenglish.features.admin.AdminViewModel
-import com.jp.widgetenglish.features.admin.AdminViewModelFactory
-import com.jp.widgetenglish.features.admin.ranking.AdminRankingScreen
-import com.jp.widgetenglish.features.admin.activity.AdminActivityScreen
-import com.jp.widgetenglish.features.admin.profile.AdminProfileScreen
-
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModelFactory
+import com.widgetenglish.app.ui.auth.ForgotPasswordScreen
+import com.widgetenglish.app.ui.auth.NewPasswordScreen
+import com.widgetenglish.app.ui.auth.VerifyResetCodeScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsConfigScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsPlanScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsResultScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsSessionScreen
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModel
+import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModelFactory
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -130,12 +135,20 @@ fun AppNavGraph() {
     val quizViewModel: QuizViewModel = viewModel(
         factory = QuizViewModelFactory(
             vocabularioRepository = vocabularioRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            usuarioDao = database.usuarioDao()
         )
     )
 
     val studyViewModel: StudyViewModel = viewModel(
         factory = StudyViewModelFactory(
+            vocabularioRepository = vocabularioRepository,
+            authRepository = authRepository,
+            usuarioDao = database.usuarioDao()
+        )
+    )
+    val cardsViewModel: CardsViewModel = viewModel(
+        factory = CardsViewModelFactory(
             vocabularioRepository = vocabularioRepository,
             authRepository = authRepository
         )
@@ -143,7 +156,10 @@ fun AppNavGraph() {
 
     val authUiState by authViewModel.uiState.collectAsState()
 
-    LaunchedEffect(authUiState.autenticado, authUiState.rolUsuario) {
+    LaunchedEffect(
+        authUiState.autenticado,
+        authUiState.rolUsuario
+    ) {
         if (authUiState.autenticado) {
             val destino = if (authUiState.rolUsuario == RolUsuario.ADMIN) {
                 Screen.AdminDashboard.route
@@ -200,29 +216,47 @@ fun AppNavGraph() {
         composable(Screen.Home.route) {
             HomeScreen(
                 viewModel = homeViewModel,
-                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                onLotesClick = { navegar(Screen.Lotes.route) },
-                onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) }
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
             )
         }
 
         composable(Screen.Vocabulario.route) {
             VocabularyScreen(
                 viewModel = vocabularyViewModel,
-                onBackClick = { navegar(Screen.Home.route) },
-                onVocabularioClick = { 
-                    vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Vocabulario.route) 
+                onBackClick = {
+                    navegar(Screen.Home.route)
                 },
-                onLotesClick = { 
+                onVocabularioClick = {
                     vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Lotes.route) 
+                    navegar(Screen.Vocabulario.route)
                 },
-                onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
+                onLotesClick = {
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                },
                 onItemClick = { item ->
                     navController.navigate(
                         Screen.VocabularyDetail.createRoute(
@@ -236,72 +270,104 @@ fun AppNavGraph() {
 
         composable(Screen.VocabularyDetail.route) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
-            val isVerbo = backStackEntry.arguments?.getString("isVerbo")?.toBoolean() ?: false
+            val isVerbo = backStackEntry.arguments
+                ?.getString("isVerbo")
+                ?.toBoolean() ?: false
 
             VocabularyDetailScreen(
                 itemId = itemId,
                 isVerbo = isVerbo,
                 viewModel = vocabularyViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
         composable(Screen.Lotes.route) {
             LotesScreen(
                 viewModel = lotesViewModel,
-                onBackClick = { navController.popBackStack() },
-                onInicioClick = { navegar(Screen.Home.route) },
-                onVocabularioClick = { 
-                    vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Vocabulario.route) 
+                onBackClick = {
+                    navController.popBackStack()
                 },
-                onLotesClick = { 
-                    vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Lotes.route) 
+                onInicioClick = {
+                    navegar(Screen.Home.route)
                 },
-                onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
+                onVocabularioClick = {
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                },
                 onVerContenido = { loteId ->
-                    navController.navigate(Screen.LoteDetail.createRoute(loteId))
+                    navController.navigate(
+                        Screen.LoteDetail.createRoute(loteId)
+                    )
                 }
             )
         }
 
         composable(Screen.LoteDetail.route) { backStackEntry ->
             val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
+
             LoteDetailScreen(
                 loteId = loteId,
                 viewModel = lotesViewModel,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.popBackStack()
+                },
                 onItemClick = { itemId, isVerbo ->
-                    navController.navigate(Screen.VocabularyDetail.createRoute(itemId, isVerbo))
+                    navController.navigate(
+                        Screen.VocabularyDetail.createRoute(
+                            itemId,
+                            isVerbo
+                        )
+                    )
                 },
                 onEstudiarClick = { id ->
-                    navController.navigate(Screen.Quiz.createRoute(id))
+                    navController.navigate(
+                        Screen.Quiz.createRoute(id)
+                    ) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
 
         composable(Screen.Quiz.route) { backStackEntry ->
             val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
-            val repasarFalladas = backStackEntry.arguments?.getString("repasarFalladas").toBoolean()
-            val limite = backStackEntry.arguments?.getString("limite")?.toIntOrNull() ?: 10
-            
-            // Obtenemos el estado actual del quizViewModel antes de que se limpie (si es posible)
-            // o simplemente confiamos en que el ViewModel ya tiene la info si no ha sido destruido.
-            // Pero para ser más robustos, podemos pasar los IDs fallados como argumento de navegación si fuera necesario.
-            // Por ahora, vamos a forzar que el ViewModel use lo que tiene en memoria antes de resetear.
-            
+            val repasarFalladas = backStackEntry.arguments
+                ?.getString("repasarFalladas")
+                .toBoolean()
+            val limite = backStackEntry.arguments
+                ?.getString("limite")
+                ?.toIntOrNull() ?: 10
+
             QuizScreen(
                 loteId = loteId,
                 repasarFalladas = repasarFalladas,
                 limite = limite,
                 viewModel = quizViewModel,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.popBackStack()
+                },
                 onFinish = { _, _, _ ->
                     navController.navigate(Screen.QuizResult.route) {
-                        popUpTo(Screen.Quiz.route) { inclusive = true }
+                        popUpTo(Screen.Quiz.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -309,60 +375,247 @@ fun AppNavGraph() {
 
         composable(Screen.QuizResult.route) {
             val quizState by quizViewModel.uiState.collectAsState()
-            val failedIds = remember { quizState.respuestasFalladas.map { it.id } }
-            
+
             QuizResultScreen(
                 score = quizState.score,
                 total = quizState.preguntas.size,
                 failedWords = quizState.respuestasFalladas,
                 onRepasarFalladas = {
-                    // Al navegar, pasamos la información de que queremos repasar Y los IDs
-                    // Pero nuestra ruta actual no soporta pasar una lista de IDs fácilmente.
-                    // Vamos a disparar el inicio del quiz en el ViewModel justo ANTES de navegar
-                    // para que el estado ya esté preparado.
-                    quizViewModel.iniciarQuiz(quizState.loteId, true, failedIds)
-                    
-                    navController.navigate(Screen.Quiz.createRoute(quizState.loteId, true)) {
-                        popUpTo(Screen.QuizResult.route) { inclusive = true }
+                    navController.navigate(
+                        Screen.Quiz.createRoute(
+                            quizState.loteId,
+                            true
+                        )
+                    ) {
+                        popUpTo(Screen.QuizResult.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 },
                 onRepetirQuiz = {
-                    quizViewModel.iniciarQuiz(quizState.loteId, false)
-
-                    navController.navigate(Screen.Quiz.createRoute(quizState.loteId, false)) {
-                        popUpTo(Screen.QuizResult.route) { inclusive = true }
+                    navController.navigate(
+                        Screen.Quiz.createRoute(
+                            quizState.loteId,
+                            false
+                        )
+                    ) {
+                        popUpTo(Screen.QuizResult.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 },
                 onVolverInicio = {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
+                        popUpTo(Screen.Home.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
         composable(Screen.Estudio.route) {
-            StudyDashboardScreen(
+            StudyModeScreen(
                 viewModel = studyViewModel,
-                onBack = { navController.popBackStack() },
-                onStartQuiz = { loteId, limite ->
-                    quizViewModel.iniciarQuiz(loteId, false, limite = limite)
-                    navController.navigate(Screen.Quiz.createRoute(loteId, false, limite))
+                onBack = {
+                    navController.popBackStack()
+                },
+                onOpenQuizConfig = {
+                    navController.navigate(Screen.Study.route) {
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onOpenCards = {
+                    navController.navigate(Screen.CardsPlan.route) {
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    vocabularyViewModel.establecerLote(null)
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
                 }
             )
         }
+
+        composable(Screen.Study.route) {
+            StudyDashboardScreen(
+                viewModel = studyViewModel,
+                onBack = {
+                    navController.navigate(Screen.Estudio.route) {
+                        popUpTo(Screen.Study.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onStartQuiz = { loteId, limite ->
+                    navController.navigate(
+                        Screen.Quiz.createRoute(
+                            loteId,
+                            false,
+                            limite
+                        )
+                    ) {
+                        popUpTo(Screen.Study.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }
+            )
+        }
+
+        composable(Screen.CardsPlan.route) {
+            CardsPlanScreen(
+                viewModel = cardsViewModel,
+                onBack = {
+                    navController.navigate(Screen.Estudio.route) {
+                        popUpTo(Screen.CardsPlan.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onStartSession = {
+                    navController.navigate(Screen.CardsSession.route) {
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onOpenDetailedConfig = {
+                    navController.navigate(Screen.CardsConfig.route) {
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }
+            )
+        }
+
+        composable(Screen.CardsConfig.route) {
+            CardsConfigScreen(
+                viewModel = cardsViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onSaveConfig = {
+                    navController.navigate(Screen.CardsPlan.route) {
+                        popUpTo(Screen.CardsConfig.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }
+            )
+        }
+
+        composable(Screen.CardsSession.route) {
+            CardsSessionScreen(
+                viewModel = cardsViewModel,
+                onBack = {
+                    navController.navigate(Screen.CardsPlan.route) {
+                        popUpTo(Screen.CardsSession.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onSessionFinished = {
+                    navController.navigate(Screen.CardsResult.route) {
+                        popUpTo(Screen.CardsSession.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }
+            )
+        }
+
+        composable(Screen.CardsResult.route) {
+            CardsResultScreen(
+                viewModel = cardsViewModel,
+                onBackToStudy = {
+                    navController.navigate(Screen.Estudio.route) {
+                        popUpTo(Screen.Estudio.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onRepeatSession = {
+                    navController.navigate(Screen.CardsSession.route) {
+                        popUpTo(Screen.CardsResult.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                },
+                onNewConfig = {
+                    navController.navigate(Screen.CardsPlan.route) {
+                        popUpTo(Screen.CardsResult.route) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }
+            )
+        }
+
 
         composable(Screen.Ia.route) {
             ConstructionScreen(
                 titulo = "IA Chat en construcción",
                 descripcion = "Aquí podrás consultar dudas de vocabulario y recibir ejemplos.",
-                onVolverInicio = { navegar(Screen.Home.route) },
-                onPerfilClick = { navegar(Screen.Profile.route) },
-                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
-                onLotesClick = { navegar(Screen.Lotes.route) },
-                onEstudioClick = { navegar(Screen.Estudio.route) },
-                onIaClick = { navegar(Screen.Ia.route) }
+                onVolverInicio = {
+                    navegar(Screen.Home.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                }
             )
         }
 

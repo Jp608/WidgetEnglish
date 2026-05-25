@@ -4,18 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.AuthCredential
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
+import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
+import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
+import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import com.jp.widgetenglish.features.auth.presentation.state.AuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
-import com.jp.widgetenglish.data.local.entity.RolUsuario
-import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
-import com.jp.widgetenglish.data.repository.VocabularioRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
@@ -25,48 +25,106 @@ class AuthViewModel(
     private val context: android.content.Context
 ) : ViewModel() {
 
-    private fun sincronizarWidgetTrasLogin(userId: String) {
-        viewModelScope.launch {
-            val loteActivo = vocabularioRepository.observarLoteActivo(userId).first()
-            if (loteActivo != null) {
-                val info = vocabularioRepository.obtenerLotePorId(loteActivo.loteId)
-                if (info != null) {
-                    WidgetPreferences.guardarLoteActivo(context, info.idLote, info.nombre)
-                    WidgetPreferences.guardarUserId(context, userId)
-                }
-            }
-        }
-    }
-
-    private suspend fun guardarUsuarioFirestoreYRoom(usuario: UsuarioEntity): UsuarioEntity {
-        val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(usuario)
-
-        usuarioDao.insertarUsuario(usuarioConRol)
-
-        return usuarioConRol
-    }
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
     private val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
 
     init {
         verificarSesionActiva()
     }
 
+    private fun sincronizarWidgetTrasLogin(userId: String) {
+        viewModelScope.launch {
+            val loteActivo = vocabularioRepository.observarLoteActivo(userId).first()
+
+            if (loteActivo != null) {
+                val info = vocabularioRepository.obtenerLotePorId(loteActivo.loteId)
+
+                if (info != null) {
+                    WidgetPreferences.guardarLoteActivo(
+                        context = context,
+                        loteId = info.idLote,
+                        loteNombre = info.nombre
+                    )
+
+                    WidgetPreferences.guardarUserId(
+                        context = context,
+                        userId = userId
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun guardarUsuarioFirestoreYRoom(
+        usuarioBase: UsuarioEntity
+    ): UsuarioEntity {
+        val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(usuarioBase)
+
+        return guardarUsuarioRoomPreservandoEstadisticas(usuarioConRol)
+    }
+
+    private suspend fun guardarUsuarioRoomPreservandoEstadisticas(
+        usuarioNuevo: UsuarioEntity
+    ): UsuarioEntity {
+        val usuarioLocal = usuarioDao.obtenerUsuarioPorFirebaseUid(
+            usuarioNuevo.firebaseUid
+        )
+
+        val usuarioFinal = if (usuarioLocal != null) {
+            usuarioLocal.copy(
+                nombre = usuarioNuevo.nombre.ifBlank { usuarioLocal.nombre },
+                correo = usuarioNuevo.correo.ifBlank { usuarioLocal.correo },
+                avatar = usuarioNuevo.avatar ?: usuarioLocal.avatar,
+                rol = usuarioNuevo.rol,
+                activo = usuarioNuevo.activo,
+                ultimoAcceso = System.currentTimeMillis(),
+
+                rachaActual = usuarioLocal.rachaActual,
+                rachaMaxima = usuarioLocal.rachaMaxima,
+                palabrasAprendidas = usuarioLocal.palabrasAprendidas,
+                quizzesRealizados = usuarioLocal.quizzesRealizados,
+                lotesCompletados = usuarioLocal.lotesCompletados,
+                porcentajeProgreso = usuarioLocal.porcentajeProgreso
+            )
+        } else {
+            usuarioNuevo.copy(
+                ultimoAcceso = System.currentTimeMillis()
+            )
+        }
+
+        usuarioDao.insertarUsuario(usuarioFinal)
+
+        return usuarioFinal
+    }
+
     fun actualizarNombre(nombre: String) {
-        _uiState.value = _uiState.value.copy(nombre = nombre, error = null)
+        _uiState.value = _uiState.value.copy(
+            nombre = nombre,
+            error = null
+        )
     }
 
     fun actualizarCorreo(correo: String) {
-        _uiState.value = _uiState.value.copy(correo = correo, error = null)
+        _uiState.value = _uiState.value.copy(
+            correo = correo,
+            error = null
+        )
     }
 
     fun actualizarPassword(password: String) {
-        _uiState.value = _uiState.value.copy(password = password, error = null)
+        _uiState.value = _uiState.value.copy(
+            password = password,
+            error = null
+        )
     }
 
     fun actualizarConfirmPassword(confirmPassword: String) {
-        _uiState.value = _uiState.value.copy(confirmPassword = confirmPassword, error = null)
+        _uiState.value = _uiState.value.copy(
+            confirmPassword = confirmPassword,
+            error = null
+        )
     }
 
     fun actualizarError(error: String?) {
@@ -115,6 +173,7 @@ class AuthViewModel(
                     firebaseUid = firebaseUser.uid,
                     nombre = state.nombre,
                     correo = state.correo,
+                    avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
                     fechaRegistro = System.currentTimeMillis(),
@@ -122,6 +181,7 @@ class AuthViewModel(
                 )
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuario)
+
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
@@ -180,6 +240,7 @@ class AuthViewModel(
                 )
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
@@ -196,6 +257,109 @@ class AuthViewModel(
                     error = "Correo o contraseña incorrectos"
                 )
             }
+        }
+    }
+
+    fun iniciarSesionConGoogle(credential: AuthCredential) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                cargando = true,
+                error = null,
+                mensaje = null
+            )
+
+            val result = authRepository.iniciarSesionConGoogle(credential)
+
+            result.onSuccess { firebaseUser ->
+                val usuarioBase = UsuarioEntity(
+                    idUsuario = firebaseUser.uid,
+                    firebaseUid = firebaseUser.uid,
+                    nombre = firebaseUser.displayName ?: "Usuario",
+                    correo = firebaseUser.email ?: "",
+                    avatar = firebaseUser.photoUrl?.toString(),
+                    rol = RolUsuario.USUARIO,
+                    activo = true,
+                    fechaRegistro = System.currentTimeMillis(),
+                    ultimoAcceso = System.currentTimeMillis()
+                )
+
+                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
+
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    autenticado = true,
+                    rolUsuario = usuarioConRol.rol,
+                    mensaje = "Inicio de sesión con Google exitoso"
+                )
+            }
+
+            result.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    error = error.message ?: "No se pudo iniciar sesión con Google"
+                )
+            }
+        }
+    }
+
+    fun verificarSesionActiva() {
+        viewModelScope.launch {
+            val firebaseUser = authRepository.obtenerUsuarioActual()
+
+            if (firebaseUser == null) {
+                _uiState.value = _uiState.value.copy(
+                    autenticado = false,
+                    cargando = false,
+                    rolUsuario = RolUsuario.USUARIO
+                )
+                return@launch
+            }
+
+            val usuarioFirestore = usuarioFirestoreDataSource.obtenerUsuario(firebaseUser.uid)
+
+            if (usuarioFirestore != null) {
+                val usuarioActualizado = guardarUsuarioRoomPreservandoEstadisticas(
+                    usuarioFirestore.copy(
+                        ultimoAcceso = System.currentTimeMillis()
+                    )
+                )
+
+                usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
+
+                sincronizarWidgetTrasLogin(firebaseUser.uid)
+
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    autenticado = true,
+                    rolUsuario = usuarioActualizado.rol
+                )
+
+                return@launch
+            }
+
+            val usuarioBase = UsuarioEntity(
+                idUsuario = firebaseUser.uid,
+                firebaseUid = firebaseUser.uid,
+                nombre = firebaseUser.displayName ?: "Usuario",
+                correo = firebaseUser.email ?: "",
+                avatar = firebaseUser.photoUrl?.toString(),
+                rol = RolUsuario.USUARIO,
+                activo = true,
+                fechaRegistro = System.currentTimeMillis(),
+                ultimoAcceso = System.currentTimeMillis()
+            )
+
+            val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+
+            sincronizarWidgetTrasLogin(firebaseUser.uid)
+
+            _uiState.value = _uiState.value.copy(
+                cargando = false,
+                autenticado = true,
+                rolUsuario = usuarioConRol.rol
+            )
         }
     }
 
@@ -241,104 +405,5 @@ class AuthViewModel(
     fun cerrarSesion() {
         authRepository.cerrarSesion()
         _uiState.value = AuthUiState()
-    }
-
-    fun iniciarSesionConGoogle(credential: AuthCredential) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                cargando = true,
-                error = null,
-                mensaje = null
-            )
-
-            val result = authRepository.iniciarSesionConGoogle(credential)
-
-            result.onSuccess { firebaseUser ->
-                val usuarioBase = UsuarioEntity(
-                    idUsuario = firebaseUser.uid,
-                    firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: "",
-                    avatar = firebaseUser.photoUrl?.toString(),
-                    rol = RolUsuario.USUARIO,
-                    activo = true,
-                    fechaRegistro = System.currentTimeMillis(),
-                    ultimoAcceso = System.currentTimeMillis()
-                )
-
-                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioConRol.rol,
-                    mensaje = "Inicio de sesión con Google exitoso"
-                )
-            }
-
-            result.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    error = error.message ?: "No se pudo iniciar sesión con Google"
-                )
-            }
-        }
-    }
-
-    fun verificarSesionActiva() {
-        viewModelScope.launch {
-            val firebaseUser = authRepository.obtenerUsuarioActual()
-
-            if (firebaseUser == null) {
-                _uiState.value = _uiState.value.copy(
-                    autenticado = false,
-                    cargando = false,
-                    rolUsuario = RolUsuario.USUARIO
-                )
-                return@launch
-            }
-
-            val usuarioFirestore = usuarioFirestoreDataSource.obtenerUsuario(firebaseUser.uid)
-
-            if (usuarioFirestore != null) {
-                val usuarioActualizado = usuarioFirestore.copy(
-                    ultimoAcceso = System.currentTimeMillis()
-                )
-
-                usuarioDao.insertarUsuario(usuarioActualizado)
-                usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioActualizado.rol
-                )
-
-                return@launch
-            }
-
-            val usuarioBase = UsuarioEntity(
-                idUsuario = firebaseUser.uid,
-                firebaseUid = firebaseUser.uid,
-                nombre = firebaseUser.displayName ?: "Usuario",
-                correo = firebaseUser.email ?: "",
-                avatar = firebaseUser.photoUrl?.toString(),
-                rol = RolUsuario.USUARIO,
-                activo = true,
-                fechaRegistro = System.currentTimeMillis(),
-                ultimoAcceso = System.currentTimeMillis()
-            )
-
-            val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
-            sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-            _uiState.value = _uiState.value.copy(
-                cargando = false,
-                autenticado = true,
-                rolUsuario = usuarioConRol.rol
-            )
-        }
     }
 }

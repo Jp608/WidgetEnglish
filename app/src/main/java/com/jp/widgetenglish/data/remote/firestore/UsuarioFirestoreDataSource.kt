@@ -140,4 +140,22 @@ class UsuarioFirestoreDataSource(
         val snapshot = usuariosCollection.document(firebaseUid).get().await()
         return snapshot.getString("loteActivoId")
     }
+
+    suspend fun incrementarQuizzesRealizados(firebaseUid: String) {
+        val documentRef = usuariosCollection.document(firebaseUid)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(documentRef)
+
+            val actual = snapshot.getLong("quizzesRealizados") ?: 0L
+
+            transaction.update(
+                documentRef,
+                mapOf(
+                    "quizzesRealizados" to actual + 1,
+                    "ultimoAcceso" to System.currentTimeMillis()
+                )
+            )
+        }.await()
+    }
 }
