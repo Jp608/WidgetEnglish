@@ -61,6 +61,10 @@ import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.Car
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModelFactory
 import com.jp.widgetenglish.data.repository.StreakRepository
 import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
+import com.jp.widgetenglish.features.profile.statistics.screens.StatisticsScreen
+import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
+import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
+
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -121,6 +125,15 @@ fun AppNavGraph() {
         factory = ProfileViewModelFactory(
             authRepository = authRepository,
             usuarioDao = database.usuarioDao()
+        )
+    )
+
+    val statisticsViewModel: StatisticsViewModel = viewModel(
+        factory = StatisticsViewModelFactory(
+            authRepository = authRepository,
+            usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao(),
+            vocabularioRepository = vocabularioRepository
         )
     )
 
@@ -286,6 +299,34 @@ fun AppNavGraph() {
                 }
             )
         }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                viewModel = statisticsViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
+        }
+
 
         composable(Screen.VocabularyDetail.route) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
@@ -644,6 +685,34 @@ fun AppNavGraph() {
                 viewModel = profileViewModel,
                 authViewModel = authViewModel
             )
+        }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                viewModel = statisticsViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
+
         }
 
         composable(Screen.VerifyResetCode.route) {

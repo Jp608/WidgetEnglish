@@ -49,6 +49,30 @@ interface ActividadDiariaDao {
     @Query("""
         SELECT * FROM actividad_diaria
         WHERE usuarioId = :usuarioId
+        AND fecha BETWEEN :fechaInicio AND :fechaFin
+        ORDER BY fecha ASC
+    """)
+    fun observarActividadesPorRango(
+        usuarioId: String,
+        fechaInicio: String,
+        fechaFin: String
+    ): Flow<List<ActividadDiariaEntity>>
+
+    @Query("""
+        SELECT * FROM actividad_diaria
+        WHERE usuarioId = :usuarioId
+        AND fecha BETWEEN :fechaInicio AND :fechaFin
+        ORDER BY fecha ASC
+    """)
+    suspend fun obtenerActividadesPorRango(
+        usuarioId: String,
+        fechaInicio: String,
+        fechaFin: String
+    ): List<ActividadDiariaEntity>
+
+    @Query("""
+        SELECT * FROM actividad_diaria
+        WHERE usuarioId = :usuarioId
         AND objetivoCumplido = 1
         ORDER BY fecha DESC
         LIMIT 1
