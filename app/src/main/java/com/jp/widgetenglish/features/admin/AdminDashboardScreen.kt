@@ -66,6 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowInsetsControllerCompat
 import com.jp.widgetenglish.features.admin.components.AdminBottomBar
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 
 private val BackgroundSoft = Color(0xFFF5F7FB)
 
@@ -172,6 +175,9 @@ fun AdminDashboardScreen(
             }
 
             AdminSummaryCard(uiState = uiState)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AdminStatsInsightCard(uiState = uiState)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -934,4 +940,127 @@ private fun ConstructionDialog(
         },
         shape = RoundedCornerShape(26.dp)
     )
+}
+@Composable
+private fun AdminStatsInsightCard(
+    uiState: AdminUiState
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CardWhite
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = "Estadísticas generales",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextMain
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Promedios calculados desde los usuarios registrados",
+                fontSize = 12.sp,
+                color = TextMuted
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            AdminInsightRow(
+                title = "Usuarios activos",
+                value = "${uiState.porcentajeUsuariosActivos}%",
+                progress = uiState.porcentajeUsuariosActivos / 100f,
+                color = GreenMain
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            AdminInsightRow(
+                title = "Cumplimiento promedio",
+                value = "${uiState.porcentajeCumplimientoPromedio}%",
+                progress = uiState.porcentajeCumplimientoPromedio / 100f,
+                color = PrimaryBlue
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                AdminMiniStat(
+                    value = "${uiState.promedioPalabrasPorUsuario}",
+                    label = "Prom. palabras",
+                    icon = Icons.Filled.Book,
+                    background = GreenSoft,
+                    color = GreenMain,
+                    modifier = Modifier.weight(1f)
+                )
+
+                AdminMiniStat(
+                    value = "${uiState.promedioQuizzesPorUsuario}",
+                    label = "Prom. quizzes",
+                    icon = Icons.Filled.BarChart,
+                    background = OrangeSoft,
+                    color = OrangeMain,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminInsightRow(
+    title: String,
+    value: String,
+    progress: Float,
+    color: Color
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                color = TextMain,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+
+            Text(
+                text = value,
+                color = color,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(7.dp))
+
+        LinearProgressIndicator(
+            progress = {
+                progress.coerceIn(0f, 1f)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(50.dp)),
+            color = color,
+            trackColor = Color(0xFFE8EDF5)
+        )
+    }
 }
