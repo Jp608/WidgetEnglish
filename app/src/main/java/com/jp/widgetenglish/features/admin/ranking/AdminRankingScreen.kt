@@ -53,6 +53,9 @@ import com.jp.widgetenglish.data.remote.firestore.AdminUsuarioDto
 import com.jp.widgetenglish.features.admin.AdminViewModel
 import com.jp.widgetenglish.features.admin.CriterioRanking
 import com.jp.widgetenglish.features.admin.components.AdminBottomBar
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 
 private val BackgroundSoft = Color(0xFFF5F7FB)
 
@@ -88,7 +91,12 @@ fun AdminRankingScreen(
 
     Scaffold(
         topBar = {
-            FixedRankingHeader()
+            FixedRankingHeader(
+                isRefreshing = uiState.cargando,
+                onRefreshClick = {
+                    viewModel.cargarDatosAdmin()
+                }
+            )
         },
         bottomBar = {
             AdminBottomBar(
@@ -196,7 +204,10 @@ private fun RankingStatusBarColor() {
 }
 
 @Composable
-private fun FixedRankingHeader() {
+private fun FixedRankingHeader(
+    isRefreshing: Boolean,
+    onRefreshClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = HeaderBlue,
@@ -208,26 +219,52 @@ private fun FixedRankingHeader() {
                 .padding(horizontal = 22.dp, vertical = 30.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Ranking",
-                fontSize = 31.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+            Column(
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                Text(
+                    text = "Ranking",
+                    fontSize = 31.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = if (isRefreshing) {
+                        "Actualizando posiciones..."
+                    } else {
+                        "Clasificación de usuarios"
+                    },
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.86f)
+                )
+            }
 
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.18f)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.FilterList,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
+                IconButton(
+                    onClick = onRefreshClick,
+                    enabled = !isRefreshing
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Autorenew,
+                            contentDescription = "Actualizar ranking",
+                            tint = Color.White,
+                            modifier = Modifier.size(25.dp)
+                        )
+                    }
                 }
             }
         }

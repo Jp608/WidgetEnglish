@@ -30,25 +30,62 @@ class AdminViewModel(
 
                 val usuarios = adminFirestoreDataSource.obtenerUsuarios()
 
-                val ranking = ordenarRanking(
-                    usuarios = usuarios,
-                    criterio = _uiState.value.criterioRanking
-                )
+                val totalUsuarios = usuarios.size
+                val usuariosActivos = usuarios.count { it.activo }
+                val totalPalabras = usuarios.sumOf { it.palabrasAprendidas }
+                val totalQuizzes = usuarios.sumOf { it.quizzesRealizados }
+                val totalLotes = usuarios.sumOf { it.lotesCompletados }
 
-                val usuariosActivos = ordenarActividad(
-                    usuarios = usuarios,
-                    criterio = _uiState.value.criterioActividad
-                )
+                val promedioPalabras = if (totalUsuarios > 0) {
+                    totalPalabras / totalUsuarios
+                } else {
+                    0
+                }
 
-                _uiState.value = _uiState.value.copy(
+                val promedioQuizzes = if (totalUsuarios > 0) {
+                    totalQuizzes / totalUsuarios
+                } else {
+                    0
+                }
+
+                val porcentajeActivos = if (totalUsuarios > 0) {
+                    ((usuariosActivos.toFloat() / totalUsuarios.toFloat()) * 100).toInt()
+                } else {
+                    0
+                }
+
+                val cumplimientoPromedio = if (totalUsuarios > 0) {
+                    usuarios.sumOf { it.porcentajeProgreso } / totalUsuarios
+                } else {
+                    0
+                }
+
+                val estadoActual = _uiState.value
+
+                _uiState.value = estadoActual.copy(
                     cargando = false,
-                    totalUsuarios = usuarios.size,
-                    usuariosActivos = usuarios.count { it.activo },
-                    totalPalabrasAprendidas = usuarios.sumOf { it.palabrasAprendidas },
-                    totalQuizzesRealizados = usuarios.sumOf { it.quizzesRealizados },
-                    totalLotesCompletados = usuarios.sumOf { it.lotesCompletados },
-                    rankingUsuarios = ranking,
-                    usuariosMasActivos = usuariosActivos
+                    error = null,
+
+                    totalUsuarios = totalUsuarios,
+                    usuariosActivos = usuariosActivos,
+                    totalPalabrasAprendidas = totalPalabras,
+                    totalQuizzesRealizados = totalQuizzes,
+                    totalLotesCompletados = totalLotes,
+
+                    promedioPalabrasPorUsuario = promedioPalabras,
+                    promedioQuizzesPorUsuario = promedioQuizzes,
+                    porcentajeUsuariosActivos = porcentajeActivos,
+                    porcentajeCumplimientoPromedio = cumplimientoPromedio,
+
+                    usuarios = usuarios,
+                    rankingUsuarios = ordenarRanking(
+                        usuarios = usuarios,
+                        criterio = estadoActual.criterioRanking
+                    ),
+                    usuariosMasActivos = ordenarActividad(
+                        usuarios = usuarios,
+                        criterio = estadoActual.criterioActividad
+                    )
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -60,33 +97,28 @@ class AdminViewModel(
     }
 
     fun cambiarCriterioRanking(criterio: CriterioRanking) {
-        val usuariosActuales = _uiState.value.rankingUsuarios
+        val usuarios = _uiState.value.usuarios
 
         _uiState.value = _uiState.value.copy(
             criterioRanking = criterio,
             rankingUsuarios = ordenarRanking(
-                usuarios = usuariosActuales,
+                usuarios = usuarios,
                 criterio = criterio
             )
         )
-
-        cargarDatosAdmin()
     }
 
     fun cambiarCriterioActividad(criterio: CriterioActividad) {
-        val usuariosActuales = _uiState.value.usuariosMasActivos
+        val usuarios = _uiState.value.usuarios
 
         _uiState.value = _uiState.value.copy(
             criterioActividad = criterio,
             usuariosMasActivos = ordenarActividad(
-                usuarios = usuariosActuales,
+                usuarios = usuarios,
                 criterio = criterio
             )
         )
-
-        cargarDatosAdmin()
     }
-
 
     private fun ordenarActividad(
         usuarios: List<AdminUsuarioDto>,
@@ -98,6 +130,7 @@ class AdminViewModel(
             CriterioActividad.CUMPLIMIENTO -> usuarios.sortedByDescending { it.porcentajeProgreso }
         }.take(10)
     }
+
     private fun ordenarRanking(
         usuarios: List<AdminUsuarioDto>,
         criterio: CriterioRanking

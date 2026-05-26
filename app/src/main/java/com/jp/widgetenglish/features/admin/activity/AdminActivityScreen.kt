@@ -58,6 +58,8 @@ import com.jp.widgetenglish.features.admin.components.AdminBottomBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 
 private val BackgroundSoft = Color(0xFFF5F7FB)
 
@@ -98,7 +100,12 @@ fun AdminActivityScreen(
 
     Scaffold(
         topBar = {
-            FixedActivityHeader()
+            FixedActivityHeader(
+                isRefreshing = uiState.cargando,
+                onRefreshClick = {
+                    viewModel.cargarDatosAdmin()
+                }
+            )
         },
         bottomBar = {
             AdminBottomBar(
@@ -209,7 +216,10 @@ private fun ActivityStatusBarColor() {
 }
 
 @Composable
-private fun FixedActivityHeader() {
+private fun FixedActivityHeader(
+    isRefreshing: Boolean,
+    onRefreshClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = HeaderBlue,
@@ -239,24 +249,39 @@ private fun FixedActivityHeader() {
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = "Seguimiento de usuarios",
+                    text = if (isRefreshing) {
+                        "Actualizando datos..."
+                    } else {
+                        "Seguimiento de usuarios"
+                    },
                     fontSize = 13.sp,
                     color = Color.White.copy(alpha = 0.86f)
                 )
             }
 
             Surface(
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier.size(46.dp),
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.18f)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Autorenew,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
+                IconButton(
+                    onClick = onRefreshClick,
+                    enabled = !isRefreshing
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Autorenew,
+                            contentDescription = "Actualizar actividad",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
