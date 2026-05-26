@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.widget.Toast
 import com.jp.widgetenglish.data.repository.StreakRepository
+import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
 
 class WordWidgetProvider : AppWidgetProvider() {
 
@@ -96,9 +97,19 @@ class WordWidgetProvider : AppWidgetProvider() {
 
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        marcarPalabraActualComoAprendida(context.applicationContext)
+                        val resultado = marcarPalabraActualComoAprendida(context.applicationContext)
+
                         avanzarPalabra(context.applicationContext)
                         updateAll(context.applicationContext)
+
+                        if (resultado.debeSincronizarFirebase && !resultado.userId.isNullOrBlank()) {
+                            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                                sincronizarEstadisticasWidget(
+                                    context = context.applicationContext,
+                                    userId = resultado.userId
+                                )
+                            }
+                        }
                     } finally {
                         pendingResult.finish()
                     }
@@ -167,6 +178,11 @@ class WordWidgetProvider : AppWidgetProvider() {
             }
         }
 
+
+        private data class MarkLearnedResult(
+            val userId: String?,
+            val debeSincronizarFirebase: Boolean
+        )
         suspend fun updateAll(context: Context) {
             val appContext = context.applicationContext
             val appWidgetManager = AppWidgetManager.getInstance(appContext)
@@ -181,6 +197,7 @@ class WordWidgetProvider : AppWidgetProvider() {
                 )
             }
         }
+
 
         private fun requestUpdateWidget(
             context: Context,
@@ -210,7 +227,31 @@ class WordWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        private suspend fun marcarPalabraActualComoAprendida(context: Context): Boolean {
+        private suspend fun sincronizarEstadisticasWidget(
+            context: Context,
+            userId: String
+        ) {
+            try {
+                val db = DatabaseProvider.getDatabase(context)
+
+                val estadisticasFirestoreDataSource = EstadisticasFirestoreDataSource(
+                    firestore = FirebaseFirestore.getInstance()
+                )
+
+                val streakRepository = StreakRepository(
+                    actividadDiariaDao = db.actividadDiariaDao(),
+                    usuarioDao = db.usuarioDao(),
+                    progresoDao = db.progresoDao(),
+                    estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
+                )
+
+                streakRepository.sincronizarEstadisticasActuales(userId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        private suspend fun marcarPalabraActualComoAprendida(context: Context): MarkLearnedResult {
             val db = DatabaseProvider.getDatabase(context)
             val prefs = WidgetPreferences.obtenerTodasLasPreferenciasRapidas(context)
 
@@ -219,7 +260,10 @@ class WordWidgetProvider : AppWidgetProvider() {
             val wordIndex = prefs.wordIndex
 
             if (loteId.isNullOrBlank() || userId.isNullOrBlank()) {
-                return false
+                return MarkLearnedResult(
+                    userId = null,
+                    debeSincronizarFirebase = false
+                )
             }
 
             val contenidosSesion = obtenerContenidoSesionActual(
@@ -229,7 +273,10 @@ class WordWidgetProvider : AppWidgetProvider() {
             )
 
             if (contenidosSesion.isEmpty()) {
-                return false
+                return MarkLearnedResult(
+                    userId = null,
+                    debeSincronizarFirebase = false
+                )
             }
 
             val safeIndex = wordIndex.coerceAtLeast(0) % contenidosSesion.size
@@ -292,7 +339,10 @@ class WordWidgetProvider : AppWidgetProvider() {
                 )
             }
 
-            return !yaEstabaAprendida
+            return MarkLearnedResult(
+                userId = userId,
+                debeSincronizarFirebase = !yaEstabaAprendida
+            )
         }
 
         private suspend fun actualizarProgresoLoteDesdeWidget(
@@ -464,6 +514,11 @@ class WordWidgetProvider : AppWidgetProvider() {
                     data.fonetica
                 )
             }
+
+            views.setOnClickPendingIntent(
+                R.id.widget_root,
+                pendingIntentSolicitarAbrirApp(context)
+            )
 
             views.setOnClickPendingIntent(
                 R.id.widget_btn_next,

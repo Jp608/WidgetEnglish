@@ -105,7 +105,7 @@ class VocabularioRepositoryImpl(
         if (existente == null) {
             progresoDao.insertarProgresoUsuario(
                 ProgresoUsuarioEntity(
-                    id = "pu_${usuarioId}_$contenidoId",
+                    id = "pu_${usuarioId}_${contenidoId}_${tipoContenido.name}",
                     usuarioId = usuarioId,
                     contenidoId = contenidoId,
                     tipoContenido = tipoContenido,

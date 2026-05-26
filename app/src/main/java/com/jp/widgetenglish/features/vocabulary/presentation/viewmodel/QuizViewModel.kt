@@ -349,6 +349,8 @@ class QuizViewModel(
                 preguntasRespondidas = _uiState.value.preguntas.size
             )
 
+            streakRepository.sincronizarEstadisticasActuales(usuarioId)
+
             Log.d(
                 TAG,
                 "Quiz registrado localmente. Usuario: $usuarioId, total: ${usuarioActualizado.quizzesRealizados}"

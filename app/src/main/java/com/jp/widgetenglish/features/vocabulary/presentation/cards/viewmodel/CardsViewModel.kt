@@ -605,6 +605,8 @@ class CardsViewModel(
                     usuarioId = userId,
                     cantidad = current.tarjetasSesion.size
                 )
+
+                streakRepository.sincronizarEstadisticasActuales(userId)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

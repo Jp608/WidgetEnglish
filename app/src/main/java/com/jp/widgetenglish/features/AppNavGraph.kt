@@ -137,7 +137,8 @@ fun AppNavGraph() {
         factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioFirestoreDataSource = usuarioFirestoreDataSource
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+            streakRepository = streakRepository
         )
     )
 

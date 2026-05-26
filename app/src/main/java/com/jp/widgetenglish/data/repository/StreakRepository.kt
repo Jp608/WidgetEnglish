@@ -2,16 +2,17 @@ package com.jp.widgetenglish.data.repository
 
 import android.util.Log
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
+import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
+import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
-import com.jp.widgetenglish.data.local.dao.ProgresoDao
+import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.flow.first
 
 class StreakRepository(
     private val actividadDiariaDao: ActividadDiariaDao,
@@ -112,6 +113,41 @@ class StreakRepository(
         )
     }
 
+    suspend fun sincronizarEstadisticasActuales(
+        usuarioId: String
+    ) {
+        if (usuarioId.isBlank()) return
+
+        val usuarioBase = usuarioDao.obtenerUsuarioPorFirebaseUid(usuarioId)
+            ?: usuarioDao.obtenerUsuarioPorId(usuarioId)
+            ?: return
+
+        val usuarioActualizado = recalcularEstadisticasGeneralesUsuario(
+            usuarioId = usuarioId,
+            usuario = usuarioBase
+        )
+
+        val hoy = obtenerFechaActual()
+
+        val actividadHoy = actividadDiariaDao.obtenerActividadPorFecha(
+            usuarioId = usuarioId,
+            fecha = hoy
+        )
+
+        if (actividadHoy != null) {
+            sincronizarActividadYUsuarioSiEsPosible(
+                usuarioId = usuarioId,
+                actividad = actividadHoy,
+                usuario = usuarioActualizado
+            )
+        } else {
+            sincronizarUsuarioSiEsPosible(
+                usuarioId = usuarioId,
+                usuario = usuarioActualizado
+            )
+        }
+    }
+
     private suspend fun actualizarRachaUsuario(
         usuarioId: String,
         fechaCumplida: String
@@ -182,20 +218,23 @@ class StreakRepository(
         val progresosLotes = progresoDao
             .observarProgresosLotesUsuario(usuarioId)
             .first()
-        Log.d(
-            "StreakRepository",
-            "Progresos de lotes encontrados: ${progresosLotes.size}"
-        )
 
-        progresosLotes.forEach {
-            Log.d(
-                "StreakRepository",
-                "Lote=${it.loteId}, progreso=${it.progresoPorcentaje}, aprendidas=${it.contenidosAprendidos}, total=${it.totalContenidos}"
-            )
+        val progresosUsuario = progresoDao
+            .observarProgresoUsuario(usuarioId)
+            .first()
+
+        val palabrasAprendidas = progresosUsuario.count { progreso ->
+            progreso.estadoAprendizaje == EstadoAprendizaje.APRENDIDA
         }
 
         if (progresosLotes.isEmpty()) {
-            return usuario
+            val usuarioActualizado = usuario.copy(
+                palabrasAprendidas = palabrasAprendidas
+            )
+
+            usuarioDao.actualizarUsuario(usuarioActualizado)
+
+            return usuarioActualizado
         }
 
         val lotesCompletados = progresosLotes.count { progreso ->
@@ -207,12 +246,13 @@ class StreakRepository(
         }
 
         val porcentajeProgreso = progresosLotes
-            .map { it.progresoPorcentaje }
+            .map { progreso -> progreso.progresoPorcentaje }
             .average()
             .toInt()
             .coerceIn(0, 100)
 
         val usuarioActualizado = usuario.copy(
+            palabrasAprendidas = palabrasAprendidas,
             lotesCompletados = lotesCompletados,
             porcentajeProgreso = porcentajeProgreso
         )
@@ -249,17 +289,29 @@ class StreakRepository(
             usuario = usuarioLocalBase
         )
 
+        sincronizarUsuarioSiEsPosible(
+            usuarioId = usuarioId,
+            usuario = usuarioLocal
+        )
+    }
+
+    private suspend fun sincronizarUsuarioSiEsPosible(
+        usuarioId: String,
+        usuario: UsuarioEntity
+    ) {
+        val dataSource = estadisticasFirestoreDataSource ?: return
+
         try {
             dataSource.sincronizarEstadisticasUsuario(
                 firebaseUid = usuarioId,
-                rachaActual = usuarioLocal.rachaActual,
-                rachaMaxima = usuarioLocal.rachaMaxima,
-                ultimaFechaRacha = usuarioLocal.ultimaFechaRacha,
-                fechaUltimaActividad = usuarioLocal.fechaUltimaActividad,
-                palabrasAprendidas = usuarioLocal.palabrasAprendidas,
-                quizzesRealizados = usuarioLocal.quizzesRealizados,
-                lotesCompletados = usuarioLocal.lotesCompletados,
-                porcentajeProgreso = usuarioLocal.porcentajeProgreso
+                rachaActual = usuario.rachaActual,
+                rachaMaxima = usuario.rachaMaxima,
+                ultimaFechaRacha = usuario.ultimaFechaRacha,
+                fechaUltimaActividad = usuario.fechaUltimaActividad,
+                palabrasAprendidas = usuario.palabrasAprendidas,
+                quizzesRealizados = usuario.quizzesRealizados,
+                lotesCompletados = usuario.lotesCompletados,
+                porcentajeProgreso = usuario.porcentajeProgreso
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error sincronizando estadísticas de usuario con Firestore", e)
