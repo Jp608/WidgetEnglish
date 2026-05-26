@@ -23,12 +23,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import com.jp.widgetenglish.data.repository.StreakRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class VocabularyViewModel(
     private val repository: VocabularioRepository,
     private val authRepository: AuthRepository,
-    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource,
+    private val streakRepository: StreakRepository
 ) : ViewModel() {
 
     private val _filtroActual = MutableStateFlow(VocabularioFiltro.TODAS)
@@ -289,8 +291,9 @@ class VocabularyViewModel(
             }
 
             actualizarWidget(context)
-            sincronizarPalabrasAprendidasConFirestore(userId)
             cargarUsuarioActual()
+
+            sincronizarEstadisticasRapidasEnSegundoPlano(userId)
         }
     }
 
@@ -344,9 +347,16 @@ class VocabularyViewModel(
             }
 
             actualizarWidget(context)
-            sincronizarPalabrasAprendidasConFirestore(userId)
             ocultarConfirmacionRevertir()
             cargarUsuarioActual()
+
+            sincronizarEstadisticasRapidasEnSegundoPlano(userId)
+        }
+    }
+
+    private fun sincronizarEstadisticasRapidasEnSegundoPlano(userId: String) {
+        viewModelScope.launch {
+            sincronizarEstadisticasRapidas(userId)
         }
     }
 
@@ -355,6 +365,22 @@ class VocabularyViewModel(
             WordWidgetProvider.updateAll(context.applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Error actualizando widget", e)
+        }
+    }
+
+    private suspend fun sincronizarEstadisticasRapidas(userId: String) {
+        try {
+            streakRepository.sincronizarEstadisticasActuales(userId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sincronizando estadísticas rápidas con Firebase", e)
+
+            // Respaldo: si por algún motivo falla la sincronización central,
+            // al menos mantiene actualizado palabrasAprendidas como antes.
+            try {
+                sincronizarPalabrasAprendidasConFirestore(userId)
+            } catch (inner: Exception) {
+                Log.e(TAG, "Error sincronizando palabras aprendidas con Firestore", inner)
+            }
         }
     }
 

@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
+import com.jp.widgetenglish.data.repository.StreakRepository
 data class QuizQuestion(
     val palabra: PalabraConProgreso,
     val opciones: List<String>,
@@ -43,7 +43,8 @@ data class QuizUiState(
 class QuizViewModel(
     private val vocabularioRepository: VocabularioRepository,
     private val authRepository: AuthRepository,
-    private val usuarioDao: UsuarioDao
+    private val usuarioDao: UsuarioDao,
+    private val streakRepository: StreakRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuizUiState())
@@ -343,6 +344,13 @@ class QuizViewModel(
 
             usuarioDao.actualizarUsuario(usuarioActualizado)
 
+            streakRepository.registrarQuizCompletado(
+                usuarioId = usuarioId,
+                preguntasRespondidas = _uiState.value.preguntas.size
+            )
+
+            streakRepository.sincronizarEstadisticasActuales(usuarioId)
+
             Log.d(
                 TAG,
                 "Quiz registrado localmente. Usuario: $usuarioId, total: ${usuarioActualizado.quizzesRealizados}"
@@ -397,7 +405,8 @@ class QuizViewModel(
 class QuizViewModelFactory(
     private val vocabularioRepository: VocabularioRepository,
     private val authRepository: AuthRepository,
-    private val usuarioDao: UsuarioDao
+    private val usuarioDao: UsuarioDao,
+    private val streakRepository: StreakRepository
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -406,7 +415,8 @@ class QuizViewModelFactory(
             return QuizViewModel(
                 vocabularioRepository = vocabularioRepository,
                 authRepository = authRepository,
-                usuarioDao = usuarioDao
+                usuarioDao = usuarioDao,
+                streakRepository = streakRepository
             ) as T
         }
 

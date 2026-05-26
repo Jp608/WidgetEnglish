@@ -69,7 +69,7 @@ import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.widgetenglish.app.ui.Screen
 import kotlin.math.roundToInt
-
+import androidx.compose.material.icons.filled.BarChart
 private val PrimaryBlue = Color(0xFF1565C0)
 private val DarkBlue = Color(0xFF1A237E)
 private val SoftBlue = Color(0xFFE3F2FD)
@@ -321,6 +321,15 @@ fun ProfileScreen(
                     iconColor = PrimaryBlue
                 ) {
                     showLogoutDialog = true
+                }
+
+                ProfileOption(
+                    icon = Icons.Filled.BarChart,
+                    label = "Estadísticas",
+                    subtitle = "Consulta tu progreso, racha y aprendizaje",
+                    iconColor = PrimaryBlue
+                ) {
+                    navegar(Screen.Statistics.route)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

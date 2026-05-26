@@ -59,6 +59,12 @@ import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.Cards
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.CardsSessionScreen
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModelFactory
+import com.jp.widgetenglish.data.repository.StreakRepository
+import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
+import com.jp.widgetenglish.features.profile.statistics.screens.StatisticsScreen
+import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
+import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
+
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -71,6 +77,10 @@ fun AppNavGraph() {
     )
 
     val usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
+        firestore = FirebaseFirestore.getInstance()
+    )
+
+    val estadisticasFirestoreDataSource = EstadisticasFirestoreDataSource(
         firestore = FirebaseFirestore.getInstance()
     )
 
@@ -92,11 +102,20 @@ fun AppNavGraph() {
         usuarioFirestoreDataSource = usuarioFirestoreDataSource
     )
 
+    val streakRepository = StreakRepository(
+        actividadDiariaDao = database.actividadDiariaDao(),
+        usuarioDao = database.usuarioDao(),
+        progresoDao = database.progresoDao(),
+        estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
+    )
+
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
             authRepository = authRepository,
             usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao(),
             usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+            estadisticasFirestoreDataSource = estadisticasFirestoreDataSource,
             vocabularioRepository = vocabularioRepository,
             context = context.applicationContext
         )
@@ -109,11 +128,21 @@ fun AppNavGraph() {
         )
     )
 
+    val statisticsViewModel: StatisticsViewModel = viewModel(
+        factory = StatisticsViewModelFactory(
+            authRepository = authRepository,
+            usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao(),
+            vocabularioRepository = vocabularioRepository
+        )
+    )
+
     val homeViewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(
             repository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao()
         )
     )
 
@@ -121,7 +150,8 @@ fun AppNavGraph() {
         factory = VocabularyViewModelFactory(
             repository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioFirestoreDataSource = usuarioFirestoreDataSource
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+            streakRepository = streakRepository
         )
     )
 
@@ -136,7 +166,8 @@ fun AppNavGraph() {
         factory = QuizViewModelFactory(
             vocabularioRepository = vocabularioRepository,
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            streakRepository = streakRepository
         )
     )
 
@@ -150,7 +181,8 @@ fun AppNavGraph() {
     val cardsViewModel: CardsViewModel = viewModel(
         factory = CardsViewModelFactory(
             vocabularioRepository = vocabularioRepository,
-            authRepository = authRepository
+            authRepository = authRepository,
+            streakRepository = streakRepository
         )
     )
 
@@ -267,6 +299,34 @@ fun AppNavGraph() {
                 }
             )
         }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                viewModel = statisticsViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
+        }
+
 
         composable(Screen.VocabularyDetail.route) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
@@ -625,6 +685,34 @@ fun AppNavGraph() {
                 viewModel = profileViewModel,
                 authViewModel = authViewModel
             )
+        }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                viewModel = statisticsViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
+
         }
 
         composable(Screen.VerifyResetCode.route) {

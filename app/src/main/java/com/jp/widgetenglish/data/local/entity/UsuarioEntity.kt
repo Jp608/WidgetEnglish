@@ -25,6 +25,9 @@ data class UsuarioEntity(
     val palabrasAprendidas: Int = 0,
     val quizzesRealizados: Int = 0,
     val lotesCompletados: Int = 0,
-    val porcentajeProgreso: Int = 0
+    val porcentajeProgreso: Int = 0,
+
+    val ultimaFechaRacha: String? = null,
+    val fechaUltimaActividad: String? = null
 
 )

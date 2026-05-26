@@ -45,6 +45,14 @@ interface ProgresoDao {
     @Query("SELECT * FROM progreso_usuario WHERE usuarioId = :usuarioId AND contenidoId = :contenidoId AND tipoContenido = :tipo LIMIT 1")
     suspend fun obtenerProgreso(usuarioId: String, contenidoId: String, tipo: TipoContenido): ProgresoUsuarioEntity?
 
+    @Query("""
+    SELECT * FROM progreso_lote
+    WHERE usuarioId = :usuarioId
+""")
+    fun observarProgresosLotesUsuario(
+        usuarioId: String
+    ): Flow<List<ProgresoLoteEntity>>
+
     @Query(
         """
         SELECT * FROM progreso_usuario 
