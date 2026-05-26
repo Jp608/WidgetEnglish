@@ -17,6 +17,8 @@ import com.jp.widgetenglish.data.local.datastore.LearningPreferences
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
+import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.ProgresoUsuarioEntity
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepositoryImpl
 import com.jp.widgetenglish.domain.learning.LearningContentSelector
@@ -26,6 +28,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import com.jp.widgetenglish.data.repository.StreakRepository
+
 class WordWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -87,6 +91,20 @@ class WordWidgetProvider : AppWidgetProvider() {
                 }
             }
 
+            ACTION_MARK_LEARNED -> {
+                val pendingResult = goAsync()
+
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    try {
+                        marcarPalabraActualComoAprendida(context.applicationContext)
+                        avanzarPalabra(context.applicationContext)
+                        updateAll(context.applicationContext)
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
+            }
+
             ACTION_PLAY_SOUND -> {
                 val text = intent.getStringExtra(EXTRA_TEXT).orEmpty()
 
@@ -122,6 +140,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
     companion object {
         const val ACTION_NEXT_WORD = "com.jp.widgetenglish.widget.ACTION_NEXT_WORD"
+        const val ACTION_MARK_LEARNED = "com.jp.widgetenglish.widget.ACTION_MARK_LEARNED"
         const val ACTION_PLAY_SOUND = "com.jp.widgetenglish.widget.ACTION_PLAY_SOUND"
         const val ACTION_REFRESH_WIDGET = "com.jp.widgetenglish.widget.ACTION_REFRESH_WIDGET"
         const val EXTRA_TEXT = "extra_text"
@@ -129,6 +148,7 @@ class WordWidgetProvider : AppWidgetProvider() {
 
         private const val REQUEST_CODE_OPEN_APP = 20_000
         private const val REQUEST_CODE_SOUND_OFFSET = 10_000
+        private const val REQUEST_CODE_LEARNED_OFFSET = 30_000
 
         private const val COMPACT_MAX_WIDTH = 180
         private const val COMPACT_MAX_HEIGHT = 110
@@ -187,6 +207,138 @@ class WordWidgetProvider : AppWidgetProvider() {
             WidgetPreferences.actualizarIndiceDirecto(
                 context,
                 nextIndex
+            )
+        }
+
+        private suspend fun marcarPalabraActualComoAprendida(context: Context): Boolean {
+            val db = DatabaseProvider.getDatabase(context)
+            val prefs = WidgetPreferences.obtenerTodasLasPreferenciasRapidas(context)
+
+            val loteId = prefs.loteId
+            val userId = prefs.userId
+            val wordIndex = prefs.wordIndex
+
+            if (loteId.isNullOrBlank() || userId.isNullOrBlank()) {
+                return false
+            }
+
+            val contenidosSesion = obtenerContenidoSesionActual(
+                context = context,
+                loteId = loteId,
+                userId = userId
+            )
+
+            if (contenidosSesion.isEmpty()) {
+                return false
+            }
+
+            val safeIndex = wordIndex.coerceAtLeast(0) % contenidosSesion.size
+            val itemActual = contenidosSesion[safeIndex]
+            val ahora = System.currentTimeMillis()
+
+            val progresoExistente = db.progresoDao().obtenerProgresoContenido(
+                usuarioId = userId,
+                contenidoId = itemActual.contenidoId,
+                tipoContenido = itemActual.tipoContenido
+            )
+
+            val yaEstabaAprendida = progresoExistente?.estadoAprendizaje == EstadoAprendizaje.APRENDIDA
+
+            val progresoAprendido = if (progresoExistente == null) {
+                ProgresoUsuarioEntity(
+                    id = "${userId}_${itemActual.contenidoId}_${itemActual.tipoContenido.name}",
+                    usuarioId = userId,
+                    contenidoId = itemActual.contenidoId,
+                    tipoContenido = itemActual.tipoContenido,
+                    estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                    nivelDominio = 1f,
+                    respuestasCorrectas = 1,
+                    respuestasIncorrectas = 0,
+                    vecesRepasado = 1,
+                    aprendido = true,
+                    favorito = false,
+                    ultimaRevision = ahora,
+                    proximaRevision = null
+                )
+            } else {
+                progresoExistente.copy(
+                    estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                    nivelDominio = 1f,
+                    respuestasCorrectas = progresoExistente.respuestasCorrectas + 1,
+                    vecesRepasado = progresoExistente.vecesRepasado + 1,
+                    aprendido = true,
+                    ultimaRevision = ahora
+                )
+            }
+
+            db.progresoDao().insertarProgresoUsuario(progresoAprendido)
+
+            actualizarProgresoLoteDesdeWidget(
+                context = context,
+                usuarioId = userId,
+                loteId = loteId
+            )
+
+            if (!yaEstabaAprendida) {
+                val streakRepository = StreakRepository(
+                    actividadDiariaDao = db.actividadDiariaDao(),
+                    usuarioDao = db.usuarioDao(),
+                    progresoDao = db.progresoDao()
+                )
+
+                streakRepository.registrarActividadDiaria(
+                    usuarioId = userId,
+                    elementosEstudiados = 1
+                )
+            }
+
+            return !yaEstabaAprendida
+        }
+
+        private suspend fun actualizarProgresoLoteDesdeWidget(
+            context: Context,
+            usuarioId: String,
+            loteId: String
+        ) {
+            val db = DatabaseProvider.getDatabase(context)
+
+            val contenidosDelLote = db.loteDao()
+                .observarContenidoDeLote(loteId)
+                .first()
+
+            if (contenidosDelLote.isEmpty()) {
+                return
+            }
+
+            val progresosUsuario = db.progresoDao()
+                .observarProgresoUsuario(usuarioId)
+                .first()
+
+            val aprendidas = contenidosDelLote.count { contenido ->
+                progresosUsuario.any { progreso ->
+                    progreso.contenidoId == contenido.contenidoId &&
+                            progreso.tipoContenido == contenido.tipoContenido &&
+                            progreso.estadoAprendizaje == EstadoAprendizaje.APRENDIDA
+                }
+            }
+
+            val total = contenidosDelLote.size
+
+            val porcentaje = if (total > 0) {
+                ((aprendidas.toFloat() / total.toFloat()) * 100f)
+                    .coerceIn(0f, 100f)
+            } else {
+                0f
+            }
+
+            db.progresoDao().actualizarProgresoLoteFull(
+                usuarioId = usuarioId,
+                loteId = loteId,
+                activo = true,
+                progresoPorcentaje = porcentaje,
+                aprendidas = aprendidas,
+                total = total,
+                fecha = System.currentTimeMillis()
             )
         }
 
@@ -276,17 +428,51 @@ class WordWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             data: WidgetData
         ) {
-            views.setTextViewText(R.id.widget_termino, data.termino)
-            views.setTextViewText(R.id.widget_traduccion, data.traduccion)
-
-            views.setOnClickPendingIntent(
-                R.id.widget_root,
-                pendingIntentSolicitarAbrirApp(context)
+            views.setTextViewText(
+                R.id.widget_text_lote,
+                data.loteNombre.ifBlank { "Lote" }
             )
+
+            views.setTextViewText(
+                R.id.widget_text_progress,
+                data.progreso.ifBlank { "" }
+            )
+
+            views.setTextViewText(
+                R.id.widget_text_word,
+                data.termino
+            )
+
+            views.setTextViewText(
+                R.id.widget_text_translation,
+                data.traduccion
+            )
+
+            if (data.fonetica.isBlank()) {
+                views.setViewVisibility(
+                    R.id.widget_text_pronunciation,
+                    View.GONE
+                )
+            } else {
+                views.setViewVisibility(
+                    R.id.widget_text_pronunciation,
+                    View.VISIBLE
+                )
+
+                views.setTextViewText(
+                    R.id.widget_text_pronunciation,
+                    data.fonetica
+                )
+            }
 
             views.setOnClickPendingIntent(
                 R.id.widget_btn_next,
                 pendingIntentSiguiente(context, appWidgetId)
+            )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_learned,
+                pendingIntentAprendida(context, appWidgetId)
             )
         }
 
@@ -326,6 +512,11 @@ class WordWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(
                 R.id.widget_btn_sound,
                 pendingIntentSonido(context, appWidgetId, data.termino)
+            )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_learned,
+                pendingIntentAprendida(context, appWidgetId)
             )
         }
 
@@ -370,6 +561,12 @@ class WordWidgetProvider : AppWidgetProvider() {
                 R.id.widget_btn_sound,
                 pendingIntentSonido(context, appWidgetId, data.termino)
             )
+
+            views.setOnClickPendingIntent(
+                R.id.widget_btn_learned,
+                pendingIntentAprendida(context, appWidgetId)
+            )
+
         }
 
         private suspend fun obtenerContenidoWidget(context: Context): WidgetData {
@@ -526,6 +723,23 @@ class WordWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getBroadcast(
                 context,
                 appWidgetId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        private fun pendingIntentAprendida(
+            context: Context,
+            appWidgetId: Int
+        ): PendingIntent {
+            val intent = Intent(context, WordWidgetProvider::class.java).apply {
+                action = ACTION_MARK_LEARNED
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+
+            return PendingIntent.getBroadcast(
+                context,
+                appWidgetId + REQUEST_CODE_LEARNED_OFFSET,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )

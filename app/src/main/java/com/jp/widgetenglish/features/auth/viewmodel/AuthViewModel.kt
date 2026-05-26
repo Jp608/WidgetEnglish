@@ -7,6 +7,7 @@ import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
+import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
@@ -16,11 +17,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
+    private val actividadDiariaDao: ActividadDiariaDao,
     private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource,
+    private val estadisticasFirestoreDataSource: EstadisticasFirestoreDataSource,
     private val vocabularioRepository: VocabularioRepository,
     private val context: android.content.Context
 ) : ViewModel() {
@@ -32,6 +39,72 @@ class AuthViewModel(
 
     init {
         verificarSesionActiva()
+    }
+
+
+    private suspend fun sincronizarActividadDiariaRemotaALocal(
+        firebaseUid: String
+    ) {
+        try {
+            val hoy = obtenerFechaActual()
+
+            val actividadRemota = estadisticasFirestoreDataSource.obtenerActividadDiaria(
+                firebaseUid = firebaseUid,
+                fecha = hoy
+            ) ?: return
+
+            val actividadLocal = actividadDiariaDao.obtenerActividadPorFecha(
+                usuarioId = firebaseUid,
+                fecha = hoy
+            )
+
+            val actividadFinal = if (actividadLocal == null) {
+                actividadRemota
+            } else {
+                actividadLocal.copy(
+                    elementosEstudiados = maxOf(
+                        actividadLocal.elementosEstudiados,
+                        actividadRemota.elementosEstudiados
+                    ),
+                    tarjetasEstudiadas = maxOf(
+                        actividadLocal.tarjetasEstudiadas,
+                        actividadRemota.tarjetasEstudiadas
+                    ),
+                    preguntasQuizRespondidas = maxOf(
+                        actividadLocal.preguntasQuizRespondidas,
+                        actividadRemota.preguntasQuizRespondidas
+                    ),
+                    quizzesCompletados = maxOf(
+                        actividadLocal.quizzesCompletados,
+                        actividadRemota.quizzesCompletados
+                    ),
+                    objetivoDiario = maxOf(
+                        actividadLocal.objetivoDiario,
+                        actividadRemota.objetivoDiario
+                    ),
+                    objetivoCumplido = actividadLocal.objetivoCumplido || actividadRemota.objetivoCumplido,
+                    fechaCumplimiento = actividadLocal.fechaCumplimiento
+                        ?: actividadRemota.fechaCumplimiento,
+                    ultimaActualizacion = maxOf(
+                        actividadLocal.ultimaActualizacion,
+                        actividadRemota.ultimaActualizacion
+                    )
+                )
+            }
+
+            actividadDiariaDao.insertarOActualizarActividad(actividadFinal)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun obtenerFechaActual(): String {
+        val formato = SimpleDateFormat(
+            "yyyy-MM-dd",
+            Locale.getDefault()
+        )
+
+        return formato.format(Date())
     }
 
     private fun sincronizarWidgetTrasLogin(userId: String) {
@@ -54,6 +127,70 @@ class AuthViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private suspend fun sincronizarEstadisticasRemotasALocal(
+        firebaseUid: String
+    ) {
+        try {
+            val usuarioLocal = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUid)
+                ?: return
+
+            val statsRemotas = estadisticasFirestoreDataSource.obtenerEstadisticasUsuario(
+                firebaseUid = firebaseUid
+            ) ?: return
+
+            val usuarioActualizado = usuarioLocal.copy(
+                rachaActual = maxOf(
+                    usuarioLocal.rachaActual,
+                    statsRemotas.rachaActual
+                ),
+                rachaMaxima = maxOf(
+                    usuarioLocal.rachaMaxima,
+                    statsRemotas.rachaMaxima
+                ),
+                ultimaFechaRacha = elegirFechaMasReciente(
+                    local = usuarioLocal.ultimaFechaRacha,
+                    remota = statsRemotas.ultimaFechaRacha
+                ),
+                fechaUltimaActividad = elegirFechaMasReciente(
+                    local = usuarioLocal.fechaUltimaActividad,
+                    remota = statsRemotas.fechaUltimaActividad
+                ),
+                palabrasAprendidas = maxOf(
+                    usuarioLocal.palabrasAprendidas,
+                    statsRemotas.palabrasAprendidas
+                ),
+                quizzesRealizados = maxOf(
+                    usuarioLocal.quizzesRealizados,
+                    statsRemotas.quizzesRealizados
+                ),
+                lotesCompletados = maxOf(
+                    usuarioLocal.lotesCompletados,
+                    statsRemotas.lotesCompletados
+                ),
+                porcentajeProgreso = maxOf(
+                    usuarioLocal.porcentajeProgreso,
+                    statsRemotas.porcentajeProgreso
+                )
+            )
+
+            usuarioDao.actualizarUsuario(usuarioActualizado)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun elegirFechaMasReciente(
+        local: String?,
+        remota: String?
+    ): String? {
+        return when {
+            local.isNullOrBlank() -> remota
+            remota.isNullOrBlank() -> local
+            remota > local -> remota
+            else -> local
         }
     }
 
@@ -185,6 +322,9 @@ class AuthViewModel(
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuario)
 
+                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
+                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
+
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
@@ -244,6 +384,9 @@ class AuthViewModel(
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
+                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
+                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
+
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
@@ -288,6 +431,9 @@ class AuthViewModel(
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
+                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
+                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
+
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
 
                 _uiState.value = _uiState.value.copy(
@@ -329,6 +475,9 @@ class AuthViewModel(
                     )
                 )
 
+                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
+                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
+
                 usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
 
                 sincronizarWidgetTrasLogin(firebaseUser.uid)
@@ -355,6 +504,9 @@ class AuthViewModel(
             )
 
             val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
+
+            sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
+
 
             sincronizarWidgetTrasLogin(firebaseUser.uid)
 

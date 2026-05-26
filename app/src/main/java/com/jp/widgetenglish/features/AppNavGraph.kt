@@ -60,6 +60,7 @@ import com.jp.widgetenglish.features.vocabulary.presentation.cards.screens.Cards
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModel
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModelFactory
 import com.jp.widgetenglish.data.repository.StreakRepository
+import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -72,6 +73,10 @@ fun AppNavGraph() {
     )
 
     val usuarioFirestoreDataSource = UsuarioFirestoreDataSource(
+        firestore = FirebaseFirestore.getInstance()
+    )
+
+    val estadisticasFirestoreDataSource = EstadisticasFirestoreDataSource(
         firestore = FirebaseFirestore.getInstance()
     )
 
@@ -95,14 +100,18 @@ fun AppNavGraph() {
 
     val streakRepository = StreakRepository(
         actividadDiariaDao = database.actividadDiariaDao(),
-        usuarioDao = database.usuarioDao()
+        usuarioDao = database.usuarioDao(),
+        progresoDao = database.progresoDao(),
+        estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
     )
 
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
             authRepository = authRepository,
             usuarioDao = database.usuarioDao(),
+            actividadDiariaDao = database.actividadDiariaDao(),
             usuarioFirestoreDataSource = usuarioFirestoreDataSource,
+            estadisticasFirestoreDataSource = estadisticasFirestoreDataSource,
             vocabularioRepository = vocabularioRepository,
             context = context.applicationContext
         )
