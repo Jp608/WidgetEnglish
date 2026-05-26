@@ -39,11 +39,15 @@ object DatabaseSeeder {
                 }
             }
 
-            // 2. Cargar palabras y verbos maestros
-            // Si los DAO usan OnConflictStrategy.REPLACE o IGNORE, esto mantiene sincronizada la data base.
-            Log.d("DatabaseSeeder", "Syncing master words and verbs...")
+            // 2. Cargar palabras y reiniciar verbos maestros
+            Log.d("DatabaseSeeder", "Syncing master words and reinserting verbs...")
 
             palabraDao.insertarPalabras(SeedPalabras.palabras)
+
+// Reinserción limpia de verbos.
+// Primero borra los verbos anteriores y luego carga los nuevos desde SeedVerbos.kt.
+            Log.d("DatabaseSeeder", "Reinserting verbs from seed...")
+            verboDao.eliminarVerbos()
             verboDao.insertarVerbos(SeedVerbos.verbos)
 
             // 3. Sincronizar relaciones lote-contenido

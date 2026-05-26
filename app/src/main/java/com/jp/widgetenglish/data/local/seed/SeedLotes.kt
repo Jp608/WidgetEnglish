@@ -19,19 +19,7 @@ object SeedLotes {
             cantidadContenido = 21,
             cantidadSugeridaEstudio = 10
         ),
-        LoteEntity(
-            idLote = "lote_A1",
-            nombre = "Verbos",
-            descripcion = "Verbos básicos frecuentes.",
-            tipoLote = TipoLote.VERBOS,
-            nivel = NivelLote.A1,
-            colorHex = "#1565C0",
-            icono = "school",
-            activo = true,
-            orden = 2,
-            cantidadContenido = 34,
-            cantidadSugeridaEstudio = 10
-        ),
+
         LoteEntity(
             idLote = "lote_saludos",
             nombre = "Saludos y Cortesía",
@@ -128,6 +116,34 @@ object SeedLotes {
             cantidadContenido = 50,
             cantidadSugeridaEstudio = 10
         ),
+
+        LoteEntity(
+            idLote = "lote_regulares",
+            nombre = "Verbos Regulares",
+            descripcion = "Verbos regulares en inglés con pasado simple y participio.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#00897B",
+            icono = "edit_note",
+            activo = true,
+            orden = 8,
+            cantidadContenido = 132,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_irregulares",
+            nombre = "Verbos Irregulares",
+            descripcion = "Verbos irregulares en inglés con sus formas principales.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#7B1FA2",
+            icono = "bolt",
+            activo = true,
+            orden = 9,
+            cantidadContenido = 144,
+            cantidadSugeridaEstudio = 10
+        )
+
 
     )
 }
