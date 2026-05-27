@@ -132,14 +132,26 @@ class QuizViewModel(
                         }
                 }
             }.let { all ->
+                val contenidosUnicos = all.distinctBy { palabra ->
+                    "${palabra.id}_${palabra.esVerbo}"
+                }
+
                 if (repasarFalladas) {
                     if (failedIds.isNotEmpty()) {
-                        all.filter { it.id in failedIds }
+                        val failedSet = failedIds.toSet()
+
+                        contenidosUnicos
+                            .filter { palabra -> palabra.id in failedSet }
+                            .sortedBy { palabra -> failedIds.indexOf(palabra.id) }
                     } else {
-                        all.filter { it.estado == EstadoAprendizaje.DIFICIL }
+                        contenidosUnicos.filter { palabra ->
+                            palabra.estado == EstadoAprendizaje.DIFICIL
+                        }
                     }
                 } else {
-                    all.shuffled().take(limite)
+                    contenidosUnicos
+                        .shuffled()
+                        .take(limite)
                 }
             }
 

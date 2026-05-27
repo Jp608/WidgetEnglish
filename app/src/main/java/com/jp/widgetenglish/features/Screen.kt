@@ -40,13 +40,20 @@ sealed class Screen(val route: String) {
         }
     }
 
-    object Quiz : Screen("quiz/{loteId}/{repasarFalladas}/{limite}") {
+    object Quiz : Screen("quiz/{loteId}/{repasarFalladas}/{limite}/{failedIds}") {
         fun createRoute(
             loteId: String,
             repasarFalladas: Boolean = false,
-            limite: Int = 10
+            limite: Int = 10,
+            failedIds: List<String> = emptyList()
         ): String {
-            return "quiz/$loteId/$repasarFalladas/$limite"
+            val failedIdsText = if (failedIds.isEmpty()) {
+                "-"
+            } else {
+                failedIds.joinToString(",")
+            }
+
+            return "quiz/$loteId/$repasarFalladas/$limite/$failedIdsText"
         }
     }
 
