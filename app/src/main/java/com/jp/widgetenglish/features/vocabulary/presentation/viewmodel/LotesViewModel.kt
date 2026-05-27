@@ -40,13 +40,16 @@ class LotesViewModel(
     val uiState: StateFlow<LotesUiState> = _uiState.asStateFlow()
 
     private var observeJob: Job? = null
+    private var detalleJob: Job? = null
+
+    private var loteActivandoseId: String? = null
 
     fun cargarLotes() {
-        observeJob?.cancel()
+        if (observeJob?.isActive == true) {
+            return
+        }
 
         observeJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, mensajeError = null) }
-
             val usuarioId = authRepository.obtenerUsuarioActual()?.uid
 
             if (usuarioId == null) {
@@ -59,10 +62,24 @@ class LotesViewModel(
                 return@launch
             }
 
-            try {
-                vocabularioRepository.sincronizarProgresos(usuarioId)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sincronizando progresos", e)
+            val mostrarLoadingInicial = _uiState.value.lotes.isEmpty()
+
+            if (mostrarLoadingInicial) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        mensajeError = null
+                    )
+                }
+            }
+
+            // Sincroniza progresos locales en segundo plano, sin bloquear la pantalla.
+            viewModelScope.launch {
+                try {
+                    vocabularioRepository.sincronizarProgresos(usuarioId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error sincronizando progresos", e)
+                }
             }
 
             combine(
@@ -70,11 +87,28 @@ class LotesViewModel(
                 vocabularioRepository.observarLoteActivo(usuarioId)
             ) { listaLotes, progresoLoteActivo ->
                 listaLotes to progresoLoteActivo?.loteId
-            }.collectLatest { (lista, idActivo) ->
+            }.collectLatest { (lista, idActivoRoom) ->
+
+                val idPendiente = loteActivandoseId
+
+                val idActivoFinal = when {
+                    idPendiente != null && idActivoRoom != idPendiente -> {
+                        idPendiente
+                    }
+
+                    else -> {
+                        if (idPendiente != null && idActivoRoom == idPendiente) {
+                            loteActivandoseId = null
+                        }
+
+                        idActivoRoom
+                    }
+                }
+
                 _uiState.update {
                     it.copy(
                         lotes = lista,
-                        idLoteActivo = idActivo,
+                        idLoteActivo = idActivoFinal,
                         isLoading = false,
                         mensajeError = null
                     )
@@ -83,7 +117,10 @@ class LotesViewModel(
         }
     }
 
-    fun activarLote(context: Context, lote: LoteConProgreso) {
+    fun activarLote(
+        context: Context,
+        lote: LoteConProgreso
+    ) {
         viewModelScope.launch {
             val usuarioId = authRepository.obtenerUsuarioActual()?.uid
 
@@ -94,13 +131,29 @@ class LotesViewModel(
                 return@launch
             }
 
-            try {
-                vocabularioRepository.activarLote(usuarioId, lote.lote.idLote)
+            val loteId = lote.lote.idLote
+            val loteNombre = lote.lote.nombre
 
+            if (_uiState.value.idLoteActivo == loteId) {
+                return@launch
+            }
+
+            loteActivandoseId = loteId
+
+            // Activación optimista: se ve activo inmediatamente y no parpadea.
+            _uiState.update {
+                it.copy(
+                    idLoteActivo = loteId,
+                    mensajeError = null
+                )
+            }
+
+            // DataStore primero, para que el widget también responda rápido.
+            try {
                 WidgetPreferences.guardarLoteActivo(
                     context = context.applicationContext,
-                    loteId = lote.lote.idLote,
-                    loteNombre = lote.lote.nombre
+                    loteId = loteId,
+                    loteNombre = loteNombre
                 )
 
                 WidgetPreferences.guardarUserId(
@@ -109,25 +162,46 @@ class LotesViewModel(
                 )
 
                 WidgetPreferences.reiniciarIndice(context.applicationContext)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error guardando lote activo en DataStore", e)
+            }
 
+            try {
+                vocabularioRepository.activarLote(
+                    usuarioId = usuarioId,
+                    loteId = loteId
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error activando lote", e)
+
+                loteActivandoseId = null
+
+                _uiState.update {
+                    it.copy(
+                        mensajeError = "No se pudo activar el lote"
+                    )
+                }
+
+                return@launch
+            }
+
+            try {
                 WordWidgetProvider.updateAll(context.applicationContext)
 
                 Log.d(
                     TAG,
-                    "Widget actualizado con nuevo lote activo: ${lote.lote.nombre}"
+                    "Widget actualizado con nuevo lote activo: $loteNombre"
                 )
-
             } catch (e: Exception) {
-                Log.e(TAG, "Error activando lote o actualizando widget", e)
-
-                _uiState.update {
-                    it.copy(mensajeError = "No se pudo activar el lote")
-                }
+                Log.e(TAG, "Error actualizando widget", e)
             }
         }
     }
 
-    fun reiniciarProgreso(context: Context, loteId: String) {
+    fun reiniciarProgreso(
+        context: Context,
+        loteId: String
+    ) {
         viewModelScope.launch {
             val usuarioId = authRepository.obtenerUsuarioActual()?.uid
 
@@ -146,7 +220,6 @@ class LotesViewModel(
                 WordWidgetProvider.updateAll(context.applicationContext)
 
                 Log.d(TAG, "Progreso reiniciado y widget actualizado")
-
             } catch (e: Exception) {
                 Log.e(TAG, "Error reiniciando progreso o actualizando widget", e)
 
@@ -158,7 +231,9 @@ class LotesViewModel(
     }
 
     fun cargarDetalleLote(loteId: String) {
-        viewModelScope.launch {
+        detalleJob?.cancel()
+
+        detalleJob = viewModelScope.launch {
             val usuarioId = authRepository.obtenerUsuarioActual()?.uid
 
             if (usuarioId == null) {
@@ -178,7 +253,7 @@ class LotesViewModel(
                 vocabularioRepository.observarContenidoDeLote(loteId),
                 vocabularioRepository.observarProgresoUsuario(usuarioId)
             ) { contenidos, progresos ->
-                contenidos.map { contenido ->
+                contenidos.mapNotNull { contenido ->
                     val progreso = progresos.find {
                         it.contenidoId == contenido.contenidoId &&
                                 it.tipoContenido == contenido.tipoContenido
@@ -187,33 +262,38 @@ class LotesViewModel(
                     if (contenido.tipoContenido == TipoContenido.VERBO) {
                         val verbo = vocabularioRepository.obtenerVerboPorId(
                             contenido.contenidoId
-                        )
+                        ) ?: return@mapNotNull null
+
+                        if (verbo.formaBase.isBlank() || verbo.traduccion.isBlank()) {
+                            return@mapNotNull null
+                        }
 
                         PalabraConProgreso(
-                            id = verbo?.idVerbo.orEmpty(),
-                            termino = verbo?.formaBase.orEmpty(),
-                            traduccion = verbo?.traduccion.orEmpty(),
-                            fonetica = verbo?.fonetica,
-                            estado = progreso?.estadoAprendizaje
-                                ?: EstadoAprendizaje.NO_VISTA,
+                            id = verbo.idVerbo,
+                            termino = verbo.formaBase,
+                            traduccion = verbo.traduccion,
+                            fonetica = verbo.fonetica,
+                            estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                             esVerbo = true,
                             tipoPalabra = TipoPalabra.VERBO
                         )
                     } else {
                         val palabra = vocabularioRepository.obtenerPalabraPorId(
                             contenido.contenidoId
-                        )
+                        ) ?: return@mapNotNull null
+
+                        if (palabra.termino.isBlank() || palabra.traduccion.isBlank()) {
+                            return@mapNotNull null
+                        }
 
                         PalabraConProgreso(
-                            id = palabra?.idPalabra.orEmpty(),
-                            termino = palabra?.termino.orEmpty(),
-                            traduccion = palabra?.traduccion.orEmpty(),
-                            fonetica = palabra?.fonetica,
-                            estado = progreso?.estadoAprendizaje
-                                ?: EstadoAprendizaje.NO_VISTA,
+                            id = palabra.idPalabra,
+                            termino = palabra.termino,
+                            traduccion = palabra.traduccion,
+                            fonetica = palabra.fonetica,
+                            estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                             esVerbo = false,
-                            tipoPalabra = palabra?.tipoPalabra
-                                ?: TipoPalabra.SUSTANTIVO
+                            tipoPalabra = palabra.tipoPalabra
                         )
                     }
                 }
@@ -223,6 +303,12 @@ class LotesViewModel(
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        observeJob?.cancel()
+        detalleJob?.cancel()
     }
 
     companion object {

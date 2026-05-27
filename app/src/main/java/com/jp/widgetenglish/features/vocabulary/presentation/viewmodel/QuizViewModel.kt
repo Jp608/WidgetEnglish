@@ -268,95 +268,75 @@ class QuizViewModel(
         falladas: List<PalabraConProgreso>,
         acertadas: List<PalabraConProgreso>
     ) {
-        val estadoActual = _uiState.value
-
-        if (estadoActual.estaFinalizado || estadoActual.quizRegistrado) return
+        val preguntasRespondidas = _uiState.value.preguntas.size
 
         _uiState.update {
             it.copy(
+                score = finalScore,
+                respuestasFalladas = falladas,
+                respuestasAcertadas = acertadas,
+                estaFinalizado = true,
                 quizRegistrado = true
             )
         }
 
         viewModelScope.launch {
-            val usuarioId = authRepository.obtenerUsuarioActual()?.uid
+            val usuarioId = authRepository.obtenerUsuarioActual()?.uid ?: return@launch
 
-            if (usuarioId == null) {
-                _uiState.update {
-                    it.copy(
-                        mensajeError = "Usuario no identificado",
-                        quizRegistrado = false
+            try {
+                falladas.forEach { palabra ->
+                    vocabularioRepository.marcarContenidoComoDificil(
+                        usuarioId = usuarioId,
+                        contenidoId = palabra.id,
+                        tipoContenido = if (palabra.esVerbo) {
+                            TipoContenido.VERBO
+                        } else {
+                            TipoContenido.PALABRA
+                        }
                     )
                 }
-                return@launch
-            }
 
-            asegurarUsuarioLocal(usuarioId)
+                acertadas.forEach { palabra ->
+                    vocabularioRepository.marcarContenidoComoAprendido(
+                        usuarioId = usuarioId,
+                        contenidoId = palabra.id,
+                        tipoContenido = if (palabra.esVerbo) {
+                            TipoContenido.VERBO
+                        } else {
+                            TipoContenido.PALABRA
+                        }
+                    )
+                }
 
-            falladas.forEach { palabra ->
-                vocabularioRepository.marcarContenidoComoDificil(
+                registrarQuizCompletado(
                     usuarioId = usuarioId,
-                    contenidoId = palabra.id,
-                    tipoContenido = if (palabra.esVerbo) {
-                        TipoContenido.VERBO
-                    } else {
-                        TipoContenido.PALABRA
-                    }
+                    preguntasRespondidas = preguntasRespondidas
                 )
-            }
-
-            acertadas.forEach { palabra ->
-                vocabularioRepository.marcarContenidoComoAprendido(
-                    usuarioId = usuarioId,
-                    contenidoId = palabra.id,
-                    tipoContenido = if (palabra.esVerbo) {
-                        TipoContenido.VERBO
-                    } else {
-                        TipoContenido.PALABRA
-                    }
-                )
-            }
-
-            registrarQuizCompletado(usuarioId)
-
-            _uiState.update {
-                it.copy(
-                    score = finalScore,
-                    respuestasFalladas = falladas,
-                    respuestasAcertadas = acertadas,
-                    estaFinalizado = true,
-                    quizRegistrado = true,
-                    mostrarFeedback = false,
-                    opcionSeleccionada = null
-                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error guardando resultados del quiz", e)
             }
         }
     }
 
-    private suspend fun registrarQuizCompletado(usuarioId: String) {
+    private suspend fun registrarQuizCompletado(
+        usuarioId: String,
+        preguntasRespondidas: Int
+    ) {
         try {
-            val usuarioActual = asegurarUsuarioLocal(usuarioId)
+            usuarioDao.incrementarQuizzesRealizados(usuarioId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error incrementando quizzes en Room", e)
+        }
 
-            val usuarioActualizado = usuarioActual.copy(
-                quizzesRealizados = usuarioActual.quizzesRealizados + 1,
-                ultimoAcceso = System.currentTimeMillis()
-            )
-
-            usuarioDao.actualizarUsuario(usuarioActualizado)
-
+        try {
             streakRepository.registrarQuizCompletado(
                 usuarioId = usuarioId,
-                preguntasRespondidas = _uiState.value.preguntas.size
+                preguntasRespondidas = preguntasRespondidas
             )
 
             streakRepository.sincronizarEstadisticasActuales(usuarioId)
-
-            Log.d(
-                TAG,
-                "Quiz registrado localmente. Usuario: $usuarioId, total: ${usuarioActualizado.quizzesRealizados}"
-            )
         } catch (e: Exception) {
-            Log.e(TAG, "Error registrando quiz completado en Room", e)
+            Log.e(TAG, "Error sincronizando estadísticas del quiz", e)
         }
     }
 

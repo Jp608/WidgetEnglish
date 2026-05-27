@@ -62,6 +62,12 @@ class StatisticsViewModel(
 
             val userId = firebaseUser.uid
 
+            try {
+                vocabularioRepository.sincronizarProgresos(userId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
             val datosBaseFlow = combine(
                 usuarioDao.observarUsuarioPorFirebaseUid(userId),
                 vocabularioRepository.observarProgresoUsuario(userId),
@@ -168,8 +174,9 @@ class StatisticsViewModel(
 
         val progresoPorLotes = progresosLotes
             .sortedWith(
-                compareByDescending<ProgresoLoteEntity> { it.activo }
-                    .thenByDescending { it.progresoPorcentaje }
+                compareByDescending<ProgresoLoteEntity> { it.progresoPorcentaje }
+                    .thenByDescending { it.contenidosAprendidos }
+                    .thenByDescending { it.activo }
             )
             .mapNotNull { progreso ->
                 val lote = lotes.firstOrNull { it.idLote == progreso.loteId }

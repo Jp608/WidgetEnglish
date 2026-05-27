@@ -2,6 +2,7 @@ package com.jp.widgetenglish.features.vocabulary.presentation.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,11 +10,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
@@ -53,6 +60,14 @@ import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.common.TtsHelper
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.QuizViewModel
 
+private val QuizBlue = Color(0xFF2563EB)
+private val QuizBg = Color(0xFFF8FAFC)
+private val TextDark = Color(0xFF111827)
+private val TextMuted = Color(0xFF6B7280)
+private val BorderLight = Color(0xFFE5E7EB)
+private val CorrectGreen = Color(0xFF10B981)
+private val WrongRed = Color(0xFFEF4444)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
@@ -91,6 +106,7 @@ fun QuizScreen(
             limite = limite
         )
     }
+
     LaunchedEffect(
         state.cargando,
         state.estaFinalizado,
@@ -142,8 +158,12 @@ fun QuizScreen(
         }
     }
 
+    val puedeMostrarPregunta =
+        state.preguntas.isNotEmpty() &&
+                state.indicePreguntaActual in state.preguntas.indices
+
     Scaffold(
-        containerColor = Color(0xFFF8FAFC),
+        containerColor = QuizBg,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -157,7 +177,8 @@ fun QuizScreen(
                         Text(
                             text = "Quiz",
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF111827)
+                            color = TextDark,
+                            fontSize = 24.sp
                         )
                     }
                 },
@@ -166,7 +187,8 @@ fun QuizScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color(0xFF111827)
+                            tint = TextDark,
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 },
@@ -175,11 +197,50 @@ fun QuizScreen(
                         Icon(
                             imageVector = Icons.Default.BarChart,
                             contentDescription = null,
-                            tint = Color(0xFF111827)
+                            tint = TextDark,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (!state.cargando && state.mensajeError == null && puedeMostrarPregunta) {
+                Surface(
+                    color = QuizBg,
+                    shadowElevation = 0.dp
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.siguientePregunta()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .windowInsetsPadding(WindowInsets.ime)
+                            .padding(horizontal = 24.dp)
+                            .padding(top = 8.dp, bottom = 12.dp)
+                            .height(58.dp),
+                        enabled = state.mostrarFeedback,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = QuizBlue,
+                            disabledContainerColor = BorderLight,
+                            disabledContentColor = Color(0xFF9CA3AF)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 2.dp,
+                            disabledElevation = 0.dp
+                        )
+                    ) {
+                        Text(
+                            text = "Continuar",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+            }
         }
     ) { padding ->
         when {
@@ -191,7 +252,7 @@ fun QuizScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color(0xFF2563EB)
+                        color = QuizBlue
                     )
                 }
             }
@@ -226,7 +287,7 @@ fun QuizScreen(
                             text = state.mensajeError.orEmpty(),
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF111827),
+                            color = TextDark,
                             fontSize = 18.sp
                         )
 
@@ -235,7 +296,7 @@ fun QuizScreen(
                         Button(
                             onClick = onBack,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2563EB)
+                                containerColor = QuizBlue
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -251,54 +312,53 @@ fun QuizScreen(
                 }
             }
 
-            state.preguntas.isNotEmpty() &&
-                    state.indicePreguntaActual in state.preguntas.indices -> {
+            puedeMostrarPregunta -> {
                 val pregunta = state.preguntas[state.indicePreguntaActual]
+                val progresoActual = ((state.indicePreguntaActual + 1).toFloat() / state.preguntas.size)
+                    .coerceIn(0f, 1f)
+                val porcentajeActual = (progresoActual * 100f).toInt()
 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .padding(horizontal = 24.dp),
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 12.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Pregunta ${state.indicePreguntaActual + 1} de ${state.preguntas.size}",
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B7280)
+                            color = TextMuted
                         )
 
                         Text(
-                            text = "${(((state.indicePreguntaActual + 1).toFloat() / state.preguntas.size) * 100).toInt()}%",
-                            fontSize = 14.sp,
-                            color = Color(0xFF2563EB),
+                            text = "$porcentajeActual%",
+                            fontSize = 18.sp,
+                            color = QuizBlue,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
 
                     LinearProgressIndicator(
-                        progress = {
-                            ((state.indicePreguntaActual + 1).toFloat() / state.preguntas.size)
-                                .coerceIn(0f, 1f)
-                        },
+                        progress = { progresoActual },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 12.dp)
+                            .padding(vertical = 14.dp)
                             .height(10.dp)
                             .clip(RoundedCornerShape(20.dp)),
-                        color = Color(0xFF2563EB),
-                        trackColor = Color(0xFFE5E7EB)
+                        color = QuizBlue,
+                        trackColor = BorderLight
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -311,40 +371,47 @@ fun QuizScreen(
                         ),
                         border = BorderStroke(
                             width = 1.dp,
-                            color = Color(0xFFE5E7EB)
+                            color = BorderLight
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(32.dp),
+                            modifier = Modifier.padding(
+                                horizontal = 28.dp,
+                                vertical = 30.dp
+                            ),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = "¿Qué significa...?",
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6B7280)
+                                color = TextMuted
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
                                 text = pregunta.palabra.termino,
-                                fontSize = 36.sp,
+                                fontSize = 38.sp,
+                                lineHeight = 42.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF111827),
+                                color = TextDark,
                                 textAlign = TextAlign.Center
                             )
 
                             pregunta.palabra.fonetica?.let { fonetica ->
-                                Text(
-                                    text = fonetica,
-                                    fontSize = 18.sp,
-                                    color = Color(0xFF6B7280),
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
+                                if (fonetica.isNotBlank()) {
+                                    Text(
+                                        text = fonetica,
+                                        fontSize = 20.sp,
+                                        color = TextMuted,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.height(32.dp))
+                            Spacer(modifier = Modifier.height(30.dp))
 
                             pregunta.opciones.forEachIndexed { index, opcion ->
                                 val letra = when (index) {
@@ -364,17 +431,19 @@ fun QuizScreen(
                                             state.opcionSeleccionada == opcion &&
                                             opcion != pregunta.respuestaCorrecta,
                                     onClick = {
-                                        if (!state.mostrarFeedback && !state.estaFinalizado) {
+                                        if (!state.mostrarFeedback) {
                                             viewModel.seleccionarOpcion(opcion)
                                         }
                                     }
                                 )
 
-                                Spacer(modifier = Modifier.height(12.dp))
+                                if (index != pregunta.opciones.lastIndex) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
                             }
 
                             if (state.mostrarFeedback) {
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(18.dp))
 
                                 val esCorrecta =
                                     state.opcionSeleccionada == pregunta.respuestaCorrecta
@@ -388,34 +457,7 @@ fun QuizScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Button(
-                        onClick = {
-                            viewModel.siguientePregunta()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .padding(bottom = 8.dp),
-                        enabled = state.mostrarFeedback && !state.estaFinalizado,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2563EB),
-                            disabledContainerColor = Color(0xFFE5E7EB)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 2.dp
-                        )
-                    ) {
-                        Text(
-                            text = "Continuar",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
             }
         }
@@ -432,10 +474,10 @@ fun QuizOptionItem(
     onClick: () -> Unit
 ) {
     val borderColor = when {
-        esCorrecta -> Color(0xFF10B981)
-        esIncorrecta -> Color(0xFFEF4444)
-        seleccionada -> Color(0xFF2563EB)
-        else -> Color(0xFFE5E7EB)
+        esCorrecta -> CorrectGreen
+        esIncorrecta -> WrongRed
+        seleccionada -> QuizBlue
+        else -> BorderLight
     }
 
     val backgroundColor = when {
@@ -446,20 +488,22 @@ fun QuizOptionItem(
     }
 
     val iconContainerColor = when {
-        esCorrecta -> Color(0xFF10B981)
-        esIncorrecta -> Color(0xFFEF4444)
-        seleccionada -> Color(0xFF2563EB)
+        esCorrecta -> CorrectGreen
+        esIncorrecta -> WrongRed
+        seleccionada -> QuizBlue
         else -> Color(0xFFF3F4F6)
     }
 
-    val iconTextColor = if (
-        esCorrecta ||
-        esIncorrecta ||
-        seleccionada
-    ) {
+    val iconTextColor = if (esCorrecta || esIncorrecta || seleccionada) {
         Color.White
     } else {
-        Color(0xFF6B7280)
+        TextMuted
+    }
+
+    val textColor = when {
+        esCorrecta -> Color(0xFF065F46)
+        esIncorrecta -> Color(0xFF991B1B)
+        else -> TextDark
     }
 
     Surface(
@@ -498,30 +542,27 @@ fun QuizOptionItem(
                 text = texto,
                 modifier = Modifier.weight(1f),
                 fontSize = 17.sp,
-                fontWeight = if (seleccionada) {
+                lineHeight = 21.sp,
+                fontWeight = if (seleccionada || esCorrecta || esIncorrecta) {
                     FontWeight.Bold
                 } else {
                     FontWeight.Medium
                 },
-                color = when {
-                    esCorrecta -> Color(0xFF065F46)
-                    esIncorrecta -> Color(0xFF991B1B)
-                    else -> Color(0xFF111827)
-                }
+                color = textColor
             )
 
             if (esCorrecta) {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
-                    tint = Color(0xFF10B981),
+                    tint = CorrectGreen,
                     modifier = Modifier.size(24.dp)
                 )
             } else if (esIncorrecta) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = null,
-                    tint = Color(0xFFEF4444),
+                    tint = WrongRed,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -542,16 +583,12 @@ fun FeedbackBox(
     }
 
     val color = if (esCorrecta) {
-        Color(0xFF2563EB)
+        QuizBlue
     } else {
-        Color(0xFFEF4444)
+        WrongRed
     }
 
-    val borderColor = if (esCorrecta) {
-        Color(0xFF2563EB).copy(alpha = 0.2f)
-    } else {
-        Color(0xFFEF4444).copy(alpha = 0.2f)
-    }
+    val borderColor = color.copy(alpha = 0.22f)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -567,7 +604,7 @@ fun FeedbackBox(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(38.dp),
                 shape = CircleShape,
                 color = color
             ) {
@@ -579,13 +616,15 @@ fun FeedbackBox(
                     },
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.padding(6.dp)
+                    modifier = Modifier.padding(8.dp)
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = if (esCorrecta) {
                         "¡Correcto!"
@@ -594,13 +633,14 @@ fun FeedbackBox(
                     },
                     fontWeight = FontWeight.ExtraBold,
                     color = color,
-                    fontSize = 16.sp
+                    fontSize = 17.sp
                 )
 
                 Text(
                     text = "\"$termino\" es \"$traduccion\".",
-                    fontSize = 14.sp,
-                    color = color.copy(alpha = 0.7f),
+                    fontSize = 15.sp,
+                    lineHeight = 19.sp,
+                    color = color.copy(alpha = 0.72f),
                     fontWeight = FontWeight.Medium
                 )
             }
