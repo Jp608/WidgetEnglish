@@ -44,13 +44,6 @@ object SeedLoteContenido {
         LoteContenidoEntity(id = "lc_lote_comida_palabra_rice", loteId = "lote_comida", contenidoId = "palabra_rice", tipoContenido = TipoContenido.PALABRA, orden = 4),
         LoteContenidoEntity(id = "lc_lote_comida_palabra_water", loteId = "lote_comida", contenidoId = "palabra_water", tipoContenido = TipoContenido.PALABRA, orden = 5),
 
-        // Lote Casa
-        LoteContenidoEntity(id = "lc_lote_casa_palabra_window", loteId = "lote_casa", contenidoId = "palabra_window", tipoContenido = TipoContenido.PALABRA, orden = 1),
-        LoteContenidoEntity(id = "lc_lote_casa_palabra_door", loteId = "lote_casa", contenidoId = "palabra_door", tipoContenido = TipoContenido.PALABRA, orden = 2),
-        LoteContenidoEntity(id = "lc_lote_casa_palabra_table", loteId = "lote_casa", contenidoId = "palabra_table", tipoContenido = TipoContenido.PALABRA, orden = 3),
-        LoteContenidoEntity(id = "lc_lote_casa_palabra_chair", loteId = "lote_casa", contenidoId = "palabra_chair", tipoContenido = TipoContenido.PALABRA, orden = 4),
-        LoteContenidoEntity(id = "lc_lote_casa_verbo_live", loteId = "lote_casa", contenidoId = "verbo_live", tipoContenido = TipoContenido.VERBO, orden = 5),
-
         // Pegar estos elementos dentro de listOf(...) en SeedLoteContenido.kt, antes del cierre final.
 
         // Lote Comida y Bebidas

@@ -44,21 +44,28 @@ class VocabularioRepositoryImpl(
 
     override suspend fun activarLote(usuarioId: String, loteId: String) {
         progresoDao.desactivarLotes(usuarioId)
-        
-        // Sincronizar con Firestore (Cambio solicitado)
-        try {
-            usuarioFirestoreDataSource?.guardarLoteActivo(usuarioId, loteId)
-        } catch (e: Exception) {}
 
-        // Recalcular para sincronizar (Fix HU13-14)
         val contenidos = loteDao.observarContenidoDeLote(loteId).first()
         val total = contenidos.size
-        val aprendidas = progresoDao.observarContenidosAprendidos(usuarioId).first().count { p ->
-            contenidos.any { c -> c.contenidoId == p.contenidoId && c.tipoContenido == p.tipoContenido }
+
+        val aprendidas = progresoDao
+            .observarContenidosAprendidos(usuarioId)
+            .first()
+            .count { progreso ->
+                contenidos.any { contenido ->
+                    contenido.contenidoId == progreso.contenidoId &&
+                            contenido.tipoContenido == progreso.tipoContenido
+                }
+            }
+
+        val porcentaje = if (total > 0) {
+            (aprendidas.toFloat() / total.toFloat()) * 100f
+        } else {
+            0f
         }
-        val porcentaje = if (total > 0) (aprendidas.toFloat() / total.toFloat()) * 100f else 0f
 
         val existente = progresoDao.obtenerProgresoLote(usuarioId, loteId)
+
         if (existente == null) {
             progresoDao.insertarProgresoLote(
                 ProgresoLoteEntity(
@@ -73,7 +80,22 @@ class VocabularioRepositoryImpl(
                 )
             )
         } else {
-            progresoDao.actualizarProgresoLoteFull(usuarioId, loteId, true, porcentaje, aprendidas, total)
+            progresoDao.actualizarProgresoLoteFull(
+                usuarioId = usuarioId,
+                loteId = loteId,
+                activo = true,
+                progresoPorcentaje = porcentaje,
+                aprendidas = aprendidas,
+                total = total,
+                fecha = System.currentTimeMillis()
+            )
+        }
+
+        // Firestore al final. Si falla o no hay internet, Room ya quedó bien.
+        try {
+            usuarioFirestoreDataSource?.guardarLoteActivo(usuarioId, loteId)
+        } catch (e: Exception) {
+            // No bloquear modo offline
         }
     }
 

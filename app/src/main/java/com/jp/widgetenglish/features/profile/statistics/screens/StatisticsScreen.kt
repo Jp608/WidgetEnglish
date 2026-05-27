@@ -442,7 +442,7 @@ private fun WeeklyProgressCard(
             modifier = Modifier.padding(18.dp)
         ) {
             Text(
-                text = "Progreso histórico",
+                text = "Elementos practicados",
                 color = TextDark,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -783,7 +783,9 @@ private fun LotsProgressCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            val lotesMostrar = lotes.take(4)
+            val lotesMostrar = lotes
+                .sortedByDescending { it.porcentaje }
+                .take(5)
 
             if (lotesMostrar.isEmpty()) {
                 LotProgressRow(
