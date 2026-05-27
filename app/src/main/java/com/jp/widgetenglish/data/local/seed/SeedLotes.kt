@@ -47,19 +47,7 @@ object SeedLotes {
             cantidadSugeridaEstudio = 10
         ),
 
-        LoteEntity(
-            idLote = "lote_adjetivos_A1",
-            nombre = "Adjetivos Básicos",
-            descripcion = "Adjetivos esenciales para describir cosas y sentimientos.",
-            tipoLote = TipoLote.TEMATICO,
-            nivel = NivelLote.A1,
-            colorHex = "#FF8F00",
-            icono = "description",
-            activo = true,
-            orden = 3,
-            cantidadContenido = 22,
-            cantidadSugeridaEstudio = 10
-        ),
+
 
         // Pegar estos elementos dentro de listOf(...) en SeedLotes.kt, antes del cierre final.
 
