@@ -300,32 +300,7 @@ fun AppNavGraph() {
             )
         }
 
-        composable(Screen.Statistics.route) {
-            StatisticsScreen(
-                viewModel = statisticsViewModel,
-                onBack = {
-                    navController.popBackStack()
-                },
-                onInicioClick = {
-                    navegar(Screen.Home.route)
-                },
-                onVocabularioClick = {
-                    navegar(Screen.Vocabulario.route)
-                },
-                onLotesClick = {
-                    navegar(Screen.Lotes.route)
-                },
-                onEstudioClick = {
-                    navegar(Screen.Estudio.route)
-                },
-                onIaClick = {
-                    navegar(Screen.Ia.route)
-                },
-                onPerfilClick = {
-                    navegar(Screen.Profile.route)
-                }
-            )
-        }
+
 
 
         composable(Screen.VocabularyDetail.route) { backStackEntry ->
@@ -397,7 +372,12 @@ fun AppNavGraph() {
                 },
                 onEstudiarClick = { id ->
                     navController.navigate(
-                        Screen.Quiz.createRoute(id)
+                        Screen.Quiz.createRoute(
+                            loteId = id,
+                            repasarFalladas = false,
+                            limite = 10,
+                            failedIds = emptyList()
+                        )
                     ) {
                         launchSingleTop = true
                     }
@@ -407,16 +387,33 @@ fun AppNavGraph() {
 
         composable(Screen.Quiz.route) { backStackEntry ->
             val loteId = backStackEntry.arguments?.getString("loteId") ?: ""
+
             val repasarFalladas = backStackEntry.arguments
                 ?.getString("repasarFalladas")
                 .toBoolean()
+
             val limite = backStackEntry.arguments
                 ?.getString("limite")
-                ?.toIntOrNull() ?: 10
+                ?.toIntOrNull()
+                ?: 10
+
+            val failedIdsText = backStackEntry.arguments
+                ?.getString("failedIds")
+                .orEmpty()
+
+            val failedIds = if (failedIdsText.isBlank() || failedIdsText == "-") {
+                emptyList()
+            } else {
+                failedIdsText
+                    .split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+            }
 
             QuizScreen(
                 loteId = loteId,
                 repasarFalladas = repasarFalladas,
+                failedIds = failedIds,
                 limite = limite,
                 viewModel = quizViewModel,
                 onBack = {
@@ -441,10 +438,21 @@ fun AppNavGraph() {
                 total = quizState.preguntas.size,
                 failedWords = quizState.respuestasFalladas,
                 onRepasarFalladas = {
+                    val idsFalladas = quizState.respuestasFalladas
+                        .map { it.id }
+                        .distinct()
+
+                    android.util.Log.d(
+                        "QuizDebug",
+                        "Repasar falladas desde resultado. Cantidad=${idsFalladas.size}, ids=$idsFalladas"
+                    )
+
                     navController.navigate(
                         Screen.Quiz.createRoute(
-                            quizState.loteId,
-                            true
+                            loteId = quizState.loteId,
+                            repasarFalladas = true,
+                            limite = idsFalladas.size,
+                            failedIds = idsFalladas
                         )
                     ) {
                         popUpTo(Screen.QuizResult.route) {
@@ -456,8 +464,10 @@ fun AppNavGraph() {
                 onRepetirQuiz = {
                     navController.navigate(
                         Screen.Quiz.createRoute(
-                            quizState.loteId,
-                            false
+                            loteId = quizState.loteId,
+                            repasarFalladas = false,
+                            limite = quizState.preguntas.size,
+                            failedIds = emptyList()
                         )
                     ) {
                         popUpTo(Screen.QuizResult.route) {
@@ -536,9 +546,10 @@ fun AppNavGraph() {
                 onStartQuiz = { loteId, limite ->
                     navController.navigate(
                         Screen.Quiz.createRoute(
-                            loteId,
-                            false,
-                            limite
+                            loteId = loteId,
+                            repasarFalladas = false,
+                            limite = limite,
+                            failedIds = emptyList()
                         )
                     ) {
                         popUpTo(Screen.Study.route) {

@@ -73,6 +73,7 @@ private val WrongRed = Color(0xFFEF4444)
 fun QuizScreen(
     loteId: String,
     repasarFalladas: Boolean,
+    failedIds: List<String> = emptyList(),
     limite: Int = 10,
     viewModel: QuizViewModel,
     onBack: () -> Unit,
@@ -96,13 +97,19 @@ fun QuizScreen(
         }
     }
 
-    LaunchedEffect(loteId, repasarFalladas, limite) {
+    LaunchedEffect(loteId, repasarFalladas, limite, failedIds) {
         finishHandled = false
         puedeFinalizarQuiz = false
+
+        android.util.Log.d(
+            "QuizDebug",
+            "QuizScreen inicia. repasarFalladas=$repasarFalladas, limite=$limite, failedIds=${failedIds.size}, ids=$failedIds"
+        )
 
         viewModel.iniciarQuiz(
             loteId = loteId,
             repasarFalladas = repasarFalladas,
+            failedIds = failedIds,
             limite = limite
         )
     }
