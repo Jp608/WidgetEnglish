@@ -64,6 +64,7 @@ import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSourc
 import com.jp.widgetenglish.features.profile.statistics.screens.StatisticsScreen
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
+import com.jp.widgetenglish.ai.ui.AiChatScreen
 
 @Composable
 fun AppNavGraph() {
@@ -666,19 +667,19 @@ fun AppNavGraph() {
 
 
         composable(Screen.Ia.route) {
-            ConstructionScreen(
-                titulo = "IA Chat en construcción",
-                descripcion = "Aquí podrás consultar dudas de vocabulario y recibir ejemplos.",
-                onVolverInicio = {
+            AiChatScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onInicioClick = {
                     navegar(Screen.Home.route)
                 },
-                onPerfilClick = {
-                    navegar(Screen.Profile.route)
-                },
                 onVocabularioClick = {
+                    vocabularyViewModel.establecerLote(null)
                     navegar(Screen.Vocabulario.route)
                 },
                 onLotesClick = {
+                    vocabularyViewModel.establecerLote(null)
                     navegar(Screen.Lotes.route)
                 },
                 onEstudioClick = {
@@ -686,10 +687,12 @@ fun AppNavGraph() {
                 },
                 onIaClick = {
                     navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
                 }
             )
         }
-
         composable(Screen.Profile.route) {
             ProfileScreen(
                 navController = navController,
