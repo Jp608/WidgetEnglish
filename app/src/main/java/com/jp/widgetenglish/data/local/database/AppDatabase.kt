@@ -2,6 +2,9 @@ package com.jp.widgetenglish.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.jp.widgetenglish.ai.data.local.AiChatDao
+import com.jp.widgetenglish.ai.data.local.AiConversationEntity
+import com.jp.widgetenglish.ai.data.local.AiMessageEntity
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
 import com.jp.widgetenglish.data.local.dao.LoteDao
 import com.jp.widgetenglish.data.local.dao.PalabraDao
@@ -26,9 +29,11 @@ import com.jp.widgetenglish.data.local.entity.VerboEntity
         LoteContenidoEntity::class,
         ProgresoUsuarioEntity::class,
         ProgresoLoteEntity::class,
-        ActividadDiariaEntity::class
+        ActividadDiariaEntity::class,
+        AiConversationEntity::class,
+        AiMessageEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,4 +49,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun progresoDao(): ProgresoDao
 
     abstract fun actividadDiariaDao(): ActividadDiariaDao
+
+    abstract fun aiChatDao(): AiChatDao
 }
