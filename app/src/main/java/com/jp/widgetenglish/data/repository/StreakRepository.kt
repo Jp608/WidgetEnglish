@@ -6,6 +6,7 @@ import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.ProgresoLoteEntity
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
 import kotlinx.coroutines.flow.first
@@ -237,13 +238,7 @@ class StreakRepository(
             return usuarioActualizado
         }
 
-        val lotesCompletados = progresosLotes.count { progreso ->
-            progreso.progresoPorcentaje >= 100f ||
-                    (
-                            progreso.totalContenidos > 0 &&
-                                    progreso.contenidosAprendidos >= progreso.totalContenidos
-                            )
-        }
+        val lotesCompletados = progresosLotes.count(::esLoteCompletado)
 
         val porcentajeProgreso = progresosLotes
             .map { progreso -> progreso.progresoPorcentaje }
@@ -260,6 +255,29 @@ class StreakRepository(
         usuarioDao.actualizarUsuario(usuarioActualizado)
 
         return usuarioActualizado
+    }
+
+    private fun esLoteCompletado(
+        progreso: ProgresoLoteEntity
+    ): Boolean {
+        return progreso.completado ||
+                progreso.progresoPorcentaje >= 100f ||
+                (
+                        progreso.totalContenidos > 0 &&
+                                progreso.contenidosAprendidos >= progreso.totalContenidos
+                        )
+    }
+
+    private suspend fun obtenerLotesCompletadosIds(
+        usuarioId: String
+    ): List<String> {
+        return progresoDao
+            .observarProgresosLotesUsuario(usuarioId)
+            .first()
+            .filter(::esLoteCompletado)
+            .map { progreso -> progreso.loteId }
+            .distinct()
+            .sorted()
     }
 
     private suspend fun sincronizarActividadYUsuarioSiEsPosible(
@@ -302,6 +320,8 @@ class StreakRepository(
         val dataSource = estadisticasFirestoreDataSource ?: return
 
         try {
+            val lotesCompletadosIds = obtenerLotesCompletadosIds(usuarioId)
+
             dataSource.sincronizarEstadisticasUsuario(
                 firebaseUid = usuarioId,
                 rachaActual = usuario.rachaActual,
@@ -311,7 +331,8 @@ class StreakRepository(
                 palabrasAprendidas = usuario.palabrasAprendidas,
                 quizzesRealizados = usuario.quizzesRealizados,
                 lotesCompletados = usuario.lotesCompletados,
-                porcentajeProgreso = usuario.porcentajeProgreso
+                porcentajeProgreso = usuario.porcentajeProgreso,
+                lotesCompletadosIds = lotesCompletadosIds
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error sincronizando estadísticas de usuario con Firestore", e)

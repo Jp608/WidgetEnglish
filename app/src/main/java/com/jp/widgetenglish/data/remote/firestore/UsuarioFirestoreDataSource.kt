@@ -32,6 +32,10 @@ class UsuarioFirestoreDataSource(
                 camposFaltantes["lotesCompletados"] = 0
             }
 
+            if (!snapshot.contains("lotesCompletadosIds")) {
+                camposFaltantes["lotesCompletadosIds"] = emptyList<String>()
+            }
+
             if (!snapshot.contains("porcentajeProgreso")) {
                 camposFaltantes["porcentajeProgreso"] = 0
             }
@@ -73,6 +77,7 @@ class UsuarioFirestoreDataSource(
                 "palabrasAprendidas" to 0,
                 "quizzesRealizados" to 0,
                 "lotesCompletados" to 0,
+                "lotesCompletadosIds" to emptyList<String>(),
                 "porcentajeProgreso" to 0,
                 "loteActivoId" to ""
             )

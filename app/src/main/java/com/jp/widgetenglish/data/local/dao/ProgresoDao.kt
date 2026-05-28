@@ -224,10 +224,18 @@ interface ProgresoDao {
     UPDATE progreso_lote
     SET 
         activo = :activo,
+        completado = CASE
+            WHEN :progresoPorcentaje >= 100 OR (:total > 0 AND :aprendidas >= :total) THEN 1
+            ELSE 0
+        END,
         progresoPorcentaje = :progresoPorcentaje,
         contenidosAprendidos = :aprendidas,
         totalContenidos = :total,
-        fechaUltimoEstudio = :fecha
+        fechaUltimoEstudio = :fecha,
+        fechaCompletado = CASE
+            WHEN :progresoPorcentaje >= 100 OR (:total > 0 AND :aprendidas >= :total) THEN COALESCE(fechaCompletado, :fecha)
+            ELSE NULL
+        END
     WHERE usuarioId = :usuarioId 
     AND loteId = :loteId
     """)
@@ -308,7 +316,15 @@ interface ProgresoDao {
     UPDATE progreso_lote
     SET 
         progresoPorcentaje = :progresoPorcentaje,
-        fechaUltimoEstudio = :fechaUltimoEstudio
+        completado = CASE
+            WHEN :progresoPorcentaje >= 100 THEN 1
+            ELSE completado
+        END,
+        fechaUltimoEstudio = :fechaUltimoEstudio,
+        fechaCompletado = CASE
+            WHEN :progresoPorcentaje >= 100 THEN COALESCE(fechaCompletado, :fechaUltimoEstudio)
+            ELSE fechaCompletado
+        END
     WHERE usuarioId = :usuarioId
     AND loteId = :loteId
     """
@@ -327,7 +343,8 @@ interface ProgresoDao {
         progresoPorcentaje = 0,
         contenidosAprendidos = 0,
         completado = 0,
-        fechaUltimoEstudio = :fecha
+        fechaUltimoEstudio = :fecha,
+        fechaCompletado = NULL
     WHERE usuarioId = :usuarioId
     AND loteId = :loteId
     """
