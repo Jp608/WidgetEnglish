@@ -65,7 +65,7 @@ import com.jp.widgetenglish.features.profile.statistics.screens.StatisticsScreen
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
 import com.jp.widgetenglish.ai.ui.AiChatScreen
-
+import com.jp.widgetenglish.ai.ui.AiHistoryScreen
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
@@ -667,10 +667,8 @@ fun AppNavGraph() {
 
 
         composable(Screen.Ia.route) {
-            AiChatScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
+            AiHistoryScreen(
+                aiChatDao = database.aiChatDao(),
                 onInicioClick = {
                     navegar(Screen.Home.route)
                 },
