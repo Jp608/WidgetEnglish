@@ -93,6 +93,7 @@ fun ProfileScreen(
 
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var unavailableOptionTitle by remember { mutableStateOf<String?>(null) }
 
     fun navegar(route: String) {
         navController.navigate(route) {
@@ -168,13 +169,13 @@ fun ProfileScreen(
             },
             title = {
                 Text(
-                    text = "¿Eliminar cuenta?",
+                    text = "Eliminación no disponible",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "Esta acción es permanente y eliminará todo tu progreso. ¿Deseas continuar?",
+                    text = "Por ahora esta pantalla no elimina la cuenta ni el progreso. Para proteger tus datos, esta acción queda desactivada hasta implementar la eliminación real con Firebase.",
                     textAlign = TextAlign.Center
                 )
             },
@@ -182,23 +183,14 @@ fun ProfileScreen(
                 Button(
                     onClick = {
                         showDeleteDialog = false
-
-                        authViewModel.cerrarSesion()
-
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
-                        }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
+                        containerColor = PrimaryBlue
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Eliminar definitivamente",
+                        text = "Entendido",
                         color = Color.White
                     )
                 }
@@ -209,6 +201,36 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Cancelar")
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    unavailableOptionTitle?.let { title ->
+        AlertDialog(
+            onDismissRequest = { unavailableOptionTitle = null },
+            title = {
+                Text(
+                    text = "$title no disponible",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Esta sección todavía no está implementada.",
+                    textAlign = TextAlign.Center
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { unavailableOptionTitle = null },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryBlue
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Entendido")
                 }
             },
             shape = RoundedCornerShape(24.dp)
@@ -248,8 +270,8 @@ fun ProfileScreen(
                 modifier = Modifier.padding(horizontal = 20.dp)
             ) {
                 StatsCard(
-                    aprendidas = "0",
-                    lotes = "0",
+                    aprendidas = "${uiState.usuario?.palabrasAprendidas ?: 0}",
+                    lotes = "${uiState.usuario?.lotesCompletados ?: 0}",
                     racha = "${uiState.usuario?.rachaActual ?: 0}"
                 )
 
@@ -296,7 +318,7 @@ fun ProfileScreen(
                     subtitle = "Preferencias de la aplicación",
                     iconColor = PrimaryBlue
                 ) {
-                    // TODO: Navegar a configuración general cuando exista la pantalla
+                    unavailableOptionTitle = "Configuración general"
                 }
 
                 ProfileOption(
@@ -305,7 +327,7 @@ fun ProfileScreen(
                     subtitle = "Preguntas frecuentes y contacto",
                     iconColor = PrimaryBlue
                 ) {
-                    // TODO: Navegar a ayuda cuando exista la pantalla
+                    unavailableOptionTitle = "Ayuda y soporte"
                 }
 
                 Spacer(modifier = Modifier.height(22.dp))

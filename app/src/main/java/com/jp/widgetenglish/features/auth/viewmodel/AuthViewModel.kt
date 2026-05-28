@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
+import com.jp.widgetenglish.features.widget.WordWidgetProvider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -560,5 +561,10 @@ class AuthViewModel(
     fun cerrarSesion() {
         authRepository.cerrarSesion()
         _uiState.value = AuthUiState()
+
+        viewModelScope.launch {
+            WidgetPreferences.limpiarSesionWidget(context)
+            WordWidgetProvider.updateAll(context)
+        }
     }
 }
