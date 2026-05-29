@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.AuthCredential
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
+import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
+import com.jp.widgetenglish.data.local.entity.ProgresoLoteEntity
+import com.jp.widgetenglish.data.local.entity.ProgresoUsuarioEntity
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
@@ -18,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
+import com.jp.widgetenglish.features.widget.WordWidgetProvider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -177,8 +181,100 @@ class AuthViewModel(
             )
 
             usuarioDao.actualizarUsuario(usuarioActualizado)
+            sincronizarLotesCompletadosRemotosALocal(
+                firebaseUid = firebaseUid,
+                lotesCompletadosIds = statsRemotas.lotesCompletadosIds
+            )
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private suspend fun sincronizarLotesCompletadosRemotosALocal(
+        firebaseUid: String,
+        lotesCompletadosIds: List<String>
+    ) {
+        val idsUnicos = lotesCompletadosIds
+            .filter { loteId -> loteId.isNotBlank() }
+            .distinct()
+
+        if (idsUnicos.isEmpty()) return
+
+        val ahora = System.currentTimeMillis()
+
+        idsUnicos.forEach { loteId ->
+            val lote = vocabularioRepository.obtenerLotePorId(loteId)
+                ?: return@forEach
+
+            val contenidos = vocabularioRepository
+                .observarContenidoDeLote(loteId)
+                .first()
+
+            contenidos.forEach { contenido ->
+                val progresoContenido = vocabularioRepository.obtenerProgresoContenido(
+                    usuarioId = firebaseUid,
+                    contenidoId = contenido.contenidoId,
+                    tipoContenido = contenido.tipoContenido
+                )
+
+                val progresoFinal = if (progresoContenido == null) {
+                    ProgresoUsuarioEntity(
+                        id = "pu_${firebaseUid}_${contenido.contenidoId}_${contenido.tipoContenido.name}",
+                        usuarioId = firebaseUid,
+                        contenidoId = contenido.contenidoId,
+                        tipoContenido = contenido.tipoContenido,
+                        estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                        nivelDominio = 1f,
+                        aprendido = true,
+                        ultimaRevision = ahora
+                    )
+                } else {
+                    progresoContenido.copy(
+                        estadoAprendizaje = EstadoAprendizaje.APRENDIDA,
+                        nivelDominio = 1f,
+                        aprendido = true,
+                        ultimaRevision = progresoContenido.ultimaRevision ?: ahora
+                    )
+                }
+
+                vocabularioRepository.guardarProgresoUsuario(progresoFinal)
+            }
+
+            val total = contenidos
+                .size
+                .takeIf { cantidad -> cantidad > 0 }
+                ?: lote.cantidadContenido
+
+            val existente = vocabularioRepository.obtenerProgresoLote(
+                usuarioId = firebaseUid,
+                loteId = loteId
+            )
+
+            val progresoFinal = if (existente == null) {
+                ProgresoLoteEntity(
+                    id = "pl_${firebaseUid}_$loteId",
+                    usuarioId = firebaseUid,
+                    loteId = loteId,
+                    completado = true,
+                    progresoPorcentaje = 100f,
+                    contenidosAprendidos = total,
+                    totalContenidos = total,
+                    fechaInicio = ahora,
+                    fechaUltimoEstudio = ahora,
+                    fechaCompletado = ahora
+                )
+            } else {
+                existente.copy(
+                    completado = true,
+                    progresoPorcentaje = 100f,
+                    contenidosAprendidos = maxOf(existente.contenidosAprendidos, total),
+                    totalContenidos = maxOf(existente.totalContenidos, total),
+                    fechaUltimoEstudio = ahora,
+                    fechaCompletado = existente.fechaCompletado ?: ahora
+                )
+            }
+
+            vocabularioRepository.guardarProgresoLote(progresoFinal)
         }
     }
 
@@ -560,5 +656,10 @@ class AuthViewModel(
     fun cerrarSesion() {
         authRepository.cerrarSesion()
         _uiState.value = AuthUiState()
+
+        viewModelScope.launch {
+            WidgetPreferences.limpiarSesionWidget(context)
+            WordWidgetProvider.updateAll(context)
+        }
     }
 }

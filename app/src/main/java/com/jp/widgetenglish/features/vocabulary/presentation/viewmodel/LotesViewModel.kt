@@ -41,38 +41,33 @@ class LotesViewModel(
 
     private var observeJob: Job? = null
     private var detalleJob: Job? = null
+    private var usuarioObservadoId: String? = null
 
     private var loteActivandoseId: String? = null
 
     fun cargarLotes() {
-        if (observeJob?.isActive == true) {
+        val usuarioId = authRepository.obtenerUsuarioActual()?.uid
+
+        if (observeJob?.isActive == true && usuarioObservadoId == usuarioId) {
             return
         }
 
+        observeJob?.cancel()
+        detalleJob?.cancel()
+        loteActivandoseId = null
+        usuarioObservadoId = usuarioId
+
+        if (usuarioId == null) {
+            _uiState.value = LotesUiState(
+                isLoading = false,
+                mensajeError = "Usuario no identificado"
+            )
+            return
+        }
+
+        _uiState.value = LotesUiState(isLoading = true)
+
         observeJob = viewModelScope.launch {
-            val usuarioId = authRepository.obtenerUsuarioActual()?.uid
-
-            if (usuarioId == null) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        mensajeError = "Usuario no identificado"
-                    )
-                }
-                return@launch
-            }
-
-            val mostrarLoadingInicial = _uiState.value.lotes.isEmpty()
-
-            if (mostrarLoadingInicial) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = true,
-                        mensajeError = null
-                    )
-                }
-            }
-
             // Sincroniza progresos locales en segundo plano, sin bloquear la pantalla.
             viewModelScope.launch {
                 try {

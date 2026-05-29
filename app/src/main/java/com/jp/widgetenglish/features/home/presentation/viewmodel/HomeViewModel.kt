@@ -1,7 +1,9 @@
 package com.jp.widgetenglish.features.home.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jp.widgetenglish.data.local.datastore.DailyGoalPreferences
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
@@ -26,33 +28,40 @@ class HomeViewModel(
     private val repository: VocabularioRepository,
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
-    private val actividadDiariaDao: ActividadDiariaDao
+    private val actividadDiariaDao: ActividadDiariaDao,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private var cargarHomeJob: Job? = null
+    private var usuarioObservadoId: String? = null
 
     init {
         cargarHome()
     }
 
     fun cargarHome() {
+        val firebaseUser = authRepository.obtenerUsuarioActual()
+        val userId = firebaseUser?.uid
+
+        if (cargarHomeJob?.isActive == true && usuarioObservadoId == userId) {
+            return
+        }
+
         cargarHomeJob?.cancel()
+        usuarioObservadoId = userId
+
+        if (firebaseUser == null || userId == null) {
+            _uiState.value = HomeUiState(
+                cargando = false,
+                error = "No hay usuario autenticado"
+            )
+            return
+        }
 
         cargarHomeJob = viewModelScope.launch {
-            val firebaseUser = authRepository.obtenerUsuarioActual()
-
-            if (firebaseUser == null) {
-                _uiState.value = HomeUiState(
-                    cargando = false,
-                    error = "No hay usuario autenticado"
-                )
-                return@launch
-            }
-
-            val userId = firebaseUser.uid
             val hoy = obtenerFechaActual()
 
             val datosPrincipalesFlow = combine(
@@ -76,8 +85,9 @@ class HomeViewModel(
 
             combine(
                 datosPrincipalesFlow,
-                repository.observarLoteActivo(userId)
-            ) { datos, loteActivo ->
+                repository.observarLoteActivo(userId),
+                DailyGoalPreferences.observarConfiguracion(context)
+            ) { datos, loteActivo, dailyGoalSettings ->
 
                 val nombre = datos.usuarioLocal?.nombre
                     ?: firebaseUser.displayName
@@ -91,7 +101,7 @@ class HomeViewModel(
                     lote.idLote == loteActivo?.loteId
                 }
 
-                val objetivoDiario = datos.actividadHoy?.objetivoDiario ?: 10
+                val objetivoDiario = dailyGoalSettings.objetivoEfectivo
                 val progresoDiario = datos.actividadHoy?.elementosEstudiados ?: 0
 
                 HomeUiState(
@@ -112,7 +122,7 @@ class HomeViewModel(
 
                     objetivoDiario = objetivoDiario,
                     progresoDiario = progresoDiario.coerceAtMost(objetivoDiario),
-                    objetivoDiarioCumplido = datos.actividadHoy?.objetivoCumplido ?: false,
+                    objetivoDiarioCumplido = progresoDiario >= objetivoDiario,
 
                     error = null
                 )

@@ -37,16 +37,13 @@ import kotlinx.coroutines.launch
 
 import androidx.compose.runtime.rememberCoroutineScope
 import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     navController: NavController,
     viewModel: AuthViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
     var passwordVisible by remember { mutableStateOf(false) }
 
     val blueGradient = listOf(
@@ -62,7 +59,11 @@ fun LoginScreen(
         CredentialManager.create(context)
     }
 
-
+    LaunchedEffect(uiState.cargando, uiState.error, uiState.autenticado) {
+        if (!uiState.cargando || uiState.error != null || uiState.autenticado) {
+            cargandoGoogle = false
+        }
+    }
 
     Box(
         modifier = Modifier

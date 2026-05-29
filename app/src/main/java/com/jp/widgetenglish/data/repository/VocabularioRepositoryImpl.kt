@@ -63,6 +63,12 @@ class VocabularioRepositoryImpl(
         } else {
             0f
         }
+        val ahora = System.currentTimeMillis()
+        val loteCompletado = esLoteCompletado(
+            progresoPorcentaje = porcentaje,
+            aprendidas = aprendidas,
+            total = total
+        )
 
         val existente = progresoDao.obtenerProgresoLote(usuarioId, loteId)
 
@@ -73,10 +79,12 @@ class VocabularioRepositoryImpl(
                     usuarioId = usuarioId,
                     loteId = loteId,
                     activo = true,
+                    completado = loteCompletado,
                     progresoPorcentaje = porcentaje,
                     contenidosAprendidos = aprendidas,
                     totalContenidos = total,
-                    fechaUltimoEstudio = System.currentTimeMillis()
+                    fechaUltimoEstudio = ahora,
+                    fechaCompletado = if (loteCompletado) ahora else null
                 )
             )
         } else {
@@ -87,7 +95,7 @@ class VocabularioRepositoryImpl(
                 progresoPorcentaje = porcentaje,
                 aprendidas = aprendidas,
                 total = total,
-                fecha = System.currentTimeMillis()
+                fecha = ahora
             )
         }
 
@@ -171,6 +179,12 @@ class VocabularioRepositoryImpl(
                     contenidos.any { c -> c.contenidoId == p.contenidoId && c.tipoContenido == p.tipoContenido }
                 }
                 val porcentaje = (aprendidas.toFloat() / total.toFloat()) * 100f
+                val ahora = System.currentTimeMillis()
+                val loteCompletado = esLoteCompletado(
+                    progresoPorcentaje = porcentaje,
+                    aprendidas = aprendidas,
+                    total = total
+                )
                 
                 val pLote = progresoDao.obtenerProgresoLote(usuarioId, lote.idLote)
                 val isActivoActual = pLote?.activo ?: false
@@ -182,18 +196,28 @@ class VocabularioRepositoryImpl(
                             usuarioId = usuarioId,
                             loteId = lote.idLote,
                             activo = false,
+                            completado = loteCompletado,
                             progresoPorcentaje = porcentaje,
                             contenidosAprendidos = aprendidas,
                             totalContenidos = total,
-                            fechaUltimoEstudio = System.currentTimeMillis()
+                            fechaUltimoEstudio = ahora,
+                            fechaCompletado = if (loteCompletado) ahora else null
                         )
                     )
                 } else {
                     // Mantenemos el estado 'activo' actual del registro de progreso
-                    progresoDao.actualizarProgresoLoteFull(usuarioId, lote.idLote, isActivoActual, porcentaje, aprendidas, total)
+                    progresoDao.actualizarProgresoLoteFull(usuarioId, lote.idLote, isActivoActual, porcentaje, aprendidas, total, ahora)
                 }
             }
         }
+    }
+
+    private fun esLoteCompletado(
+        progresoPorcentaje: Float,
+        aprendidas: Int,
+        total: Int
+    ): Boolean {
+        return progresoPorcentaje >= 100f || (total > 0 && aprendidas >= total)
     }
 
     // -------------------------

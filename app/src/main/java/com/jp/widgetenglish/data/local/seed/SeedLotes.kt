@@ -130,7 +130,34 @@ object SeedLotes {
             orden = 9,
             cantidadContenido = 144,
             cantidadSugeridaEstudio = 10
-        )
+        ),
+        LoteEntity(
+            idLote = "lote_emociones",
+            nombre = "Emociones",
+            descripcion = "Vocabulario para expresar emociones y estados de ánimo.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#D81B60",
+            icono = "favorite",
+            activo = true,
+            orden = 10,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+
+        LoteEntity(
+            idLote = "lote_cuerpo",
+            nombre = "Partes del cuerpo",
+            descripcion = "Vocabulario relacionado con partes del cuerpo humano.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#D81B60",
+            icono = "accessibility_new",
+            activo = true,
+            orden = 10,
+            cantidadContenido = 108,
+            cantidadSugeridaEstudio = 10
+        ),
 
 
     )

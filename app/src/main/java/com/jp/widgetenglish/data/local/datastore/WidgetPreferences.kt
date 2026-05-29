@@ -43,6 +43,15 @@ object WidgetPreferences {
         context.widgetDataStore.edit { it[KEY_USER_ID] = userId }
     }
 
+    suspend fun limpiarSesionWidget(context: Context) {
+        context.widgetDataStore.edit { prefs ->
+            prefs.remove(KEY_LOTE_ID)
+            prefs.remove(KEY_LOTE_NOMBRE)
+            prefs.remove(KEY_WORD_INDEX)
+            prefs.remove(KEY_USER_ID)
+        }
+    }
+
     suspend fun avanzarPalabra(context: Context, total: Int) {
         context.widgetDataStore.edit { prefs ->
             val actual = prefs[KEY_WORD_INDEX] ?: 0
