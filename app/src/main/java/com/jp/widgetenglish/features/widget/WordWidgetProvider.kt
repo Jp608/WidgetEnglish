@@ -242,7 +242,8 @@ class WordWidgetProvider : AppWidgetProvider() {
                     actividadDiariaDao = db.actividadDiariaDao(),
                     usuarioDao = db.usuarioDao(),
                     progresoDao = db.progresoDao(),
-                    estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
+                    estadisticasFirestoreDataSource = estadisticasFirestoreDataSource,
+                    context = context.applicationContext
                 )
 
                 streakRepository.sincronizarEstadisticasActuales(userId)
@@ -330,7 +331,8 @@ class WordWidgetProvider : AppWidgetProvider() {
                 val streakRepository = StreakRepository(
                     actividadDiariaDao = db.actividadDiariaDao(),
                     usuarioDao = db.usuarioDao(),
-                    progresoDao = db.progresoDao()
+                    progresoDao = db.progresoDao(),
+                    context = context.applicationContext
                 )
 
                 streakRepository.registrarActividadDiaria(

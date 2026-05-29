@@ -1,9 +1,11 @@
 package com.jp.widgetenglish.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
 import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
+import com.jp.widgetenglish.data.local.datastore.DailyGoalPreferences
 import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.ProgresoLoteEntity
@@ -19,7 +21,8 @@ class StreakRepository(
     private val actividadDiariaDao: ActividadDiariaDao,
     private val usuarioDao: UsuarioDao,
     private val progresoDao: ProgresoDao,
-    private val estadisticasFirestoreDataSource: EstadisticasFirestoreDataSource? = null
+    private val estadisticasFirestoreDataSource: EstadisticasFirestoreDataSource? = null,
+    private val context: Context? = null
 ) {
 
     suspend fun registrarActividadDiaria(
@@ -40,6 +43,15 @@ class StreakRepository(
             fecha = hoy
         )
 
+        if (actividadActual == null) {
+            ajustarObjetivoAutomaticoPorDiaAnterior(
+                usuarioId = usuarioId,
+                fechaActual = hoy
+            )
+        }
+
+        val objetivoDiarioFinal = resolverObjetivoDiario(objetivoDiario)
+
         val nuevaActividad = if (actividadActual == null) {
             ActividadDiariaEntity(
                 usuarioId = usuarioId,
@@ -48,21 +60,22 @@ class StreakRepository(
                 tarjetasEstudiadas = tarjetasEstudiadas,
                 preguntasQuizRespondidas = preguntasQuizRespondidas,
                 quizzesCompletados = quizzesCompletados,
-                objetivoDiario = objetivoDiario,
-                objetivoCumplido = elementosEstudiados >= objetivoDiario,
-                fechaCumplimiento = if (elementosEstudiados >= objetivoDiario) ahora else null,
+                objetivoDiario = objetivoDiarioFinal,
+                objetivoCumplido = elementosEstudiados >= objetivoDiarioFinal,
+                fechaCumplimiento = if (elementosEstudiados >= objetivoDiarioFinal) ahora else null,
                 ultimaActualizacion = ahora
             )
         } else {
             val totalElementos = actividadActual.elementosEstudiados + elementosEstudiados
             val objetivoYaCumplido = actividadActual.objetivoCumplido
-            val objetivoCumplidoAhora = totalElementos >= actividadActual.objetivoDiario
+            val objetivoCumplidoAhora = totalElementos >= objetivoDiarioFinal
 
             actividadActual.copy(
                 elementosEstudiados = totalElementos,
                 tarjetasEstudiadas = actividadActual.tarjetasEstudiadas + tarjetasEstudiadas,
                 preguntasQuizRespondidas = actividadActual.preguntasQuizRespondidas + preguntasQuizRespondidas,
                 quizzesCompletados = actividadActual.quizzesCompletados + quizzesCompletados,
+                objetivoDiario = objetivoDiarioFinal,
                 objetivoCumplido = objetivoYaCumplido || objetivoCumplidoAhora,
                 fechaCumplimiento = when {
                     objetivoYaCumplido -> actividadActual.fechaCumplimiento
@@ -149,13 +162,60 @@ class StreakRepository(
         }
     }
 
-    private suspend fun actualizarRachaUsuario(
+    private suspend fun resolverObjetivoDiario(
+        objetivoDiario: Int
+    ): Int {
+        val appContext = context ?: return objetivoDiario.coerceAtLeast(1)
+
+        if (objetivoDiario != OBJETIVO_DIARIO_DEFAULT) {
+            return objetivoDiario.coerceAtLeast(1)
+        }
+
+        return DailyGoalPreferences
+            .obtenerConfiguracionRapida(appContext)
+            .objetivoEfectivo
+    }
+
+    private suspend fun ajustarObjetivoAutomaticoPorDiaAnterior(
         usuarioId: String,
-        fechaCumplida: String
+        fechaActual: String
     ) {
+        val appContext = context ?: return
+        val settings = DailyGoalPreferences.obtenerConfiguracionRapida(appContext)
+
+        if (!settings.automatico) return
+
+        val ayer = obtenerFechaAnterior(fechaActual)
+        val actividadAyer = actividadDiariaDao.obtenerActividadPorFecha(
+            usuarioId = usuarioId,
+            fecha = ayer
+        ) ?: return
+
+        if (actividadAyer.elementosEstudiados > 0 && !actividadAyer.objetivoCumplido) {
+            DailyGoalPreferences.disminuirObjetivoAutomatico(appContext)
+            return
+        }
+
         val usuario = usuarioDao.obtenerUsuarioPorFirebaseUid(usuarioId)
             ?: usuarioDao.obtenerUsuarioPorId(usuarioId)
             ?: return
+
+        if (
+            actividadAyer.objetivoCumplido &&
+            usuario.rachaActual >= DIAS_PARA_AUMENTAR_OBJETIVO &&
+            usuario.rachaActual % DIAS_PARA_AUMENTAR_OBJETIVO == 0
+        ) {
+            DailyGoalPreferences.aumentarObjetivoAutomatico(appContext)
+        }
+    }
+
+    private suspend fun actualizarRachaUsuario(
+        usuarioId: String,
+        fechaCumplida: String
+    ): Int? {
+        val usuario = usuarioDao.obtenerUsuarioPorFirebaseUid(usuarioId)
+            ?: usuarioDao.obtenerUsuarioPorId(usuarioId)
+            ?: return null
 
         val ultimaFechaRacha = usuario.ultimaFechaRacha
 
@@ -172,7 +232,7 @@ class StreakRepository(
                 )
             }
 
-            return
+            return usuario.rachaActual
         }
 
         val ayer = obtenerFechaAnterior(fechaCumplida)
@@ -210,6 +270,8 @@ class StreakRepository(
                 usuario = usuarioActualizado
             )
         }
+
+        return nuevaRacha
     }
 
     private suspend fun recalcularEstadisticasGeneralesUsuario(
@@ -357,6 +419,7 @@ class StreakRepository(
     companion object {
         private const val TAG = "StreakRepository"
         private const val OBJETIVO_DIARIO_DEFAULT = 10
+        private const val DIAS_PARA_AUMENTAR_OBJETIVO = 3
 
         private val FORMATO_FECHA = SimpleDateFormat(
             "yyyy-MM-dd",

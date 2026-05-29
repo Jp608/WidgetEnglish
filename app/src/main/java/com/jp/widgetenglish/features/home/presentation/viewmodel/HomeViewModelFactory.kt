@@ -1,5 +1,6 @@
 package com.jp.widgetenglish.features.home.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
@@ -11,7 +12,8 @@ class HomeViewModelFactory(
     private val repository: VocabularioRepository,
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
-    private val actividadDiariaDao: ActividadDiariaDao
+    private val actividadDiariaDao: ActividadDiariaDao,
+    private val context: Context
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -21,7 +23,8 @@ class HomeViewModelFactory(
                 repository = repository,
                 authRepository = authRepository,
                 usuarioDao = usuarioDao,
-                actividadDiariaDao = actividadDiariaDao
+                actividadDiariaDao = actividadDiariaDao,
+                context = context
             ) as T
         }
 

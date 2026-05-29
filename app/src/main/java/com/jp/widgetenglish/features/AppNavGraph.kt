@@ -106,7 +106,8 @@ fun AppNavGraph() {
         actividadDiariaDao = database.actividadDiariaDao(),
         usuarioDao = database.usuarioDao(),
         progresoDao = database.progresoDao(),
-        estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
+        estadisticasFirestoreDataSource = estadisticasFirestoreDataSource,
+        context = context.applicationContext
     )
 
     val authViewModel: AuthViewModel = viewModel(
@@ -124,7 +125,8 @@ fun AppNavGraph() {
     val profileViewModel: ProfileViewModel = viewModel(
         factory = ProfileViewModelFactory(
             authRepository = authRepository,
-            usuarioDao = database.usuarioDao()
+            usuarioDao = database.usuarioDao(),
+            streakRepository = streakRepository
         )
     )
 
@@ -142,7 +144,8 @@ fun AppNavGraph() {
             repository = vocabularioRepository,
             authRepository = authRepository,
             usuarioDao = database.usuarioDao(),
-            actividadDiariaDao = database.actividadDiariaDao()
+            actividadDiariaDao = database.actividadDiariaDao(),
+            context = context.applicationContext
         )
     )
 
@@ -199,11 +202,17 @@ fun AppNavGraph() {
                 Screen.Home.route
             }
 
-            navController.navigate(destino) {
-                popUpTo(Screen.Login.route) {
-                    inclusive = true
+            val rutaActual = navController.currentBackStackEntry
+                ?.destination
+                ?.route
+
+            if (rutaActual != destino) {
+                navController.navigate(destino) {
+                    popUpTo(Screen.Login.route) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
                 }
-                launchSingleTop = true
             }
         }
     }
