@@ -78,6 +78,7 @@ object DailyGoalPreferences {
         objetivo: Int
     ) {
         context.dailyGoalDataStore.edit { prefs ->
+            prefs[KEY_AUTOMATICO] = false
             prefs[KEY_OBJETIVO_MANUAL] = normalizarObjetivoManual(objetivo)
         }
     }

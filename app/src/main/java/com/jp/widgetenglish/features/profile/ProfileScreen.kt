@@ -1569,7 +1569,7 @@ private fun descripcionModo(
 ): String {
     return when (modo) {
         ModoSeleccionContenido.SECUENCIAL ->
-            "Muestra el contenido siguiendo el orden del lote. Ideal si quieres avanzar paso a paso."
+            "Avanza por bloques diarios en el orden del lote y reemplaza aprendidas por pendientes."
 
         ModoSeleccionContenido.ALEATORIO ->
             "Mezcla las palabras del lote y mantiene el mismo orden durante el día."

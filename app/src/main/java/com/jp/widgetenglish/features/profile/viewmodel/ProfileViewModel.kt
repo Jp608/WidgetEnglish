@@ -412,6 +412,7 @@ class ProfileViewModel(
 
     private suspend fun reiniciarWidgetPorCambioDeConfiguracion(context: Context) {
         WidgetPreferences.reiniciarIndice(context)
+        WidgetPreferences.reiniciarSesionSecuencial(context)
         WordWidgetProvider.updateAll(context)
     }
 

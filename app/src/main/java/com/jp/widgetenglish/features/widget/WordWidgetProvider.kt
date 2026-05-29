@@ -14,6 +14,7 @@ import com.jp.widgetenglish.MainActivity
 import com.jp.widgetenglish.R
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
 import com.jp.widgetenglish.data.local.datastore.LearningPreferences
+import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
@@ -99,7 +100,10 @@ class WordWidgetProvider : AppWidgetProvider() {
                     try {
                         val resultado = marcarPalabraActualComoAprendida(context.applicationContext)
 
-                        avanzarPalabra(context.applicationContext)
+                        avanzarDespuesDeMarcarAprendida(
+                            context = context.applicationContext,
+                            contenidoMarcado = resultado.contenidoMarcado
+                        )
                         updateAll(context.applicationContext)
 
                         if (resultado.debeSincronizarFirebase && !resultado.userId.isNullOrBlank()) {
@@ -181,7 +185,8 @@ class WordWidgetProvider : AppWidgetProvider() {
 
         private data class MarkLearnedResult(
             val userId: String?,
-            val debeSincronizarFirebase: Boolean
+            val debeSincronizarFirebase: Boolean,
+            val contenidoMarcado: LoteContenidoEntity? = null
         )
         suspend fun updateAll(context: Context) {
             val appContext = context.applicationContext
@@ -224,6 +229,43 @@ class WordWidgetProvider : AppWidgetProvider() {
             WidgetPreferences.actualizarIndiceDirecto(
                 context,
                 nextIndex
+            )
+        }
+
+        private suspend fun avanzarDespuesDeMarcarAprendida(
+            context: Context,
+            contenidoMarcado: LoteContenidoEntity?
+        ) {
+            val configuracion = LearningPreferences.obtenerConfiguracionRapida(context)
+
+            if (
+                configuracion.modoSeleccionContenido != ModoSeleccionContenido.SECUENCIAL ||
+                contenidoMarcado == null
+            ) {
+                avanzarPalabra(context)
+                return
+            }
+
+            val contenidosSesion = obtenerContenidoSesionActual(context)
+
+            if (contenidosSesion.isEmpty()) return
+
+            val currentIndex = WidgetPreferences.obtenerWordIndex(context).first()
+            val safeIndex = currentIndex.coerceAtLeast(0) % contenidosSesion.size
+            val contenidoEnIndice = contenidosSesion[safeIndex]
+            val contenidoActualSigueEnIndice = mismoContenido(
+                a = contenidoEnIndice,
+                b = contenidoMarcado
+            )
+            val nextIndex = if (contenidoActualSigueEnIndice) {
+                (safeIndex + 1) % contenidosSesion.size
+            } else {
+                safeIndex
+            }
+
+            WidgetPreferences.actualizarIndiceDirecto(
+                context = context,
+                nuevoIndice = nextIndex
             )
         }
 
@@ -343,7 +385,8 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             return MarkLearnedResult(
                 userId = userId,
-                debeSincronizarFirebase = !yaEstabaAprendida
+                debeSincronizarFirebase = !yaEstabaAprendida,
+                contenidoMarcado = itemActual
             )
         }
 
@@ -764,8 +807,30 @@ class WordWidgetProvider : AppWidgetProvider() {
                 contenidos = contenidosDelLote,
                 progresos = progresosUsuario,
                 modo = configuracion.modoSeleccionContenido,
-                limite = configuracion.objetivoEfectivo
+                limite = configuracion.objetivoEfectivo,
+                diaInicioSecuencial = if (
+                    configuracion.modoSeleccionContenido == ModoSeleccionContenido.SECUENCIAL
+                ) {
+                    val diaActual = LearningContentSelector.obtenerDiaLocalActual()
+
+                    WidgetPreferences.obtenerDiaInicioSecuencial(
+                        context = context,
+                        loteId = loteId,
+                        userId = userId,
+                        diaActual = diaActual
+                    )
+                } else {
+                    null
+                }
             )
+        }
+
+        private fun mismoContenido(
+            a: LoteContenidoEntity,
+            b: LoteContenidoEntity
+        ): Boolean {
+            return a.contenidoId == b.contenidoId &&
+                    a.tipoContenido == b.tipoContenido
         }
 
         private fun pendingIntentSiguiente(
