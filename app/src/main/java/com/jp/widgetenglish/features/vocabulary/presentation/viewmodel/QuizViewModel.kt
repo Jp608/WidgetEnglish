@@ -324,6 +324,24 @@ class QuizViewModel(
                     usuarioId = usuarioId,
                     preguntasRespondidas = preguntasRespondidas
                 )
+
+                // Registrar uso global de la categoría
+                val lote = vocabularioRepository.obtenerLotePorId(_uiState.value.loteId)
+                if (lote != null) {
+                    streakRepository.registrarUsoCategoriaGlobal(
+                        loteId = lote.idLote,
+                        nombre = lote.nombre
+                    )
+                }
+
+                // Registrar errores globales de palabras
+                falladas.forEach { palabra ->
+                    streakRepository.registrarErrorPalabraGlobal(
+                        palabraId = palabra.id,
+                        termino = palabra.termino,
+                        loteId = _uiState.value.loteId
+                    )
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error guardando resultados del quiz", e)
             }

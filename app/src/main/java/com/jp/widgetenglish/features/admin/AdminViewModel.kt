@@ -4,13 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
 import com.jp.widgetenglish.data.remote.firestore.AdminUsuarioDto
+import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AdminViewModel(
-    private val adminFirestoreDataSource: AdminFirestoreDataSource
+    private val adminFirestoreDataSource: AdminFirestoreDataSource,
+    private val estadisticasFirestoreDataSource: EstadisticasFirestoreDataSource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminUiState())
@@ -29,6 +31,8 @@ class AdminViewModel(
                 )
 
                 val usuarios = adminFirestoreDataSource.obtenerUsuarios()
+                val categoriasStats = estadisticasFirestoreDataSource.obtenerCategoriasStats()
+                val erroresStats = estadisticasFirestoreDataSource.obtenerErroresPalabrasStats()
 
                 val totalUsuarios = usuarios.size
                 val usuariosActivos = usuarios.count { it.activo }
@@ -85,7 +89,9 @@ class AdminViewModel(
                     usuariosMasActivos = ordenarActividad(
                         usuarios = usuarios,
                         criterio = estadoActual.criterioActividad
-                    )
+                    ),
+                    categoriasStats = categoriasStats,
+                    erroresStats = erroresStats
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

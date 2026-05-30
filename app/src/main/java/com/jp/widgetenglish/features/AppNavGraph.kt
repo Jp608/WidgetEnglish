@@ -23,6 +23,8 @@ import com.jp.widgetenglish.features.admin.AdminViewModelFactory
 import com.jp.widgetenglish.features.admin.activity.AdminActivityScreen
 import com.jp.widgetenglish.features.admin.profile.AdminProfileScreen
 import com.jp.widgetenglish.features.admin.ranking.AdminRankingScreen
+import com.jp.widgetenglish.features.admin.stats.AdminCategoriasScreen
+import com.jp.widgetenglish.features.admin.stats.AdminErroresScreen
 import com.jp.widgetenglish.features.auth.LoginScreen
 import com.jp.widgetenglish.features.auth.RegisterScreen
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
@@ -90,7 +92,8 @@ fun AppNavGraph() {
 
     val adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModelFactory(
-            adminFirestoreDataSource = adminFirestoreDataSource
+            adminFirestoreDataSource = adminFirestoreDataSource,
+            estadisticasFirestoreDataSource = estadisticasFirestoreDataSource
         )
     )
 
@@ -751,6 +754,16 @@ fun AppNavGraph() {
                         launchSingleTop = true
                     }
                 },
+                onCategoriasClick = {
+                    navController.navigate(Screen.AdminCategorias.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onErroresClick = {
+                    navController.navigate(Screen.AdminErrores.route) {
+                        launchSingleTop = true
+                    }
+                },
                 onPerfilClick = {
                     navController.navigate(Screen.AdminProfile.route) {
                         launchSingleTop = true
@@ -763,6 +776,60 @@ fun AppNavGraph() {
                         popUpTo(0) {
                             inclusive = true
                         }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(Screen.AdminCategorias.route) {
+            AdminCategoriasScreen(
+                viewModel = adminViewModel,
+                onBack = { navController.popBackStack() },
+                onResumenClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onRankingClick = {
+                    navController.navigate(Screen.AdminRanking.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onActividadClick = {
+                    navController.navigate(Screen.AdminActivity.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onPerfilClick = {
+                    navController.navigate(Screen.AdminProfile.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(Screen.AdminErrores.route) {
+            AdminErroresScreen(
+                viewModel = adminViewModel,
+                onBack = { navController.popBackStack() },
+                onResumenClick = {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onRankingClick = {
+                    navController.navigate(Screen.AdminRanking.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onActividadClick = {
+                    navController.navigate(Screen.AdminActivity.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onPerfilClick = {
+                    navController.navigate(Screen.AdminProfile.route) {
                         launchSingleTop = true
                     }
                 }

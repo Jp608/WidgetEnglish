@@ -1,6 +1,8 @@
 package com.jp.widgetenglish.features.admin
 
 import com.jp.widgetenglish.data.remote.firestore.AdminUsuarioDto
+import com.jp.widgetenglish.data.remote.firestore.CategoriaStatsDto
+import com.jp.widgetenglish.data.remote.firestore.PalabraErrorStatsDto
 
 data class AdminUiState(
     val cargando: Boolean = true,
@@ -20,6 +22,9 @@ data class AdminUiState(
     val usuarios: List<AdminUsuarioDto> = emptyList(),
     val rankingUsuarios: List<AdminUsuarioDto> = emptyList(),
     val usuariosMasActivos: List<AdminUsuarioDto> = emptyList(),
+
+    val categoriasStats: List<CategoriaStatsDto> = emptyList(),
+    val erroresStats: List<PalabraErrorStatsDto> = emptyList(),
 
     val criterioActividad: CriterioActividad = CriterioActividad.ACTIVIDAD,
     val criterioRanking: CriterioRanking = CriterioRanking.PALABRAS

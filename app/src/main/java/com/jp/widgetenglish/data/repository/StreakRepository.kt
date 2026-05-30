@@ -113,6 +113,14 @@ class StreakRepository(
         )
     }
 
+    suspend fun registrarUsoCategoriaGlobal(loteId: String, nombre: String) {
+        estadisticasFirestoreDataSource?.incrementarUsoCategoria(loteId, nombre)
+    }
+
+    suspend fun registrarErrorPalabraGlobal(palabraId: String, termino: String, loteId: String) {
+        estadisticasFirestoreDataSource?.registrarErrorPalabra(palabraId, termino, loteId)
+    }
+
     suspend fun sincronizarEstadisticasActuales(
         usuarioId: String
     ) {
