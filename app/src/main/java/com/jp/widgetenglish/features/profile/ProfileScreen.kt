@@ -73,6 +73,11 @@ import com.jp.widgetenglish.data.local.datastore.DailyGoalSettings
 import com.jp.widgetenglish.data.local.datastore.LearningPreferences
 import com.jp.widgetenglish.data.local.datastore.LearningSettings
 import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearancePreferences
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
+import com.jp.widgetenglish.data.local.datastore.WidgetColorTheme
+import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
+import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
 import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.widgetenglish.app.ui.Screen
@@ -89,8 +94,15 @@ private val SoftOrange = Color(0xFFFFF0E6)
 private val ScreenBackground = Color(0xFFF5F7FC)
 private val TextDark = Color(0xFF1F2937)
 private val TextMuted = Color(0xFF6B7280)
+private val TextSecondaryStrong = Color(0xFF4B5563)
 private val BorderSoft = Color(0xFFE5EAF3)
 private val DangerRed = Color(0xFFEF4444)
+private val DialogContainer = Color(0xFF24262D)
+private val DialogTextPrimary = Color(0xFFF8FAFC)
+private val DialogTextSecondary = Color(0xFFCBD5E1)
+private val DialogDivider = Color(0xFF94A3B8)
+private val DialogResetButton = Color(0xFF2563EB)
+private val DialogCancelRed = Color(0xFFF87171)
 
 private fun profileGradient(): Brush = Brush.horizontalGradient(
     colors = listOf(
@@ -121,10 +133,12 @@ fun ProfileScreen(
         viewModel.cargarDatosUsuario()
         viewModel.cargarConfiguracionAprendizaje(context)
         viewModel.cargarConfiguracionObjetivoDiario(context)
+        viewModel.cargarAparienciaWidget(context)
     }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showWidgetCustomizationDialog by remember { mutableStateOf(false) }
     var unavailableOptionTitle by remember { mutableStateOf<String?>(null) }
     var objetivoDiarioExpanded by remember { mutableStateOf(false) }
     var aprendizajeExpanded by remember { mutableStateOf(false) }
@@ -271,6 +285,20 @@ fun ProfileScreen(
         )
     }
 
+    if (showWidgetCustomizationDialog) {
+        WidgetCustomizationDialog(
+            settings = uiState.widgetAppearanceSettings,
+            onDismiss = { showWidgetCustomizationDialog = false },
+            onSave = { settings ->
+                viewModel.guardarAparienciaWidget(
+                    context = context,
+                    settings = settings
+                )
+                showWidgetCustomizationDialog = false
+            }
+        )
+    }
+
     Scaffold(
         bottomBar = {
             AppBottomBar(
@@ -374,11 +402,11 @@ fun ProfileScreen(
 
                 ProfileOption(
                     icon = Icons.Filled.Settings,
-                    label = "Configuración general",
-                    subtitle = "Preferencias de la aplicación",
+                    label = "Personalización del widget",
+                    subtitle = uiState.widgetAppearanceSettings.summaryLabel(),
                     iconColor = PrimaryBlue
                 ) {
-                    unavailableOptionTitle = "Configuración general"
+                    showWidgetCustomizationDialog = true
                 }
 
                 ProfileOption(
@@ -626,6 +654,850 @@ private fun SectionTitle(text: String) {
             }
         }
     }
+}
+
+@Composable
+private fun WidgetCustomizationDialog(
+    settings: WidgetAppearanceSettings,
+    onDismiss: () -> Unit,
+    onSave: (WidgetAppearanceSettings) -> Unit
+) {
+    var colorTheme by remember(settings.colorTheme) {
+        mutableStateOf(settings.colorTheme)
+    }
+    var visualStyle by remember(settings.visualStyle) {
+        mutableStateOf(settings.visualStyle)
+    }
+    var textSize by remember(settings.textSize) {
+        mutableStateOf(settings.textSize)
+    }
+    var mostrarLote by remember(settings.mostrarLote) {
+        mutableStateOf(settings.mostrarLote)
+    }
+    var mostrarProgreso by remember(settings.mostrarProgreso) {
+        mutableStateOf(settings.mostrarProgreso)
+    }
+    var mostrarFonetica by remember(settings.mostrarFonetica) {
+        mutableStateOf(settings.mostrarFonetica)
+    }
+    var mostrarTraduccion by remember(settings.mostrarTraduccion) {
+        mutableStateOf(settings.mostrarTraduccion)
+    }
+
+    val pendingSettings = WidgetAppearanceSettings(
+        colorTheme = colorTheme,
+        visualStyle = visualStyle,
+        textSize = textSize,
+        mostrarLote = mostrarLote,
+        mostrarProgreso = mostrarProgreso,
+        mostrarFonetica = mostrarFonetica,
+        mostrarTraduccion = mostrarTraduccion
+    )
+    val hasChanges = pendingSettings != settings
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Personalización del widget",
+                fontWeight = FontWeight.ExtraBold,
+                color = DialogTextPrimary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 620.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Vista previa",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = DialogTextPrimary
+                )
+
+                WidgetAppearancePreview(settings = pendingSettings)
+
+                HorizontalDivider(color = DialogDivider)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 330.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Estilo visual",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DialogTextPrimary
+                    )
+
+                    WidgetStyleSelector(
+                        selectedStyle = visualStyle,
+                        onStyleSelected = { visualStyle = it }
+                    )
+
+                    Text(
+                        text = "Tema de color",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DialogTextPrimary
+                    )
+
+                    WidgetThemeSelector(
+                        selectedTheme = colorTheme,
+                        onThemeSelected = { colorTheme = it }
+                    )
+
+                    Text(
+                        text = "Tamaño de texto",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DialogTextPrimary
+                    )
+
+                    WidgetTextSizeSelector(
+                        selectedSize = textSize,
+                        onSizeSelected = { textSize = it }
+                    )
+
+                    WidgetSwitchRow(
+                        title = "Mostrar lote",
+                        subtitle = "Nombre del lote activo en el encabezado.",
+                        checked = mostrarLote,
+                        onCheckedChange = { mostrarLote = it }
+                    )
+
+                    WidgetSwitchRow(
+                        title = "Mostrar progreso",
+                        subtitle = "Contador de avance dentro de la sesión.",
+                        checked = mostrarProgreso,
+                        onCheckedChange = { mostrarProgreso = it }
+                    )
+
+                    WidgetSwitchRow(
+                        title = "Mostrar fonética",
+                        subtitle = "Pronunciación escrita debajo de la palabra.",
+                        checked = mostrarFonetica,
+                        onCheckedChange = { mostrarFonetica = it }
+                    )
+
+                    WidgetSwitchRow(
+                        title = "Mostrar traducción",
+                        subtitle = "Traducción en español debajo de la palabra.",
+                        checked = mostrarTraduccion,
+                        onCheckedChange = { mostrarTraduccion = it }
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            val defaults = WidgetAppearancePreferences.DEFAULT_SETTINGS
+                            colorTheme = defaults.colorTheme
+                            visualStyle = defaults.visualStyle
+                            textSize = defaults.textSize
+                            mostrarLote = defaults.mostrarLote
+                            mostrarProgreso = defaults.mostrarProgreso
+                            mostrarFonetica = defaults.mostrarFonetica
+                            mostrarTraduccion = defaults.mostrarTraduccion
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, DialogResetButton),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = DialogResetButton.copy(alpha = 0.18f),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "Restablecer apariencia",
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(pendingSettings) },
+                enabled = hasChanges,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryBlue,
+                    disabledContainerColor = Color(0xFFE5E7EB),
+                    disabledContentColor = Color(0xFF9CA3AF)
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, DialogCancelRed),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = DialogCancelRed.copy(alpha = 0.14f),
+                    contentColor = DialogCancelRed
+                )
+            ) {
+                Text(
+                    text = "Cancelar",
+                    color = DialogCancelRed,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = DialogContainer,
+        titleContentColor = DialogTextPrimary,
+        textContentColor = DialogTextPrimary
+    )
+}
+
+@Composable
+private fun WidgetAppearancePreview(
+    settings: WidgetAppearanceSettings
+) {
+    val colors = widgetPreviewColors(settings)
+    val titleSize = when (settings.textSize) {
+        WidgetTextSizeOption.COMPACTO -> 16.sp
+        WidgetTextSizeOption.NORMAL -> 19.sp
+        WidgetTextSizeOption.GRANDE -> 22.sp
+    }
+    val previewShape = when (settings.visualStyle) {
+        WidgetVisualStyle.MINIMALISTA -> RoundedCornerShape(12.dp)
+        WidgetVisualStyle.CARD_SUAVE -> RoundedCornerShape(24.dp)
+        else -> RoundedCornerShape(18.dp)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = previewShape,
+        color = if (colors.backgroundBrush == null) colors.background else Color.Transparent,
+        border = BorderStroke(1.dp, BorderSoft)
+    ) {
+        Column(
+            modifier = if (colors.backgroundBrush == null) {
+                Modifier
+            } else {
+                Modifier.background(colors.backgroundBrush)
+            }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (colors.headerBrush == null) {
+                            Modifier.background(colors.primary)
+                        } else {
+                            Modifier.background(colors.headerBrush)
+                        }
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (settings.mostrarLote) "Emociones" else "WidgetEnglish",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.onPrimary,
+                    maxLines = 1
+                )
+
+                if (settings.mostrarProgreso) {
+                    Text(
+                        text = "3 / 10",
+                        fontSize = 12.sp,
+                        color = colors.onPrimary,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Happy",
+                    fontSize = titleSize,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.primary,
+                    maxLines = 1
+                )
+
+                if (settings.mostrarFonetica) {
+                    Text(
+                        text = "/ˈhæpi/",
+                        fontSize = 12.sp,
+                        color = colors.muted,
+                        maxLines = 1
+                    )
+                }
+
+                if (settings.mostrarTraduccion) {
+                    Text(
+                        text = "Feliz",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.text,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(34.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        color = colors.primary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "✓",
+                                color = colors.onPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        color = colors.primary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "Siguiente",
+                                color = colors.onPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetStyleSelector(
+    selectedStyle: WidgetVisualStyle,
+    onStyleSelected: (WidgetVisualStyle) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        WidgetVisualStyle.entries.chunked(2).forEach { rowStyles ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowStyles.forEach { style ->
+                    WidgetStyleCard(
+                        modifier = Modifier.weight(1f),
+                        style = style,
+                        selected = selectedStyle == style,
+                        onClick = { onStyleSelected(style) }
+                    )
+                }
+
+                repeat(2 - rowStyles.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetStyleCard(
+    modifier: Modifier = Modifier,
+    style: WidgetVisualStyle,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = widgetPreviewColors(
+        WidgetAppearanceSettings(
+            colorTheme = WidgetColorTheme.AZUL,
+            visualStyle = style
+        )
+    )
+
+    Surface(
+        modifier = modifier
+            .heightIn(min = 78.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) Color(0xFFEAF2FF) else Color.White,
+        border = BorderStroke(
+            width = if (selected) 1.4.dp else 1.dp,
+            color = if (selected) PrimaryBlue else BorderSoft
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.primary
+                ) {}
+
+                Surface(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .weight(0.7f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.muted.copy(alpha = 0.45f)
+                ) {}
+            }
+
+            Text(
+                text = style.label(),
+                color = if (selected) Color(0xFF0B4FD8) else TextDark,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Text(
+                text = style.description(),
+                color = TextSecondaryStrong,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun WidgetThemeSelector(
+    selectedTheme: WidgetColorTheme,
+    onThemeSelected: (WidgetColorTheme) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        WidgetColorTheme.entries.chunked(3).forEach { rowThemes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowThemes.forEach { theme ->
+                    WidgetThemeChip(
+                        modifier = Modifier.weight(1f),
+                        theme = theme,
+                        selected = selectedTheme == theme,
+                        onClick = { onThemeSelected(theme) }
+                    )
+                }
+
+                repeat(3 - rowThemes.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetThemeChip(
+    modifier: Modifier = Modifier,
+    theme: WidgetColorTheme,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = baseWidgetPreviewColors(theme)
+    val swatchBrush = colors.headerBrush ?: Brush.horizontalGradient(
+        colors = listOf(colors.primary, colors.primary)
+    )
+
+    Surface(
+        modifier = modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(15.dp),
+        color = if (selected) Color(0xFFEAF2FF) else Color.White,
+        border = BorderStroke(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) PrimaryBlue else BorderSoft
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(swatchBrush)
+            )
+
+            Text(
+                text = theme.label(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (selected) Color(0xFF0B4FD8) else TextDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun WidgetTextSizeSelector(
+    selectedSize: WidgetTextSizeOption,
+    onSizeSelected: (WidgetTextSizeOption) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, BorderSoft)
+    ) {
+        Row(modifier = Modifier.padding(3.dp)) {
+            CompactSegment(
+                modifier = Modifier.weight(1f),
+                label = "Compacto",
+                selected = selectedSize == WidgetTextSizeOption.COMPACTO,
+                onClick = { onSizeSelected(WidgetTextSizeOption.COMPACTO) }
+            )
+
+            CompactSegment(
+                modifier = Modifier.weight(1f),
+                label = "Normal",
+                selected = selectedSize == WidgetTextSizeOption.NORMAL,
+                onClick = { onSizeSelected(WidgetTextSizeOption.NORMAL) }
+            )
+
+            CompactSegment(
+                modifier = Modifier.weight(1f),
+                label = "Grande",
+                selected = selectedSize == WidgetTextSizeOption.GRANDE,
+                onClick = { onSizeSelected(WidgetTextSizeOption.GRANDE) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun WidgetSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = DialogTextPrimary
+            )
+
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = DialogTextSecondary,
+                lineHeight = 17.sp
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = PrimaryBlue
+            )
+        )
+    }
+}
+
+private data class WidgetPreviewColors(
+    val primary: Color,
+    val background: Color,
+    val text: Color,
+    val muted: Color,
+    val soundBackground: Color,
+    val onPrimary: Color = Color.White,
+    val backgroundBrush: Brush? = null,
+    val headerBrush: Brush? = null
+)
+
+private fun widgetPreviewColors(
+    settings: WidgetAppearanceSettings
+): WidgetPreviewColors {
+    val baseColors = baseWidgetPreviewColors(settings.colorTheme)
+
+    return when (settings.visualStyle) {
+        WidgetVisualStyle.CLASICO -> baseColors
+
+        WidgetVisualStyle.MINIMALISTA -> baseColors.copy(
+            background = Color.White,
+            text = TextDark,
+            muted = TextMuted,
+            backgroundBrush = null
+        )
+
+        WidgetVisualStyle.CARD_SUAVE -> baseColors.copy(
+            background = baseColors.soundBackground,
+            muted = baseColors.muted.copy(alpha = 0.9f)
+        )
+
+        WidgetVisualStyle.CONTRASTE_ALTO -> baseColors.copy(
+            background = Color.White,
+            text = Color.Black,
+            muted = Color(0xFF334155),
+            backgroundBrush = null,
+            headerBrush = null
+        )
+
+        WidgetVisualStyle.NOCTURNO -> baseColors.copy(
+            background = Color(0xFF0F172A),
+            text = Color(0xFFF8FAFC),
+            muted = Color(0xFFCBD5E1),
+            backgroundBrush = null
+        )
+    }
+}
+
+private fun baseWidgetPreviewColors(
+    theme: WidgetColorTheme
+): WidgetPreviewColors {
+    return when (theme) {
+        WidgetColorTheme.AZUL -> WidgetPreviewColors(
+            primary = Color(0xFF1565C0),
+            background = Color.White,
+            text = Color(0xFF333333),
+            muted = Color(0xFF7B8EA6),
+            soundBackground = Color(0xFFE3F2FD)
+        )
+
+        WidgetColorTheme.MORADO -> WidgetPreviewColors(
+            primary = Color(0xFF7C3AED),
+            background = Color(0xFFFBF8FF),
+            text = Color(0xFF2D2145),
+            muted = Color(0xFF8B7AA8),
+            soundBackground = Color(0xFFF0EBFF)
+        )
+
+        WidgetColorTheme.VERDE -> WidgetPreviewColors(
+            primary = Color(0xFF059669),
+            background = Color(0xFFF4FFF9),
+            text = Color(0xFF143D2C),
+            muted = Color(0xFF6B8E7C),
+            soundBackground = Color(0xFFE7F8EF)
+        )
+
+        WidgetColorTheme.NARANJA -> WidgetPreviewColors(
+            primary = Color(0xFFF97316),
+            background = Color(0xFFFFFBF5),
+            text = Color(0xFF3F2A1D),
+            muted = Color(0xFFA0795D),
+            soundBackground = Color(0xFFFFF0E6)
+        )
+
+        WidgetColorTheme.TURQUESA -> WidgetPreviewColors(
+            primary = Color(0xFF0891B2),
+            background = Color(0xFFF0FDFF),
+            text = Color(0xFF12363F),
+            muted = Color(0xFF5F8792),
+            soundBackground = Color(0xFFE6FAFD)
+        )
+
+        WidgetColorTheme.ROSA -> WidgetPreviewColors(
+            primary = Color(0xFFDB2777),
+            background = Color(0xFFFFF7FB),
+            text = Color(0xFF442038),
+            muted = Color(0xFFA36B8B),
+            soundBackground = Color(0xFFFDE7F3)
+        )
+
+        WidgetColorTheme.INDIGO -> WidgetPreviewColors(
+            primary = Color(0xFF4F46E5),
+            background = Color(0xFFF8FAFF),
+            text = Color(0xFF202044),
+            muted = Color(0xFF777AA6),
+            soundBackground = Color(0xFFEEF2FF)
+        )
+
+        WidgetColorTheme.ROJO -> WidgetPreviewColors(
+            primary = Color(0xFFDC2626),
+            background = Color(0xFFFFF7F7),
+            text = Color(0xFF451A1A),
+            muted = Color(0xFFA46666),
+            soundBackground = Color(0xFFFEE2E2)
+        )
+
+        WidgetColorTheme.CIELO_SUAVE -> WidgetPreviewColors(
+            primary = Color(0xFF60A5FA),
+            background = Color(0xFFF0F7FF),
+            text = Color(0xFF1E3A5F),
+            muted = Color(0xFF6B8FB9),
+            soundBackground = Color(0xFFE4F1FF),
+            onPrimary = Color(0xFF0F172A)
+        )
+
+        WidgetColorTheme.LAVANDA_SUAVE -> WidgetPreviewColors(
+            primary = Color(0xFFA78BFA),
+            background = Color(0xFFFBF7FF),
+            text = Color(0xFF322653),
+            muted = Color(0xFF8A77B3),
+            soundBackground = Color(0xFFF2ECFF),
+            onPrimary = Color(0xFF1F1833)
+        )
+
+        WidgetColorTheme.MENTA_SUAVE -> WidgetPreviewColors(
+            primary = Color(0xFF0D9488),
+            background = Color(0xFFF0FDFA),
+            text = Color(0xFF143F3A),
+            muted = Color(0xFF5B8F86),
+            soundBackground = Color(0xFFDCFDF7)
+        )
+
+        WidgetColorTheme.CORAL_SUAVE -> WidgetPreviewColors(
+            primary = Color(0xFFFB7185),
+            background = Color(0xFFFFF5F7),
+            text = Color(0xFF4A2230),
+            muted = Color(0xFFA06A78),
+            soundBackground = Color(0xFFFFE7EC),
+            onPrimary = Color(0xFF3A1620)
+        )
+
+        WidgetColorTheme.CRISTAL -> WidgetPreviewColors(
+            primary = Color(0xFF2563EB),
+            background = Color(0xD9FFFFFF),
+            text = Color(0xFF162033),
+            muted = Color(0xFF667085),
+            soundBackground = Color(0xBFE0F2FE)
+        )
+
+        WidgetColorTheme.AURORA -> WidgetPreviewColors(
+            primary = Color(0xFF7C3AED),
+            background = Color(0xFFFFF7FD),
+            text = Color(0xFF2D1838),
+            muted = Color(0xFF8B6C9C),
+            soundBackground = Color(0xFFF7E8FF),
+            backgroundBrush = Brush.verticalGradient(
+                colors = listOf(Color(0xFFFFF7FD), Color(0xFFEFF6FF))
+            ),
+            headerBrush = Brush.horizontalGradient(
+                colors = listOf(Color(0xFF2563EB), Color(0xFF7C3AED), Color(0xFFDB2777))
+            )
+        )
+
+        WidgetColorTheme.OCEANO -> WidgetPreviewColors(
+            primary = Color(0xFF0369A1),
+            background = Color(0xFFEFFBFF),
+            text = Color(0xFF123341),
+            muted = Color(0xFF5D8798),
+            soundBackground = Color(0xFFDFF8FF),
+            backgroundBrush = Brush.verticalGradient(
+                colors = listOf(Color(0xFFEFFBFF), Color(0xFFE7FFF8))
+            ),
+            headerBrush = Brush.horizontalGradient(
+                colors = listOf(Color(0xFF0891B2), Color(0xFF2563EB))
+            )
+        )
+
+        WidgetColorTheme.OSCURO -> WidgetPreviewColors(
+            primary = Color(0xFF38BDF8),
+            background = Color(0xFF111827),
+            text = Color(0xFFF9FAFB),
+            muted = Color(0xFFB6C2D1),
+            soundBackground = Color(0xFF1F2937)
+        )
+    }
+}
+
+private fun WidgetColorTheme.label(): String {
+    return when (this) {
+        WidgetColorTheme.AZUL -> "Azul"
+        WidgetColorTheme.MORADO -> "Morado"
+        WidgetColorTheme.VERDE -> "Verde"
+        WidgetColorTheme.NARANJA -> "Naranja"
+        WidgetColorTheme.TURQUESA -> "Turquesa"
+        WidgetColorTheme.ROSA -> "Rosa"
+        WidgetColorTheme.INDIGO -> "Índigo"
+        WidgetColorTheme.ROJO -> "Rojo"
+        WidgetColorTheme.CIELO_SUAVE -> "Cielo"
+        WidgetColorTheme.LAVANDA_SUAVE -> "Lavanda"
+        WidgetColorTheme.MENTA_SUAVE -> "Menta"
+        WidgetColorTheme.CORAL_SUAVE -> "Coral"
+        WidgetColorTheme.CRISTAL -> "Cristal"
+        WidgetColorTheme.AURORA -> "Aurora"
+        WidgetColorTheme.OCEANO -> "Océano"
+        WidgetColorTheme.OSCURO -> "Oscuro"
+    }
+}
+
+private fun WidgetVisualStyle.label(): String {
+    return when (this) {
+        WidgetVisualStyle.CLASICO -> "Clásico"
+        WidgetVisualStyle.MINIMALISTA -> "Minimalista"
+        WidgetVisualStyle.CARD_SUAVE -> "Card suave"
+        WidgetVisualStyle.CONTRASTE_ALTO -> "Contraste alto"
+        WidgetVisualStyle.NOCTURNO -> "Nocturno"
+    }
+}
+
+private fun WidgetVisualStyle.description(): String {
+    return when (this) {
+        WidgetVisualStyle.CLASICO -> "Equilibrado y familiar."
+        WidgetVisualStyle.MINIMALISTA -> "Más limpio y ligero."
+        WidgetVisualStyle.CARD_SUAVE -> "Fondos suaves y limpios."
+        WidgetVisualStyle.CONTRASTE_ALTO -> "Lectura más fuerte."
+        WidgetVisualStyle.NOCTURNO -> "Pensado para fondos oscuros."
+    }
+}
+
+private fun WidgetTextSizeOption.label(): String {
+    return when (this) {
+        WidgetTextSizeOption.COMPACTO -> "Compacto"
+        WidgetTextSizeOption.NORMAL -> "Normal"
+        WidgetTextSizeOption.GRANDE -> "Grande"
+    }
+}
+
+private fun WidgetAppearanceSettings.summaryLabel(): String {
+    return "${visualStyle.label()} · ${colorTheme.label()} · ${textSize.label()}"
 }
 
 @Composable

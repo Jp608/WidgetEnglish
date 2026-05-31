@@ -10,6 +10,8 @@ import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.datastore.LearningPreferences
 import com.jp.widgetenglish.data.local.datastore.LearningSettings
 import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearancePreferences
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
@@ -40,7 +42,10 @@ data class ProfileUiState(
         automatico = true,
         objetivoManual = DailyGoalPreferences.OBJETIVO_MANUAL_INICIAL,
         objetivoAutomaticoActual = DailyGoalPreferences.OBJETIVO_AUTOMATICO_INICIAL
-    )
+    ),
+
+    val widgetAppearanceSettings: WidgetAppearanceSettings =
+        WidgetAppearancePreferences.DEFAULT_SETTINGS
 )
 
 class ProfileViewModel(
@@ -158,6 +163,63 @@ class ProfileViewModel(
                 )
             }
         }
+    }
+
+    fun cargarAparienciaWidget(context: Context) {
+        viewModelScope.launch {
+            try {
+                val settings = WidgetAppearancePreferences.obtenerConfiguracionRapida(
+                    context = context.applicationContext
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    widgetAppearanceSettings = settings,
+                    error = null
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error cargando apariencia del widget", e)
+
+                _uiState.value = _uiState.value.copy(
+                    error = "No se pudo cargar la apariencia del widget"
+                )
+            }
+        }
+    }
+
+    fun guardarAparienciaWidget(
+        context: Context,
+        settings: WidgetAppearanceSettings
+    ) {
+        viewModelScope.launch {
+            try {
+                val appContext = context.applicationContext
+
+                WidgetAppearancePreferences.guardarConfiguracion(
+                    context = appContext,
+                    settings = settings
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    widgetAppearanceSettings = settings,
+                    error = null
+                )
+
+                WordWidgetProvider.updateAll(appContext)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error guardando apariencia del widget", e)
+
+                _uiState.value = _uiState.value.copy(
+                    error = "No se pudo guardar la apariencia del widget"
+                )
+            }
+        }
+    }
+
+    fun reiniciarAparienciaWidget(context: Context) {
+        guardarAparienciaWidget(
+            context = context,
+            settings = WidgetAppearancePreferences.DEFAULT_SETTINGS
+        )
     }
 
     fun cambiarModoSeleccionContenido(

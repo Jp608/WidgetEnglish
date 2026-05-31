@@ -6,7 +6,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,6 +17,11 @@ import com.jp.widgetenglish.R
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
 import com.jp.widgetenglish.data.local.datastore.LearningPreferences
 import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearancePreferences
+import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
+import com.jp.widgetenglish.data.local.datastore.WidgetColorTheme
+import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
+import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
@@ -188,6 +195,16 @@ class WordWidgetProvider : AppWidgetProvider() {
             val debeSincronizarFirebase: Boolean,
             val contenidoMarcado: LoteContenidoEntity? = null
         )
+
+        private data class WidgetThemeColors(
+            val primary: Int,
+            val background: Int,
+            val text: Int,
+            val muted: Int,
+            val onPrimary: Int = Color.WHITE,
+            val soundBackground: Int
+        )
+
         suspend fun updateAll(context: Context) {
             val appContext = context.applicationContext
             val appWidgetManager = AppWidgetManager.getInstance(appContext)
@@ -443,6 +460,7 @@ class WordWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             val data = obtenerContenidoWidget(context)
+            val appearance = WidgetAppearancePreferences.obtenerConfiguracionRapida(context)
 
             val layoutId = seleccionarLayout(
                 appWidgetManager = appWidgetManager,
@@ -460,7 +478,8 @@ class WordWidgetProvider : AppWidgetProvider() {
                         context = context,
                         views = views,
                         appWidgetId = appWidgetId,
-                        data = data
+                        data = data,
+                        appearance = appearance
                     )
                 }
 
@@ -469,7 +488,8 @@ class WordWidgetProvider : AppWidgetProvider() {
                         context = context,
                         views = views,
                         appWidgetId = appWidgetId,
-                        data = data
+                        data = data,
+                        appearance = appearance
                     )
                 }
 
@@ -478,7 +498,8 @@ class WordWidgetProvider : AppWidgetProvider() {
                         context = context,
                         views = views,
                         appWidgetId = appWidgetId,
-                        data = data
+                        data = data,
+                        appearance = appearance
                     )
                 }
             }
@@ -521,11 +542,14 @@ class WordWidgetProvider : AppWidgetProvider() {
             context: Context,
             views: RemoteViews,
             appWidgetId: Int,
-            data: WidgetData
+            data: WidgetData,
+            appearance: WidgetAppearanceSettings
         ) {
+            aplicarAparienciaCompacta(views, appearance)
+
             views.setTextViewText(
                 R.id.widget_text_lote,
-                data.loteNombre.ifBlank { "Lote" }
+                appearance.headerTitle(data.loteNombre)
             )
 
             views.setTextViewText(
@@ -542,8 +566,24 @@ class WordWidgetProvider : AppWidgetProvider() {
                 R.id.widget_text_translation,
                 data.traduccion
             )
+            views.setViewVisibility(
+                R.id.widget_text_translation,
+                if (appearance.mostrarTraduccion && data.traduccion.isNotBlank()) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+            )
 
-            if (data.fonetica.isBlank()) {
+            aplicarHeaderVisibility(
+                views = views,
+                headerId = R.id.widget_compact_header,
+                loteId = R.id.widget_text_lote,
+                progresoId = R.id.widget_text_progress,
+                appearance = appearance
+            )
+
+            if (data.fonetica.isBlank() || !appearance.mostrarFonetica) {
                 views.setViewVisibility(
                     R.id.widget_text_pronunciation,
                     View.GONE
@@ -580,13 +620,42 @@ class WordWidgetProvider : AppWidgetProvider() {
             context: Context,
             views: RemoteViews,
             appWidgetId: Int,
-            data: WidgetData
+            data: WidgetData,
+            appearance: WidgetAppearanceSettings
         ) {
-            views.setTextViewText(R.id.widget_lote_nombre, data.loteNombre)
+            aplicarAparienciaNormal(views, appearance)
+
+            views.setTextViewText(
+                R.id.widget_lote_nombre,
+                appearance.headerTitle(data.loteNombre)
+            )
             views.setTextViewText(R.id.widget_progreso, data.progreso)
             views.setTextViewText(R.id.widget_termino, data.termino)
             views.setTextViewText(R.id.widget_fonetica, data.fonetica)
             views.setTextViewText(R.id.widget_traduccion, data.traduccion)
+            aplicarTranslationVisibility(
+                views = views,
+                translationId = R.id.widget_traduccion,
+                translation = data.traduccion,
+                appearance = appearance
+            )
+
+            aplicarHeaderVisibility(
+                views = views,
+                headerId = R.id.widget_header,
+                loteId = R.id.widget_lote_nombre,
+                progresoId = R.id.widget_progreso,
+                appearance = appearance
+            )
+
+            views.setViewVisibility(
+                R.id.widget_fonetica,
+                if (appearance.mostrarFonetica && data.fonetica.isNotBlank()) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+            )
 
             if (data.tipo == WidgetContentType.VERBO) {
                 views.setTextViewText(
@@ -624,13 +693,42 @@ class WordWidgetProvider : AppWidgetProvider() {
             context: Context,
             views: RemoteViews,
             appWidgetId: Int,
-            data: WidgetData
+            data: WidgetData,
+            appearance: WidgetAppearanceSettings
         ) {
-            views.setTextViewText(R.id.widget_lote_nombre, data.loteNombre)
+            aplicarAparienciaGrande(views, appearance)
+
+            views.setTextViewText(
+                R.id.widget_lote_nombre,
+                appearance.headerTitle(data.loteNombre)
+            )
             views.setTextViewText(R.id.widget_progreso, data.progreso)
             views.setTextViewText(R.id.widget_termino, data.termino)
             views.setTextViewText(R.id.widget_fonetica, data.fonetica)
             views.setTextViewText(R.id.widget_traduccion, data.traduccion)
+            aplicarTranslationVisibility(
+                views = views,
+                translationId = R.id.widget_traduccion,
+                translation = data.traduccion,
+                appearance = appearance
+            )
+
+            aplicarHeaderVisibility(
+                views = views,
+                headerId = R.id.widget_header,
+                loteId = R.id.widget_lote_nombre,
+                progresoId = R.id.widget_progreso,
+                appearance = appearance
+            )
+
+            views.setViewVisibility(
+                R.id.widget_fonetica,
+                if (appearance.mostrarFonetica && data.fonetica.isNotBlank()) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+            )
 
             if (data.tipo == WidgetContentType.VERBO) {
                 views.setViewVisibility(R.id.widget_verbo_box, View.VISIBLE)
@@ -667,6 +765,489 @@ class WordWidgetProvider : AppWidgetProvider() {
                 pendingIntentAprendida(context, appWidgetId)
             )
 
+        }
+
+        private fun aplicarAparienciaCompacta(
+            views: RemoteViews,
+            appearance: WidgetAppearanceSettings
+        ) {
+            val colors = appearance.themeColors()
+
+            views.setWidgetBackground(
+                viewId = R.id.widget_root,
+                backgroundColor = colors.background,
+                backgroundResource = appearance.rootBackgroundRes(compact = true)
+            )
+            views.setWidgetBackground(
+                viewId = R.id.widget_compact_header,
+                backgroundColor = colors.primary,
+                backgroundResource = appearance.headerBackgroundRes(compact = true)
+            )
+            views.setInt(R.id.widget_btn_next, "setBackgroundResource", appearance.compactButtonBackgroundRes())
+            views.setInt(R.id.widget_btn_learned, "setBackgroundResource", appearance.compactButtonBackgroundRes())
+
+            views.setTextColor(R.id.widget_text_lote, colors.onPrimary)
+            views.setTextColor(R.id.widget_text_progress, colors.onPrimary)
+            views.setTextColor(R.id.widget_text_word, colors.primary)
+            views.setTextColor(R.id.widget_text_pronunciation, colors.muted)
+            views.setTextColor(R.id.widget_text_translation, colors.text)
+            views.setTextColor(R.id.widget_btn_next, colors.onPrimary)
+            views.setTextColor(R.id.widget_btn_learned, colors.onPrimary)
+
+            views.setTextSize(R.id.widget_text_lote, 12f, appearance)
+            views.setTextSize(R.id.widget_text_progress, 12f, appearance)
+            views.setTextSize(R.id.widget_text_word, 18f, appearance)
+            views.setTextSize(R.id.widget_text_pronunciation, 11f, appearance)
+            views.setTextSize(R.id.widget_text_translation, 14f, appearance)
+            views.setTextSize(R.id.widget_btn_next, 15f, appearance)
+            views.setTextSize(R.id.widget_btn_learned, 17f, appearance)
+        }
+
+        private fun aplicarAparienciaNormal(
+            views: RemoteViews,
+            appearance: WidgetAppearanceSettings
+        ) {
+            val colors = appearance.themeColors()
+
+            views.setWidgetBackground(
+                viewId = R.id.widget_root,
+                backgroundColor = colors.background,
+                backgroundResource = appearance.rootBackgroundRes(compact = false)
+            )
+            views.setWidgetBackground(
+                viewId = R.id.widget_header,
+                backgroundColor = colors.primary,
+                backgroundResource = appearance.headerBackgroundRes(compact = false)
+            )
+            views.setInt(R.id.widget_btn_next, "setBackgroundResource", appearance.buttonBackgroundRes())
+            views.setInt(R.id.widget_btn_learned, "setBackgroundResource", appearance.buttonBackgroundRes())
+            views.setInt(R.id.widget_btn_sound, "setBackgroundResource", appearance.soundBackgroundRes())
+
+            aplicarColoresWidgetBase(views, colors)
+            views.setTextColor(R.id.widget_extra, colors.primary)
+
+            views.setTextSize(R.id.widget_lote_nombre, 11f, appearance)
+            views.setTextSize(R.id.widget_progreso, 11f, appearance)
+            views.setTextSize(R.id.widget_termino, 20f, appearance)
+            views.setTextSize(R.id.widget_extra, 12f, appearance)
+            views.setTextSize(R.id.widget_fonetica, 12f, appearance)
+            views.setTextSize(R.id.widget_traduccion, 14f, appearance)
+            views.setTextSize(R.id.widget_btn_next, 13f, appearance)
+            views.setTextSize(R.id.widget_btn_learned, 16f, appearance)
+        }
+
+        private fun aplicarAparienciaGrande(
+            views: RemoteViews,
+            appearance: WidgetAppearanceSettings
+        ) {
+            val colors = appearance.themeColors()
+
+            views.setWidgetBackground(
+                viewId = R.id.widget_root,
+                backgroundColor = colors.background,
+                backgroundResource = appearance.rootBackgroundRes(compact = false)
+            )
+            views.setWidgetBackground(
+                viewId = R.id.widget_header,
+                backgroundColor = colors.primary,
+                backgroundResource = appearance.headerBackgroundRes(compact = false)
+            )
+            views.setInt(R.id.widget_btn_next, "setBackgroundResource", appearance.buttonBackgroundRes())
+            views.setInt(R.id.widget_btn_learned, "setBackgroundResource", appearance.buttonBackgroundRes())
+            views.setInt(R.id.widget_btn_sound, "setBackgroundResource", appearance.soundBackgroundRes())
+
+            aplicarColoresWidgetBase(views, colors)
+            views.setTextColor(R.id.widget_verbo_base_label, colors.text)
+            views.setTextColor(R.id.widget_verbo_pasado_label, colors.text)
+            views.setTextColor(R.id.widget_verbo_participio_label, colors.text)
+            views.setTextColor(R.id.widget_verbo_base, colors.primary)
+            views.setTextColor(R.id.widget_verbo_pasado, colors.primary)
+            views.setTextColor(R.id.widget_verbo_participio, colors.primary)
+
+            views.setTextSize(R.id.widget_lote_nombre, 12f, appearance)
+            views.setTextSize(R.id.widget_progreso, 12f, appearance)
+            views.setTextSize(R.id.widget_termino, 24f, appearance)
+            views.setTextSize(R.id.widget_fonetica, 12f, appearance)
+            views.setTextSize(R.id.widget_traduccion, 15f, appearance)
+            views.setTextSize(R.id.widget_btn_next, 13f, appearance)
+            views.setTextSize(R.id.widget_btn_learned, 17f, appearance)
+            views.setTextSize(R.id.widget_verbo_base_label, 10f, appearance)
+            views.setTextSize(R.id.widget_verbo_pasado_label, 10f, appearance)
+            views.setTextSize(R.id.widget_verbo_participio_label, 10f, appearance)
+            views.setTextSize(R.id.widget_verbo_base, 14f, appearance)
+            views.setTextSize(R.id.widget_verbo_pasado, 14f, appearance)
+            views.setTextSize(R.id.widget_verbo_participio, 14f, appearance)
+        }
+
+        private fun aplicarColoresWidgetBase(
+            views: RemoteViews,
+            colors: WidgetThemeColors
+        ) {
+            views.setTextColor(R.id.widget_lote_nombre, colors.onPrimary)
+            views.setTextColor(R.id.widget_progreso, colors.onPrimary)
+            views.setTextColor(R.id.widget_termino, colors.primary)
+            views.setTextColor(R.id.widget_fonetica, colors.muted)
+            views.setTextColor(R.id.widget_traduccion, colors.text)
+            views.setTextColor(R.id.widget_btn_next, colors.onPrimary)
+            views.setTextColor(R.id.widget_btn_learned, colors.onPrimary)
+        }
+
+        private fun aplicarHeaderVisibility(
+            views: RemoteViews,
+            headerId: Int,
+            loteId: Int,
+            progresoId: Int,
+            appearance: WidgetAppearanceSettings
+        ) {
+            views.setViewVisibility(
+                headerId,
+                View.VISIBLE
+            )
+            views.setViewVisibility(
+                loteId,
+                View.VISIBLE
+            )
+            views.setViewVisibility(
+                progresoId,
+                if (appearance.mostrarProgreso) View.VISIBLE else View.GONE
+            )
+        }
+
+        private fun WidgetAppearanceSettings.headerTitle(loteNombre: String): String {
+            return if (mostrarLote) {
+                loteNombre.ifBlank { "WidgetEnglish" }
+            } else {
+                "WidgetEnglish"
+            }
+        }
+
+        private fun aplicarTranslationVisibility(
+            views: RemoteViews,
+            translationId: Int,
+            translation: String,
+            appearance: WidgetAppearanceSettings
+        ) {
+            views.setViewVisibility(
+                translationId,
+                if (appearance.mostrarTraduccion && translation.isNotBlank()) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+            )
+        }
+
+        private fun WidgetAppearanceSettings.themeColors(): WidgetThemeColors {
+            val baseColors = when (colorTheme) {
+                WidgetColorTheme.AZUL -> WidgetThemeColors(
+                    primary = 0xFF1565C0.toInt(),
+                    background = Color.WHITE,
+                    text = 0xFF333333.toInt(),
+                    muted = 0xFF7B8EA6.toInt(),
+                    soundBackground = 0xFFE3F2FD.toInt()
+                )
+
+                WidgetColorTheme.MORADO -> WidgetThemeColors(
+                    primary = 0xFF7C3AED.toInt(),
+                    background = 0xFFFBF8FF.toInt(),
+                    text = 0xFF2D2145.toInt(),
+                    muted = 0xFF8B7AA8.toInt(),
+                    soundBackground = 0xFFF0EBFF.toInt()
+                )
+
+                WidgetColorTheme.VERDE -> WidgetThemeColors(
+                    primary = 0xFF059669.toInt(),
+                    background = 0xFFF4FFF9.toInt(),
+                    text = 0xFF143D2C.toInt(),
+                    muted = 0xFF6B8E7C.toInt(),
+                    soundBackground = 0xFFE7F8EF.toInt()
+                )
+
+                WidgetColorTheme.NARANJA -> WidgetThemeColors(
+                    primary = 0xFFF97316.toInt(),
+                    background = 0xFFFFFBF5.toInt(),
+                    text = 0xFF3F2A1D.toInt(),
+                    muted = 0xFFA0795D.toInt(),
+                    soundBackground = 0xFFFFF0E6.toInt()
+                )
+
+                WidgetColorTheme.TURQUESA -> WidgetThemeColors(
+                    primary = 0xFF0891B2.toInt(),
+                    background = 0xFFF0FDFF.toInt(),
+                    text = 0xFF12363F.toInt(),
+                    muted = 0xFF5F8792.toInt(),
+                    soundBackground = 0xFFE6FAFD.toInt()
+                )
+
+                WidgetColorTheme.ROSA -> WidgetThemeColors(
+                    primary = 0xFFDB2777.toInt(),
+                    background = 0xFFFFF7FB.toInt(),
+                    text = 0xFF442038.toInt(),
+                    muted = 0xFFA36B8B.toInt(),
+                    soundBackground = 0xFFFDE7F3.toInt()
+                )
+
+                WidgetColorTheme.INDIGO -> WidgetThemeColors(
+                    primary = 0xFF4F46E5.toInt(),
+                    background = 0xFFF8FAFF.toInt(),
+                    text = 0xFF202044.toInt(),
+                    muted = 0xFF777AA6.toInt(),
+                    soundBackground = 0xFFEEF2FF.toInt()
+                )
+
+                WidgetColorTheme.ROJO -> WidgetThemeColors(
+                    primary = 0xFFDC2626.toInt(),
+                    background = 0xFFFFF7F7.toInt(),
+                    text = 0xFF451A1A.toInt(),
+                    muted = 0xFFA46666.toInt(),
+                    soundBackground = 0xFFFEE2E2.toInt()
+                )
+
+                WidgetColorTheme.CIELO_SUAVE -> WidgetThemeColors(
+                    primary = 0xFF60A5FA.toInt(),
+                    background = 0xFFF0F7FF.toInt(),
+                    text = 0xFF1E3A5F.toInt(),
+                    muted = 0xFF6B8FB9.toInt(),
+                    onPrimary = 0xFF0F172A.toInt(),
+                    soundBackground = 0xFFE4F1FF.toInt()
+                )
+
+                WidgetColorTheme.LAVANDA_SUAVE -> WidgetThemeColors(
+                    primary = 0xFFA78BFA.toInt(),
+                    background = 0xFFFBF7FF.toInt(),
+                    text = 0xFF322653.toInt(),
+                    muted = 0xFF8A77B3.toInt(),
+                    onPrimary = 0xFF1F1833.toInt(),
+                    soundBackground = 0xFFF2ECFF.toInt()
+                )
+
+                WidgetColorTheme.MENTA_SUAVE -> WidgetThemeColors(
+                    primary = 0xFF0D9488.toInt(),
+                    background = 0xFFF0FDFA.toInt(),
+                    text = 0xFF143F3A.toInt(),
+                    muted = 0xFF5B8F86.toInt(),
+                    soundBackground = 0xFFDCFDF7.toInt()
+                )
+
+                WidgetColorTheme.CORAL_SUAVE -> WidgetThemeColors(
+                    primary = 0xFFFB7185.toInt(),
+                    background = 0xFFFFF5F7.toInt(),
+                    text = 0xFF4A2230.toInt(),
+                    muted = 0xFFA06A78.toInt(),
+                    onPrimary = 0xFF3A1620.toInt(),
+                    soundBackground = 0xFFFFE7EC.toInt()
+                )
+
+                WidgetColorTheme.CRISTAL -> WidgetThemeColors(
+                    primary = 0xFF2563EB.toInt(),
+                    background = 0xD9FFFFFF.toInt(),
+                    text = 0xFF162033.toInt(),
+                    muted = 0xFF667085.toInt(),
+                    soundBackground = 0xBFE0F2FE.toInt()
+                )
+
+                WidgetColorTheme.AURORA -> WidgetThemeColors(
+                    primary = 0xFF7C3AED.toInt(),
+                    background = 0xFFFFF7FD.toInt(),
+                    text = 0xFF2D1838.toInt(),
+                    muted = 0xFF8B6C9C.toInt(),
+                    soundBackground = 0xFFF7E8FF.toInt()
+                )
+
+                WidgetColorTheme.OCEANO -> WidgetThemeColors(
+                    primary = 0xFF0369A1.toInt(),
+                    background = 0xFFEFFBFF.toInt(),
+                    text = 0xFF123341.toInt(),
+                    muted = 0xFF5D8798.toInt(),
+                    soundBackground = 0xFFDFF8FF.toInt()
+                )
+
+                WidgetColorTheme.OSCURO -> WidgetThemeColors(
+                    primary = 0xFF38BDF8.toInt(),
+                    background = 0xFF111827.toInt(),
+                    text = 0xFFF9FAFB.toInt(),
+                    muted = 0xFFB6C2D1.toInt(),
+                    soundBackground = 0xFF1F2937.toInt()
+                )
+            }
+
+            return baseColors.withVisualStyle(visualStyle)
+        }
+
+        private fun WidgetThemeColors.withVisualStyle(
+            style: WidgetVisualStyle
+        ): WidgetThemeColors {
+            return when (style) {
+                WidgetVisualStyle.CLASICO -> this
+
+                WidgetVisualStyle.MINIMALISTA -> copy(
+                    background = Color.WHITE,
+                    text = 0xFF1F2937.toInt(),
+                    muted = 0xFF64748B.toInt(),
+                    soundBackground = 0xFFF8FAFC.toInt()
+                )
+
+                WidgetVisualStyle.CARD_SUAVE -> copy(
+                    background = when (primary) {
+                        0xFF38BDF8.toInt() -> 0xFF0F172A.toInt()
+                        else -> soundBackground
+                    },
+                    muted = when (primary) {
+                        0xFF38BDF8.toInt() -> 0xFFCBD5E1.toInt()
+                        else -> muted
+                    }
+                )
+
+                WidgetVisualStyle.CONTRASTE_ALTO -> copy(
+                    background = Color.WHITE,
+                    text = Color.BLACK,
+                    muted = 0xFF334155.toInt(),
+                    soundBackground = 0xFFF1F5F9.toInt()
+                )
+
+                WidgetVisualStyle.NOCTURNO -> copy(
+                    background = 0xFF0F172A.toInt(),
+                    text = 0xFFF8FAFC.toInt(),
+                    muted = 0xFFCBD5E1.toInt(),
+                    soundBackground = 0xFF1E293B.toInt()
+                )
+            }
+        }
+
+        private fun WidgetAppearanceSettings.textScale(): Float {
+            return when (textSize) {
+                WidgetTextSizeOption.COMPACTO -> 0.9f
+                WidgetTextSizeOption.NORMAL -> 1f
+                WidgetTextSizeOption.GRANDE -> 1.14f
+            }
+        }
+
+        private fun WidgetAppearanceSettings.buttonBackgroundRes(): Int {
+            return when (colorTheme) {
+                WidgetColorTheme.AZUL -> R.drawable.widget_button_bg
+                WidgetColorTheme.MORADO -> R.drawable.widget_button_bg_morado
+                WidgetColorTheme.VERDE -> R.drawable.widget_button_bg_verde
+                WidgetColorTheme.NARANJA -> R.drawable.widget_button_bg_naranja
+                WidgetColorTheme.TURQUESA -> R.drawable.widget_button_bg_turquesa
+                WidgetColorTheme.ROSA -> R.drawable.widget_button_bg_rosa
+                WidgetColorTheme.INDIGO -> R.drawable.widget_button_bg_indigo
+                WidgetColorTheme.ROJO -> R.drawable.widget_button_bg_rojo
+                WidgetColorTheme.CIELO_SUAVE -> R.drawable.widget_button_bg_cielo_suave
+                WidgetColorTheme.LAVANDA_SUAVE -> R.drawable.widget_button_bg_lavanda_suave
+                WidgetColorTheme.MENTA_SUAVE -> R.drawable.widget_button_bg_menta_suave
+                WidgetColorTheme.CORAL_SUAVE -> R.drawable.widget_button_bg_coral_suave
+                WidgetColorTheme.CRISTAL -> R.drawable.widget_button_bg_cristal
+                WidgetColorTheme.AURORA -> R.drawable.widget_button_bg_aurora
+                WidgetColorTheme.OCEANO -> R.drawable.widget_button_bg_oceano
+                WidgetColorTheme.OSCURO -> R.drawable.widget_button_bg_oscuro
+            }
+        }
+
+        private fun WidgetAppearanceSettings.compactButtonBackgroundRes(): Int {
+            return when (colorTheme) {
+                WidgetColorTheme.AZUL -> R.drawable.widget_compact_primary_button_bg
+                WidgetColorTheme.MORADO -> R.drawable.widget_compact_primary_button_bg_morado
+                WidgetColorTheme.VERDE -> R.drawable.widget_compact_primary_button_bg_verde
+                WidgetColorTheme.NARANJA -> R.drawable.widget_compact_primary_button_bg_naranja
+                WidgetColorTheme.TURQUESA -> R.drawable.widget_compact_primary_button_bg_turquesa
+                WidgetColorTheme.ROSA -> R.drawable.widget_compact_primary_button_bg_rosa
+                WidgetColorTheme.INDIGO -> R.drawable.widget_compact_primary_button_bg_indigo
+                WidgetColorTheme.ROJO -> R.drawable.widget_compact_primary_button_bg_rojo
+                WidgetColorTheme.CIELO_SUAVE -> R.drawable.widget_compact_primary_button_bg_cielo_suave
+                WidgetColorTheme.LAVANDA_SUAVE -> R.drawable.widget_compact_primary_button_bg_lavanda_suave
+                WidgetColorTheme.MENTA_SUAVE -> R.drawable.widget_compact_primary_button_bg_menta_suave
+                WidgetColorTheme.CORAL_SUAVE -> R.drawable.widget_compact_primary_button_bg_coral_suave
+                WidgetColorTheme.CRISTAL -> R.drawable.widget_compact_primary_button_bg_cristal
+                WidgetColorTheme.AURORA -> R.drawable.widget_compact_primary_button_bg_aurora
+                WidgetColorTheme.OCEANO -> R.drawable.widget_compact_primary_button_bg_oceano
+                WidgetColorTheme.OSCURO -> R.drawable.widget_compact_primary_button_bg_oscuro
+            }
+        }
+
+        private fun WidgetAppearanceSettings.soundBackgroundRes(): Int {
+            return when (colorTheme) {
+                WidgetColorTheme.AZUL -> R.drawable.widget_sound_bg
+                WidgetColorTheme.MORADO -> R.drawable.widget_sound_bg_morado
+                WidgetColorTheme.VERDE -> R.drawable.widget_sound_bg_verde
+                WidgetColorTheme.NARANJA -> R.drawable.widget_sound_bg_naranja
+                WidgetColorTheme.TURQUESA -> R.drawable.widget_sound_bg_turquesa
+                WidgetColorTheme.ROSA -> R.drawable.widget_sound_bg_rosa
+                WidgetColorTheme.INDIGO -> R.drawable.widget_sound_bg_indigo
+                WidgetColorTheme.ROJO -> R.drawable.widget_sound_bg_rojo
+                WidgetColorTheme.CIELO_SUAVE -> R.drawable.widget_sound_bg_cielo_suave
+                WidgetColorTheme.LAVANDA_SUAVE -> R.drawable.widget_sound_bg_lavanda_suave
+                WidgetColorTheme.MENTA_SUAVE -> R.drawable.widget_sound_bg_menta_suave
+                WidgetColorTheme.CORAL_SUAVE -> R.drawable.widget_sound_bg_coral_suave
+                WidgetColorTheme.CRISTAL -> R.drawable.widget_sound_bg_cristal
+                WidgetColorTheme.AURORA -> R.drawable.widget_sound_bg_aurora
+                WidgetColorTheme.OCEANO -> R.drawable.widget_sound_bg_oceano
+                WidgetColorTheme.OSCURO -> R.drawable.widget_sound_bg_oscuro
+            }
+        }
+
+        private fun WidgetAppearanceSettings.rootBackgroundRes(compact: Boolean): Int? {
+            if (visualStyle == WidgetVisualStyle.CONTRASTE_ALTO ||
+                visualStyle == WidgetVisualStyle.MINIMALISTA ||
+                visualStyle == WidgetVisualStyle.NOCTURNO
+            ) {
+                return null
+            }
+
+            return when (colorTheme) {
+                WidgetColorTheme.CRISTAL -> {
+                    if (compact) R.drawable.widget_compact_card_bg_cristal else R.drawable.widget_bg_cristal
+                }
+                WidgetColorTheme.AURORA -> {
+                    if (compact) R.drawable.widget_compact_card_bg_aurora else R.drawable.widget_bg_aurora
+                }
+                WidgetColorTheme.OCEANO -> {
+                    if (compact) R.drawable.widget_compact_card_bg_oceano else R.drawable.widget_bg_oceano
+                }
+                else -> null
+            }
+        }
+
+        private fun WidgetAppearanceSettings.headerBackgroundRes(compact: Boolean): Int? {
+            if (visualStyle == WidgetVisualStyle.CONTRASTE_ALTO) {
+                return null
+            }
+
+            return when (colorTheme) {
+                WidgetColorTheme.CRISTAL -> {
+                    if (compact) R.drawable.widget_compact_header_bg_cristal else R.drawable.widget_header_bg_cristal
+                }
+                WidgetColorTheme.AURORA -> {
+                    if (compact) R.drawable.widget_compact_header_bg_aurora else R.drawable.widget_header_bg_aurora
+                }
+                WidgetColorTheme.OCEANO -> {
+                    if (compact) R.drawable.widget_compact_header_bg_oceano else R.drawable.widget_header_bg_oceano
+                }
+                else -> null
+            }
+        }
+
+        private fun RemoteViews.setWidgetBackground(
+            viewId: Int,
+            backgroundColor: Int,
+            backgroundResource: Int?
+        ) {
+            if (backgroundResource != null) {
+                setInt(viewId, "setBackgroundResource", backgroundResource)
+            } else {
+                setInt(viewId, "setBackgroundColor", backgroundColor)
+            }
+        }
+
+        private fun RemoteViews.setTextSize(
+            viewId: Int,
+            baseSp: Float,
+            appearance: WidgetAppearanceSettings
+        ) {
+            setTextViewTextSize(
+                viewId,
+                TypedValue.COMPLEX_UNIT_SP,
+                baseSp * appearance.textScale()
+            )
         }
 
         private suspend fun obtenerContenidoWidget(context: Context): WidgetData {
