@@ -128,11 +128,19 @@ class StreakRepository(
     }
 
     suspend fun registrarUsoCategoriaGlobal(loteId: String, nombre: String) {
-        estadisticasFirestoreDataSource?.incrementarUsoCategoria(loteId, nombre)
+        runCatching {
+            estadisticasFirestoreDataSource?.incrementarUsoCategoria(loteId, nombre)
+        }.onFailure { error ->
+            Log.w(TAG, "No se pudo registrar uso global de categoría", error)
+        }
     }
 
     suspend fun registrarErrorPalabraGlobal(palabraId: String, termino: String, loteId: String) {
-        estadisticasFirestoreDataSource?.registrarErrorPalabra(palabraId, termino, loteId)
+        runCatching {
+            estadisticasFirestoreDataSource?.registrarErrorPalabra(palabraId, termino, loteId)
+        }.onFailure { error ->
+            Log.w(TAG, "No se pudo registrar error global de palabra", error)
+        }
     }
 
     suspend fun sincronizarEstadisticasActuales(

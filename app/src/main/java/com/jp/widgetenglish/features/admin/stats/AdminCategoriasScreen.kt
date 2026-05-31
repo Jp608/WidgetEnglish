@@ -1,7 +1,6 @@
 package com.jp.widgetenglish.features.admin.stats
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,14 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.data.remote.firestore.CategoriaStatsDto
@@ -58,6 +54,8 @@ fun AdminCategoriasScreen(
     onActividadClick: () -> Unit,
     onPerfilClick: () -> Unit
 ) {
+    AdminStatsStatusBarColor()
+
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -67,7 +65,7 @@ fun AdminCategoriasScreen(
     Scaffold(
         bottomBar = {
             AdminBottomBar(
-                selected = "vocabulario",
+                selected = "resumen",
                 onResumenClick = onResumenClick,
                 onRankingClick = onRankingClick,
                 onActividadClick = onActividadClick,
@@ -82,41 +80,21 @@ fun AdminCategoriasScreen(
                 .padding(bottom = innerPadding.calculateBottomPadding())
                 .verticalScroll(rememberScrollState())
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PrimaryBlue)
-                    .padding(top = 16.dp, bottom = 24.dp, start = 8.dp, end = 24.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Categorías más usadas",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Análisis de participación por tema",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
+            AdminStatsHeader(
+                title = "Categorías más usadas",
+                subtitle = "Análisis de participación por tema",
+                isRefreshing = uiState.cargando,
+                onBack = onBack,
+                onRefreshClick = { viewModel.cargarDatosAdmin() }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (uiState.cargando) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PrimaryBlue)
@@ -135,7 +113,7 @@ fun AdminCategoriasScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -183,6 +161,7 @@ fun CategoriaStatItem(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
                     text = "${stat.vecesEstudiada} sesiones",
                     color = TextMuted,
@@ -191,7 +170,12 @@ fun CategoriaStatItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val progress = if (maxUso > 0) stat.vecesEstudiada.toFloat() / maxUso.toFloat() else 0f
+                val progress = if (maxUso > 0) {
+                    stat.vecesEstudiada.toFloat() / maxUso.toFloat()
+                } else {
+                    0f
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -218,4 +202,3 @@ fun CategoriaStatItem(
         }
     }
 }
-

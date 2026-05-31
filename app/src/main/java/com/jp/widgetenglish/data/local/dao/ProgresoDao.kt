@@ -373,4 +373,10 @@ interface ProgresoDao {
         """
     )
     suspend fun reiniciarProgresoContenidosLote(usuarioId: String, loteId: String)
+
+    @Query("DELETE FROM progreso_usuario WHERE usuarioId = :usuarioId")
+    suspend fun eliminarProgresoUsuario(usuarioId: String)
+
+    @Query("DELETE FROM progreso_lote WHERE usuarioId = :usuarioId")
+    suspend fun eliminarProgresoLotesUsuario(usuarioId: String)
 }

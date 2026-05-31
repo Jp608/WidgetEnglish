@@ -4,6 +4,10 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
+import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.datastore.DailyGoalPreferences
 import com.jp.widgetenglish.data.local.datastore.DailyGoalSettings
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
@@ -15,6 +19,7 @@ import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
+import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.StreakRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import com.jp.widgetenglish.features.widget.WordWidgetProvider
@@ -29,6 +34,11 @@ data class ProfileUiState(
     val usuario: UsuarioEntity? = null,
     val cargando: Boolean = true,
     val autenticado: Boolean = true,
+    val guardandoPerfil: Boolean = false,
+    val enviandoCorreoSeguridad: Boolean = false,
+    val eliminandoCuenta: Boolean = false,
+    val cuentaEliminada: Boolean = false,
+    val mensaje: String? = null,
     val error: String? = null,
 
     val learningSettings: LearningSettings = LearningSettings(
@@ -51,6 +61,9 @@ data class ProfileUiState(
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val usuarioDao: UsuarioDao,
+    private val progresoDao: ProgresoDao,
+    private val actividadDiariaDao: ActividadDiariaDao,
+    private val usuarioFirestoreDataSource: UsuarioFirestoreDataSource,
     private val streakRepository: StreakRepository
 ) : ViewModel() {
 
@@ -476,6 +489,197 @@ class ProfileViewModel(
         WidgetPreferences.reiniciarIndice(context)
         WidgetPreferences.reiniciarSesionSecuencial(context)
         WordWidgetProvider.updateAll(context)
+    }
+
+    fun limpiarMensajes() {
+        _uiState.value = _uiState.value.copy(
+            mensaje = null,
+            error = null
+        )
+    }
+
+    fun actualizarPerfilAdministrador(nombre: String) {
+        val nombreLimpio = nombre.trim()
+
+        if (nombreLimpio.length < 3) {
+            _uiState.value = _uiState.value.copy(
+                error = "El nombre debe tener al menos 3 caracteres"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            val firebaseUser = authRepository.obtenerUsuarioActual()
+
+            if (firebaseUser == null) {
+                _uiState.value = _uiState.value.copy(
+                    error = "No hay usuario autenticado"
+                )
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                guardandoPerfil = true,
+                mensaje = null,
+                error = null
+            )
+
+            try {
+                authRepository.actualizarNombreUsuarioActual(nombreLimpio)
+                    .getOrThrow()
+
+                usuarioFirestoreDataSource.actualizarNombreUsuario(
+                    firebaseUid = firebaseUser.uid,
+                    nombre = nombreLimpio
+                )
+
+                val usuarioLocal = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
+                val usuarioActualizado = usuarioLocal?.copy(
+                    nombre = nombreLimpio,
+                    ultimoAcceso = System.currentTimeMillis()
+                )
+
+                if (usuarioActualizado != null) {
+                    usuarioDao.actualizarUsuario(usuarioActualizado)
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    usuario = usuarioActualizado ?: _uiState.value.usuario?.copy(nombre = nombreLimpio),
+                    guardandoPerfil = false,
+                    mensaje = "Perfil actualizado correctamente",
+                    error = null
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error actualizando perfil administrador", e)
+
+                _uiState.value = _uiState.value.copy(
+                    guardandoPerfil = false,
+                    error = e.message ?: "No se pudo actualizar el perfil"
+                )
+            }
+        }
+    }
+
+    fun enviarCorreoSeguridadAdministrador() {
+        val correo = _uiState.value.usuario?.correo
+            ?: authRepository.obtenerUsuarioActual()?.email
+            ?: ""
+
+        if (correo.isBlank()) {
+            _uiState.value = _uiState.value.copy(
+                error = "No hay correo asociado para enviar instrucciones"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                enviandoCorreoSeguridad = true,
+                mensaje = null,
+                error = null
+            )
+
+            val result = authRepository.recuperarPassword(correo)
+
+            _uiState.value = result.fold(
+                onSuccess = {
+                    _uiState.value.copy(
+                        enviandoCorreoSeguridad = false,
+                        mensaje = "Enviamos instrucciones de seguridad a $correo",
+                        error = null
+                    )
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "Error enviando correo de seguridad", error)
+
+                    _uiState.value.copy(
+                        enviandoCorreoSeguridad = false,
+                        error = error.message ?: "No se pudo enviar el correo de seguridad"
+                    )
+                }
+            )
+        }
+    }
+
+    fun eliminarCuenta(context: Context) {
+        viewModelScope.launch {
+            val firebaseUser = authRepository.obtenerUsuarioActual()
+
+            if (firebaseUser == null) {
+                _uiState.value = _uiState.value.copy(
+                    eliminandoCuenta = false,
+                    error = "No hay usuario autenticado"
+                )
+                return@launch
+            }
+
+            if (authRepository.requiereInicioSesionReciente()) {
+                _uiState.value = _uiState.value.copy(
+                    eliminandoCuenta = false,
+                    error = "Por seguridad, vuelve a iniciar sesión y luego intenta eliminar la cuenta."
+                )
+                return@launch
+            }
+
+            val appContext = context.applicationContext
+            val userId = firebaseUser.uid
+
+            _uiState.value = _uiState.value.copy(
+                eliminandoCuenta = true,
+                error = null
+            )
+
+            try {
+                usuarioFirestoreDataSource.eliminarUsuarioCompleto(userId)
+
+                authRepository.eliminarCuentaActual()
+                    .getOrThrow()
+
+                actividadDiariaDao.eliminarActividadesUsuario(userId)
+                progresoDao.eliminarProgresoUsuario(userId)
+                progresoDao.eliminarProgresoLotesUsuario(userId)
+                usuarioDao.eliminarUsuarioPorFirebaseUid(userId)
+
+                LearningPreferences.reiniciarConfiguracionAprendizaje(appContext)
+                DailyGoalPreferences.reiniciar(appContext)
+                WidgetAppearancePreferences.reiniciar(appContext)
+                WidgetPreferences.limpiarSesionWidget(appContext)
+                WordWidgetProvider.updateAll(appContext)
+
+                _uiState.value = ProfileUiState(
+                    usuario = null,
+                    cargando = false,
+                    autenticado = false,
+                    eliminandoCuenta = false,
+                    cuentaEliminada = true
+                )
+            } catch (e: FirebaseAuthRecentLoginRequiredException) {
+                Log.e(TAG, "Firebase requiere reautenticación para eliminar cuenta", e)
+
+                _uiState.value = _uiState.value.copy(
+                    eliminandoCuenta = false,
+                    error = "Por seguridad, vuelve a iniciar sesión y luego intenta eliminar la cuenta."
+                )
+            } catch (e: FirebaseFirestoreException) {
+                Log.e(TAG, "Error eliminando datos remotos de la cuenta", e)
+
+                _uiState.value = _uiState.value.copy(
+                    eliminandoCuenta = false,
+                    error = if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        "No se pudo eliminar la cuenta por permisos de Firebase. Revisa las reglas de Firestore."
+                    } else {
+                        "No se pudo eliminar la información de la cuenta."
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error eliminando cuenta", e)
+
+                _uiState.value = _uiState.value.copy(
+                    eliminandoCuenta = false,
+                    error = e.message ?: "No se pudo eliminar la cuenta"
+                )
+            }
+        }
     }
 
     fun cerrarSesion() {

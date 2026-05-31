@@ -1,5 +1,6 @@
 package com.jp.widgetenglish.features.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
@@ -18,10 +19,6 @@ class AdminViewModel(
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
-    init {
-        cargarDatosAdmin()
-    }
-
     fun cargarDatosAdmin() {
         viewModelScope.launch {
             try {
@@ -31,8 +28,17 @@ class AdminViewModel(
                 )
 
                 val usuarios = adminFirestoreDataSource.obtenerUsuarios()
-                val categoriasStats = estadisticasFirestoreDataSource.obtenerCategoriasStats()
-                val erroresStats = estadisticasFirestoreDataSource.obtenerErroresPalabrasStats()
+                val categoriasStats = runCatching {
+                    estadisticasFirestoreDataSource.obtenerCategoriasStats()
+                }.onFailure { error ->
+                    Log.w(TAG, "No se pudieron cargar estadísticas de categorías", error)
+                }.getOrDefault(emptyList())
+
+                val erroresStats = runCatching {
+                    estadisticasFirestoreDataSource.obtenerErroresPalabrasStats()
+                }.onFailure { error ->
+                    Log.w(TAG, "No se pudieron cargar estadísticas de errores", error)
+                }.getOrDefault(emptyList())
 
                 val totalUsuarios = usuarios.size
                 val usuariosActivos = usuarios.count { it.activo }
@@ -146,5 +152,9 @@ class AdminViewModel(
             CriterioRanking.QUIZZES -> usuarios.sortedByDescending { it.quizzesRealizados }
             CriterioRanking.RACHA -> usuarios.sortedByDescending { it.rachaActual }
         }.take(10)
+    }
+
+    companion object {
+        private const val TAG = "AdminViewModel"
     }
 }

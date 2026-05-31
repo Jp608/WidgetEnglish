@@ -34,6 +34,7 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var mostrarTerminosRegistro by remember { mutableStateOf(false) }
 
     val blueGradient = listOf(
         Color(0xFF1A237E),
@@ -160,7 +161,11 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Button(
-                        onClick = { viewModel.registrar() },
+                        onClick = {
+                            if (viewModel.prepararRegistroConTerminos()) {
+                                mostrarTerminosRegistro = true
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0)),
@@ -185,5 +190,20 @@ fun RegisterScreen(
             Text(text = "Al registrarte aceptas nuestros Términos y Política de Privacidad", fontSize = 11.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    if (mostrarTerminosRegistro) {
+        TermsAndConditionsDialog(
+            isLoading = uiState.cargando,
+            onDismiss = {
+                if (!uiState.cargando) {
+                    mostrarTerminosRegistro = false
+                }
+            },
+            onAccept = {
+                mostrarTerminosRegistro = false
+                viewModel.registrar(aceptaTerminos = true)
+            }
+        )
     }
 }

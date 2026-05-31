@@ -36,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +64,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +80,7 @@ import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
 import com.jp.widgetenglish.data.local.datastore.WidgetColorTheme
 import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
+import com.jp.widgetenglish.features.auth.TermsAndConditionsInfoDialog
 import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.widgetenglish.app.ui.Screen
@@ -139,9 +142,23 @@ fun ProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showWidgetCustomizationDialog by remember { mutableStateOf(false) }
+    var showTermsInfoDialog by remember { mutableStateOf(false) }
     var unavailableOptionTitle by remember { mutableStateOf<String?>(null) }
     var objetivoDiarioExpanded by remember { mutableStateOf(false) }
     var aprendizajeExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.cuentaEliminada) {
+        if (uiState.cuentaEliminada) {
+            authViewModel.cerrarSesion()
+
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        }
+    }
 
     fun navegar(route: String) {
         navController.navigate(route) {
@@ -207,45 +224,60 @@ fun ProfileScreen(
 
     if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = {
+                if (!uiState.eliminandoCuenta) {
+                    showDeleteDialog = false
+                }
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Filled.DeleteForever,
                     contentDescription = null,
-                    tint = Color.Red
+                    tint = DangerRed
                 )
             },
             title = {
                 Text(
-                    text = "Eliminación no disponible",
+                    text = "¿Eliminar cuenta?",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "Por ahora esta pantalla no elimina la cuenta ni el progreso. Para proteger tus datos, esta acción queda desactivada hasta implementar la eliminación real con Firebase.",
+                    text = "Esta acción eliminará tu cuenta, tus datos personales, progreso, rachas, lotes completados, actividad y estadísticas asociadas. No se puede deshacer.",
                     textAlign = TextAlign.Center
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showDeleteDialog = false
+                        viewModel.eliminarCuenta(context)
                     },
+                    enabled = !uiState.eliminandoCuenta,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue
+                        containerColor = DangerRed,
+                        disabledContainerColor = Color(0xFFFCA5A5)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = "Entendido",
-                        color = Color.White
-                    )
+                    if (uiState.eliminandoCuenta) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Eliminar definitivamente",
+                            color = Color.White
+                        )
+                    }
                 }
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = { showDeleteDialog = false },
+                    enabled = !uiState.eliminandoCuenta,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Cancelar")
@@ -296,6 +328,12 @@ fun ProfileScreen(
                 )
                 showWidgetCustomizationDialog = false
             }
+        )
+    }
+
+    if (showTermsInfoDialog) {
+        TermsAndConditionsInfoDialog(
+            onDismiss = { showTermsInfoDialog = false }
         )
     }
 
@@ -452,6 +490,20 @@ fun ProfileScreen(
                 ) {
                     showDeleteDialog = true
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Términos y condiciones",
+                    color = PrimaryBlue,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable { showTermsInfoDialog = true }
+                        .padding(vertical = 10.dp)
+                )
 
                 uiState.error?.let { error ->
                     Spacer(modifier = Modifier.height(12.dp))

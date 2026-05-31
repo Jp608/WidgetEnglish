@@ -78,4 +78,7 @@ interface UsuarioDao {
 
     @Query("DELETE FROM usuarios")
     suspend fun eliminarUsuarios()
+
+    @Query("DELETE FROM usuarios WHERE firebaseUid = :firebaseUid")
+    suspend fun eliminarUsuarioPorFirebaseUid(firebaseUid: String)
 }

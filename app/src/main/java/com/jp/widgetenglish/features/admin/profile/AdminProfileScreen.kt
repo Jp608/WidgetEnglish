@@ -1,6 +1,7 @@
 package com.jp.widgetenglish.features.admin.profile
 
 import android.app.Activity
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -35,7 +35,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -108,14 +111,19 @@ fun AdminProfileScreen(
     val nombreAdmin = usuario?.nombre?.takeIf { it.isNotBlank() } ?: "Administrador"
     val correoAdmin = usuario?.correo?.takeIf { it.isNotBlank() } ?: "Correo no disponible"
     val rolAdmin = usuario?.rol?.name ?: "ADMIN"
-    val estadoAdmin = if (usuario?.activo == true) "Activo" else "Activo"
+    val estadoAdmin = when (usuario?.activo) {
+        true -> "Activo"
+        false -> "Inactivo"
+        null -> "Sin estado"
+    }
+    val estadoAdminBackground = if (usuario?.activo == false) RedSoft else GreenSoft
+    val estadoAdminColor = if (usuario?.activo == false) RedMain else GreenMain
     val idAdmin = usuario?.firebaseUid ?: usuario?.idUsuario ?: "No disponible"
-    val rachaActual = usuario?.rachaActual ?: 0
-    val rachaMaxima = usuario?.rachaMaxima ?: 0
 
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var showConstructionDialog by remember { mutableStateOf(false) }
-    var constructionTitle by remember { mutableStateOf("") }
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showSecurityDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
         LogoutDialog(
@@ -127,10 +135,42 @@ fun AdminProfileScreen(
         )
     }
 
-    if (showConstructionDialog) {
-        ConstructionDialog(
-            title = constructionTitle,
-            onDismiss = { showConstructionDialog = false }
+    if (showEditProfileDialog) {
+        AdminEditProfileDialog(
+            currentName = nombreAdmin,
+            email = correoAdmin,
+            isSaving = profileState.guardandoPerfil,
+            message = profileState.mensaje,
+            error = profileState.error,
+            onDismiss = {
+                profileViewModel.limpiarMensajes()
+                showEditProfileDialog = false
+            },
+            onSave = { nombre ->
+                profileViewModel.actualizarPerfilAdministrador(nombre)
+            }
+        )
+    }
+
+    if (showSecurityDialog) {
+        AdminSecurityDialog(
+            email = correoAdmin,
+            isSending = profileState.enviandoCorreoSeguridad,
+            message = profileState.mensaje,
+            error = profileState.error,
+            onDismiss = {
+                profileViewModel.limpiarMensajes()
+                showSecurityDialog = false
+            },
+            onSendReset = {
+                profileViewModel.enviarCorreoSeguridadAdministrador()
+            }
+        )
+    }
+
+    if (showAboutDialog) {
+        AboutAdminPanelDialog(
+            onDismiss = { showAboutDialog = false }
         )
     }
 
@@ -206,8 +246,8 @@ fun AdminProfileScreen(
                 icon = Icons.Filled.VerifiedUser,
                 title = "Estado de cuenta",
                 value = estadoAdmin,
-                background = GreenSoft,
-                iconColor = GreenMain
+                background = estadoAdminBackground,
+                iconColor = estadoAdminColor
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -218,16 +258,6 @@ fun AdminProfileScreen(
                 value = idAdmin,
                 background = PurpleSoft,
                 iconColor = PurpleMain
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            ProfileInfoItem(
-                icon = Icons.Filled.Info,
-                title = "Racha actual / máxima",
-                value = "$rachaActual días / $rachaMaxima días",
-                background = PrimaryBlueSoft,
-                iconColor = PrimaryBlue
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -246,8 +276,8 @@ fun AdminProfileScreen(
                 background = PrimaryBlueSoft,
                 iconColor = PrimaryBlue,
                 onClick = {
-                    constructionTitle = "Ajustes de perfil"
-                    showConstructionDialog = true
+                    profileViewModel.limpiarMensajes()
+                    showEditProfileDialog = true
                 }
             )
 
@@ -260,8 +290,8 @@ fun AdminProfileScreen(
                 background = PurpleSoft,
                 iconColor = PurpleMain,
                 onClick = {
-                    constructionTitle = "Seguridad"
-                    showConstructionDialog = true
+                    profileViewModel.limpiarMensajes()
+                    showSecurityDialog = true
                 }
             )
 
@@ -274,8 +304,7 @@ fun AdminProfileScreen(
                 background = OrangeSoft,
                 iconColor = OrangeMain,
                 onClick = {
-                    constructionTitle = "Acerca del panel"
-                    showConstructionDialog = true
+                    showAboutDialog = true
                 }
             )
 
@@ -797,42 +826,308 @@ private fun LogoutDialog(
 }
 
 @Composable
-private fun ConstructionDialog(
-    title: String,
-    onDismiss: () -> Unit
+private fun AdminEditProfileDialog(
+    currentName: String,
+    email: String,
+    isSaving: Boolean,
+    message: String?,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
 ) {
+    var name by remember(currentName) { mutableStateOf(currentName) }
+
     AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Surface(
-                modifier = Modifier.size(54.dp),
-                shape = CircleShape,
-                color = OrangeSoft
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Build,
-                        contentDescription = null,
-                        tint = OrangeMain,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
+        onDismissRequest = {
+            if (!isSaving) {
+                onDismiss()
             }
+        },
+        icon = {
+            DialogIcon(
+                icon = Icons.Filled.Settings,
+                background = PrimaryBlueSoft,
+                iconColor = PrimaryBlue
+            )
         },
         title = {
             Text(
-                text = "$title en construcción",
+                text = "Ajustes de perfil",
                 fontWeight = FontWeight.Bold,
                 color = TextMain,
                 textAlign = TextAlign.Center
             )
         },
         text = {
+            Column {
+                Text(
+                    text = "Actualiza el nombre que se muestra dentro del panel administrativo.",
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                    singleLine = true,
+                    label = { Text("Nombre del administrador") },
+                    shape = RoundedCornerShape(16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                DialogInfoRow(
+                    icon = Icons.Filled.Email,
+                    title = "Correo asociado",
+                    value = email,
+                    background = GreenSoft,
+                    iconColor = GreenMain
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                DialogHintBox(
+                    text = "El correo, el rol y los permisos se mantienen protegidos y no se editan desde esta sección.",
+                    background = PrimaryBlueExtraSoft,
+                    textColor = TextMuted
+                )
+
+                AdminDialogFeedback(
+                    message = message,
+                    error = error
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(name) },
+                enabled = !isSaving && name.trim().length >= 3 && name.trim() != currentName.trim(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryBlue
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar")
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !isSaving,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Cerrar")
+            }
+        },
+        shape = RoundedCornerShape(26.dp)
+    )
+}
+
+@Composable
+private fun AdminSecurityDialog(
+    email: String,
+    isSending: Boolean,
+    message: String?,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSendReset: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = {
+            if (!isSending) {
+                onDismiss()
+            }
+        },
+        icon = {
+            DialogIcon(
+                icon = Icons.Filled.Lock,
+                background = PurpleSoft,
+                iconColor = PurpleMain
+            )
+        },
+        title = {
             Text(
-                text = "Esta sección todavía se está preparando. Pronto estará disponible.",
-                color = TextMuted,
+                text = "Seguridad",
+                fontWeight = FontWeight.Bold,
+                color = TextMain,
                 textAlign = TextAlign.Center
             )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Envía un correo seguro para cambiar o restablecer la contraseña de la cuenta administrativa.",
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                DialogInfoRow(
+                    icon = Icons.Filled.Email,
+                    title = "Destino del correo",
+                    value = email,
+                    background = GreenSoft,
+                    iconColor = GreenMain
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                DialogHintBox(
+                    text = "Firebase enviará el enlace al correo registrado. No se mostrará ni se almacenará ninguna contraseña en la app.",
+                    background = PurpleSoft,
+                    textColor = PurpleMain
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                DialogHintBox(
+                    text = "Si la cuenta usa Google, el acceso principal seguirá gestionándose desde Google.",
+                    background = OrangeSoft,
+                    textColor = OrangeMain
+                )
+
+                AdminDialogFeedback(
+                    message = message,
+                    error = error
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onSendReset,
+                enabled = !isSending && email.isNotBlank() && email != "Correo no disponible",
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PurpleMain
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                if (isSending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Enviar correo")
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !isSending,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Cerrar")
+            }
+        },
+        shape = RoundedCornerShape(26.dp)
+    )
+}
+
+@Composable
+private fun AboutAdminPanelDialog(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            DialogIcon(
+                icon = Icons.Filled.Info,
+                background = OrangeSoft,
+                iconColor = OrangeMain
+            )
+        },
+        title = {
+            Text(
+                text = "Acerca del panel",
+                fontWeight = FontWeight.Bold,
+                color = TextMain,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Panel administrativo de WidgetEnglish",
+                    color = TextMain,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Un espacio para revisar la actividad educativa de la app y tomar decisiones con datos claros.",
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                AboutPanelItem(
+                    icon = Icons.Filled.AdminPanelSettings,
+                    title = "Alcance",
+                    value = "Usuarios, rankings, actividad, categorías más estudiadas y palabras con dificultad.",
+                    background = PrimaryBlueSoft,
+                    iconColor = PrimaryBlue
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                AboutPanelItem(
+                    icon = Icons.Filled.Security,
+                    title = "Privacidad",
+                    value = "La información se usa para seguimiento académico, reportes y mejora de la experiencia.",
+                    background = GreenSoft,
+                    iconColor = GreenMain
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                AboutPanelItem(
+                    icon = Icons.Filled.Info,
+                    title = "Versión",
+                    value = "WidgetEnglish · Panel administrador",
+                    background = OrangeSoft,
+                    iconColor = OrangeMain
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = BorderSoft)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Los cambios realizados desde este módulo deben conservar la integridad de los datos de aprendizaje de los usuarios.",
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         },
         confirmButton = {
             Button(
@@ -846,5 +1141,145 @@ private fun ConstructionDialog(
             }
         },
         shape = RoundedCornerShape(26.dp)
+    )
+}
+
+@Composable
+private fun DialogIcon(
+    icon: ImageVector,
+    background: Color,
+    iconColor: Color
+) {
+    Surface(
+        modifier = Modifier.size(54.dp),
+        shape = CircleShape,
+        color = background
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DialogInfoRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    background: Color,
+    iconColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFFAFBFF),
+        border = BorderStroke(1.dp, BorderSoft)
+    ) {
+        Row(
+            modifier = Modifier.padding(13.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = background
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = value,
+                    color = TextMain,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 17.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DialogHintBox(
+    text: String,
+    background: Color,
+    textColor: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = background,
+        border = BorderStroke(1.dp, BorderSoft)
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 11.dp)
+        )
+    }
+}
+
+@Composable
+private fun AdminDialogFeedback(
+    message: String?,
+    error: String?
+) {
+    val text = error ?: message ?: return
+    val color = if (error != null) RedMain else GreenMain
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Text(
+        text = text,
+        color = color,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun AboutPanelItem(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    background: Color,
+    iconColor: Color
+) {
+    DialogInfoRow(
+        icon = icon,
+        title = title,
+        value = value,
+        background = background,
+        iconColor = iconColor
     )
 }

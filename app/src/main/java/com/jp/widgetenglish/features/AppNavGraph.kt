@@ -27,6 +27,7 @@ import com.jp.widgetenglish.features.admin.stats.AdminCategoriasScreen
 import com.jp.widgetenglish.features.admin.stats.AdminErroresScreen
 import com.jp.widgetenglish.features.auth.LoginScreen
 import com.jp.widgetenglish.features.auth.RegisterScreen
+import com.jp.widgetenglish.features.auth.TermsAndConditionsDialog
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModelFactory
 import com.jp.widgetenglish.features.common.ConstructionScreen
@@ -129,6 +130,9 @@ fun AppNavGraph() {
         factory = ProfileViewModelFactory(
             authRepository = authRepository,
             usuarioDao = database.usuarioDao(),
+            progresoDao = database.progresoDao(),
+            actividadDiariaDao = database.actividadDiariaDao(),
+            usuarioFirestoreDataSource = usuarioFirestoreDataSource,
             streakRepository = streakRepository
         )
     )
@@ -917,5 +921,24 @@ fun AppNavGraph() {
                 }
             )
         }
+    }
+
+    if (authUiState.mostrarTerminos) {
+        TermsAndConditionsDialog(
+            isLoading = authUiState.aceptandoTerminos,
+            onDismiss = {
+                authViewModel.cancelarTerminosPendientes()
+
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            },
+            onAccept = {
+                authViewModel.aceptarTerminosPendientes()
+            }
+        )
     }
 }

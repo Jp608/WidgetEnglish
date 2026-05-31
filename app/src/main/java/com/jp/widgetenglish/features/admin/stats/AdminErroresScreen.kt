@@ -17,18 +17,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,6 +60,8 @@ fun AdminErroresScreen(
     onActividadClick: () -> Unit,
     onPerfilClick: () -> Unit
 ) {
+    AdminStatsStatusBarColor()
+
     val uiState by viewModel.uiState.collectAsState()
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
@@ -76,12 +75,15 @@ fun AdminErroresScreen(
         uiState.erroresStats.filter { it.loteId == selectedCategory }
     }
 
-    val categoriesWithErrors = uiState.erroresStats.map { it.loteId }.distinct()
+    val categoriesWithErrors = uiState.erroresStats
+        .map { it.loteId }
+        .filter { it.isNotBlank() }
+        .distinct()
 
     Scaffold(
         bottomBar = {
             AdminBottomBar(
-                selected = "vocabulario",
+                selected = "resumen",
                 onResumenClick = onResumenClick,
                 onRankingClick = onRankingClick,
                 onActividadClick = onActividadClick,
@@ -95,35 +97,13 @@ fun AdminErroresScreen(
                 .fillMaxSize()
                 .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PrimaryBlue)
-                    .padding(top = 16.dp, bottom = 24.dp, start = 8.dp, end = 24.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Palabras con más errores",
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Top 50 términos de mayor dificultad",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
+            AdminStatsHeader(
+                title = "Palabras con más errores",
+                subtitle = "Top 50 términos de mayor dificultad",
+                isRefreshing = uiState.cargando,
+                onBack = onBack,
+                onRefreshClick = { viewModel.cargarDatosAdmin() }
+            )
 
             if (categoriesWithErrors.isNotEmpty()) {
                 Row(
@@ -140,8 +120,9 @@ fun AdminErroresScreen(
                         tint = TextMuted,
                         modifier = Modifier.size(20.dp)
                     )
+
                     Spacer(modifier = Modifier.width(8.dp))
-                    
+
                     FilterChip(
                         selected = selectedCategory == null,
                         onClick = { selectedCategory = null },
@@ -151,17 +132,20 @@ fun AdminErroresScreen(
                             selectedLabelColor = Color.White
                         )
                     )
-                    
+
                     categoriesWithErrors.forEach { categoryId ->
                         Spacer(modifier = Modifier.width(8.dp))
+
                         FilterChip(
                             selected = selectedCategory == categoryId,
                             onClick = { selectedCategory = categoryId },
-                            label = { 
-                                // Ideally we would have category names here, but we only have IDs in erroresStats
-                                // unless we match them with categoriasStats.
-                                val categoryName = uiState.categoriasStats.find { it.id == categoryId }?.nombre ?: categoryId
-                                Text(categoryName) 
+                            label = {
+                                val categoryName = uiState.categoriasStats
+                                    .find { it.id == categoryId }
+                                    ?.nombre
+                                    ?: categoryId
+
+                                Text(categoryName)
                             },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PrimaryBlue,
@@ -179,16 +163,20 @@ fun AdminErroresScreen(
             ) {
                 if (uiState.cargando) {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = PrimaryBlue)
                     }
                 } else if (filteredErrors.isEmpty()) {
                     StatsEmptyState(
-                        text = if (selectedCategory == null) 
-                            "No hay registros de errores aún." 
-                            else "No hay errores registrados para esta categoría.",
+                        text = if (selectedCategory == null) {
+                            "No hay registros de errores aún."
+                        } else {
+                            "No hay errores registrados para esta categoría."
+                        },
                         icon = Icons.Default.FilterList
                     )
                 } else {
@@ -199,13 +187,12 @@ fun AdminErroresScreen(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
-
 
 @Composable
 fun PalabraErrorItem(
@@ -248,6 +235,7 @@ fun PalabraErrorItem(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
                     text = "ID: ${stat.id}",
                     color = TextMuted,
@@ -262,6 +250,7 @@ fun PalabraErrorItem(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
+
                 Text(
                     text = "errores",
                     color = TextMuted,
