@@ -1,10 +1,13 @@
 package com.widgetenglish.app.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -64,6 +67,13 @@ import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSourc
 import com.jp.widgetenglish.features.profile.statistics.screens.StatisticsScreen
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
+import com.jp.widgetenglish.data.repository.ChatRepositoryImpl
+import com.jp.widgetenglish.data.remote.ai.GroqAiClient
+import com.jp.widgetenglish.features.ai.presentation.screens.ChatHistoryScreen
+import com.jp.widgetenglish.features.ai.presentation.screens.ChatRoomScreen
+import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModel
+import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModelFactory
+import com.jp.widgetenglish.features.common.JimmyCopilotOverlay
 
 @Composable
 fun AppNavGraph() {
@@ -155,6 +165,18 @@ fun AppNavGraph() {
             authRepository = authRepository,
             usuarioFirestoreDataSource = usuarioFirestoreDataSource,
             streakRepository = streakRepository
+        )
+    )
+
+    val groqAiClient = GroqAiClient(apiKey = "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")
+    val chatRepository = ChatRepositoryImpl(
+        chatDao = database.chatDao(),
+        aiClient = groqAiClient
+    )
+
+    val chatViewModel: ChatViewModel = viewModel(
+        factory = ChatViewModelFactory(
+            repository = chatRepository
         )
     )
 
@@ -255,58 +277,72 @@ fun AppNavGraph() {
         }
 
         composable(Screen.Home.route) {
-            HomeScreen(
-                viewModel = homeViewModel,
-                onVocabularioClick = {
-                    navegar(Screen.Vocabulario.route)
-                },
-                onLotesClick = {
-                    navegar(Screen.Lotes.route)
-                },
-                onEstudioClick = {
-                    navegar(Screen.Estudio.route)
-                },
-                onIaClick = {
-                    navegar(Screen.Ia.route)
-                },
-                onPerfilClick = {
-                    navegar(Screen.Profile.route)
-                }
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    onVocabularioClick = {
+                        navegar(Screen.Vocabulario.route)
+                    },
+                    onLotesClick = {
+                        navegar(Screen.Lotes.route)
+                    },
+                    onEstudioClick = {
+                        navegar(Screen.Estudio.route)
+                    },
+                    onIaClick = {
+                        navegar(Screen.Ia.route)
+                    },
+                    onPerfilClick = {
+                        navegar(Screen.Profile.route)
+                    }
+                )
+                JimmyCopilotOverlay(
+                    pantallaActual = "Inicio (Home)",
+                    contextoAdicional = "Racha: ${homeViewModel.uiState.collectAsState().value.rachaActual} días",
+                    aiClient = groqAiClient
+                )
+            }
         }
 
         composable(Screen.Vocabulario.route) {
-            VocabularyScreen(
-                viewModel = vocabularyViewModel,
-                onBackClick = {
-                    navegar(Screen.Home.route)
-                },
-                onVocabularioClick = {
-                    vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Vocabulario.route)
-                },
-                onLotesClick = {
-                    vocabularyViewModel.establecerLote(null)
-                    navegar(Screen.Lotes.route)
-                },
-                onEstudioClick = {
-                    navegar(Screen.Estudio.route)
-                },
-                onIaClick = {
-                    navegar(Screen.Ia.route)
-                },
-                onPerfilClick = {
-                    navegar(Screen.Profile.route)
-                },
-                onItemClick = { item ->
-                    navController.navigate(
-                        Screen.VocabularyDetail.createRoute(
-                            item.id,
-                            item.esVerbo
+            Box(modifier = Modifier.fillMaxSize()) {
+                VocabularyScreen(
+                    viewModel = vocabularyViewModel,
+                    onBackClick = {
+                        navegar(Screen.Home.route)
+                    },
+                    onVocabularioClick = {
+                        vocabularyViewModel.establecerLote(null)
+                        navegar(Screen.Vocabulario.route)
+                    },
+                    onLotesClick = {
+                        vocabularyViewModel.establecerLote(null)
+                        navegar(Screen.Lotes.route)
+                    },
+                    onEstudioClick = {
+                        navegar(Screen.Estudio.route)
+                    },
+                    onIaClick = {
+                        navegar(Screen.Ia.route)
+                    },
+                    onPerfilClick = {
+                        navegar(Screen.Profile.route)
+                    },
+                    onItemClick = { item ->
+                        navController.navigate(
+                            Screen.VocabularyDetail.createRoute(
+                                item.id,
+                                item.esVerbo
+                            )
                         )
-                    )
-                }
-            )
+                    }
+                )
+                JimmyCopilotOverlay(
+                    pantallaActual = "Biblioteca de Vocabulario",
+                    contextoAdicional = "Sección: ${vocabularyViewModel.uiState.collectAsState().value.seccionActual.name}",
+                    aiClient = groqAiClient
+                )
+            }
         }
 
 
@@ -318,14 +354,21 @@ fun AppNavGraph() {
                 ?.getString("isVerbo")
                 ?.toBoolean() ?: false
 
-            VocabularyDetailScreen(
-                itemId = itemId,
-                isVerbo = isVerbo,
-                viewModel = vocabularyViewModel,
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                VocabularyDetailScreen(
+                    itemId = itemId,
+                    isVerbo = isVerbo,
+                    viewModel = vocabularyViewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+                JimmyCopilotOverlay(
+                    pantallaActual = "Detalle de Palabra",
+                    contextoAdicional = "Palabra ID: $itemId, esVerbo: $isVerbo",
+                    aiClient = groqAiClient
+                )
+            }
         }
 
         composable(Screen.Lotes.route) {
@@ -675,36 +718,42 @@ fun AppNavGraph() {
 
 
         composable(Screen.Ia.route) {
-            ConstructionScreen(
-                titulo = "IA Chat en construcción",
-                descripcion = "Aquí podrás consultar dudas de vocabulario y recibir ejemplos.",
-                onVolverInicio = {
-                    navegar(Screen.Home.route)
+            ChatHistoryScreen(
+                viewModel = chatViewModel,
+                onChatClick = { sessionId ->
+                    navController.navigate(Screen.AIChatRoom.createRoute(sessionId))
                 },
-                onPerfilClick = {
-                    navegar(Screen.Profile.route)
-                },
-                onVocabularioClick = {
-                    navegar(Screen.Vocabulario.route)
-                },
-                onLotesClick = {
-                    navegar(Screen.Lotes.route)
-                },
-                onEstudioClick = {
-                    navegar(Screen.Estudio.route)
-                },
-                onIaClick = {
-                    navegar(Screen.Ia.route)
-                }
+                onBackClick = { navegar(Screen.Home.route) },
+                onVocabularioClick = { navegar(Screen.Vocabulario.route) },
+                onLotesClick = { navegar(Screen.Lotes.route) },
+                onEstudioClick = { navegar(Screen.Estudio.route) },
+                onIaClick = { navegar(Screen.Ia.route) },
+                onPerfilClick = { navegar(Screen.Profile.route) }
+            )
+        }
+
+        composable(Screen.AIChatRoom.route) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            ChatRoomScreen(
+                sessionId = sessionId,
+                viewModel = chatViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen(
-                navController = navController,
-                viewModel = profileViewModel,
-                authViewModel = authViewModel
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                ProfileScreen(
+                    navController = navController,
+                    viewModel = profileViewModel,
+                    authViewModel = authViewModel
+                )
+                JimmyCopilotOverlay(
+                    pantallaActual = "Perfil de Usuario",
+                    contextoAdicional = "Usuario: ${profileViewModel.uiState.collectAsState().value.usuario?.nombre ?: "Sin nombre"}",
+                    aiClient = groqAiClient
+                )
+            }
         }
 
         composable(Screen.Statistics.route) {

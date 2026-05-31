@@ -24,6 +24,9 @@ sealed class Screen(val route: String) {
 
     object AIChat : Screen("ai_chat")
     object Ia : Screen("ia")
+    object AIChatRoom : Screen("aichat_room/{sessionId}") {
+        fun createRoute(sessionId: String) = "aichat_room/$sessionId"
+    }
 
     object LoteDetail : Screen("lote_detail/{loteId}") {
         fun createRoute(loteId: String): String {
