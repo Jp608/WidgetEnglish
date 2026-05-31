@@ -5,6 +5,7 @@ import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.ProgresoUsuarioEntity
 import com.jp.widgetenglish.data.local.entity.TipoContenido
+import java.time.LocalDate
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -14,7 +15,9 @@ object LearningContentSelector {
         contenidos: List<LoteContenidoEntity>,
         progresos: List<ProgresoUsuarioEntity>,
         modo: ModoSeleccionContenido,
-        limite: Int
+        limite: Int,
+        diaInicioSecuencial: Int? = null,
+        diaActual: Int = obtenerDiaLocalActual()
     ): List<LoteContenidoEntity> {
         if (contenidos.isEmpty()) return emptyList()
 
@@ -24,7 +27,12 @@ object LearningContentSelector {
             ModoSeleccionContenido.SECUENCIAL -> {
                 seleccionarSecuencial(
                     contenidos = contenidos,
-                    limite = limiteSeguro
+                    progresos = progresos,
+                    limite = limiteSeguro,
+                    diasTranscurridos = calcularDiasTranscurridos(
+                        diaInicio = diaInicioSecuencial,
+                        diaActual = diaActual
+                    )
                 )
             }
 
@@ -47,11 +55,38 @@ object LearningContentSelector {
 
     private fun seleccionarSecuencial(
         contenidos: List<LoteContenidoEntity>,
-        limite: Int
+        progresos: List<ProgresoUsuarioEntity>,
+        limite: Int,
+        diasTranscurridos: Int
     ): List<LoteContenidoEntity> {
-        return contenidos
-            .sortedBy { it.orden }
-            .take(limite)
+        val contenidosOrdenados = contenidos.sortedBy { it.orden }
+        val inicioDelDia = (diasTranscurridos * limite) % contenidosOrdenados.size
+        val contenidosDesdeInicioDelDia = contenidosOrdenados.rotarDesde(inicioDelDia)
+        val aprendidas = progresos
+            .filter { it.estadoAprendizaje == EstadoAprendizaje.APRENDIDA }
+            .map {
+                claveProgreso(
+                    contenidoId = it.contenidoId,
+                    tipoContenido = it.tipoContenido
+                )
+            }
+            .toSet()
+
+        val pendientes = contenidosDesdeInicioDelDia.filterNot { contenido ->
+            claveProgreso(
+                contenidoId = contenido.contenidoId,
+                tipoContenido = contenido.tipoContenido
+            ) in aprendidas
+        }
+
+        val aprendidasParaRepaso = contenidosDesdeInicioDelDia.filter { contenido ->
+            claveProgreso(
+                contenidoId = contenido.contenidoId,
+                tipoContenido = contenido.tipoContenido
+            ) in aprendidas
+        }
+
+        return (pendientes + aprendidasParaRepaso).take(limite)
     }
 
     private fun seleccionarAleatorioEstablePorDia(
@@ -144,6 +179,25 @@ object LearningContentSelector {
         val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
 
         return year * 10_000 + month * 100 + day
+    }
+
+    fun obtenerDiaLocalActual(): Int {
+        return LocalDate.now().toEpochDay().toInt()
+    }
+
+    private fun calcularDiasTranscurridos(
+        diaInicio: Int?,
+        diaActual: Int
+    ): Int {
+        return (diaActual - (diaInicio ?: diaActual)).coerceAtLeast(0)
+    }
+
+    private fun <T> List<T>.rotarDesde(indice: Int): List<T> {
+        if (isEmpty()) return emptyList()
+
+        val indiceSeguro = indice.coerceIn(0, lastIndex)
+
+        return drop(indiceSeguro) + take(indiceSeguro)
     }
 
     private fun claveProgreso(

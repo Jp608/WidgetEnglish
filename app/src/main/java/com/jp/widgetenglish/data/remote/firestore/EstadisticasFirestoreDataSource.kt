@@ -94,9 +94,15 @@ class EstadisticasFirestoreDataSource(
         palabrasAprendidas: Int,
         quizzesRealizados: Int,
         lotesCompletados: Int,
-        porcentajeProgreso: Int
+        porcentajeProgreso: Int,
+        lotesCompletadosIds: List<String> = emptyList()
     ) {
         if (firebaseUid.isBlank()) return
+
+        val lotesCompletadosUnicos = lotesCompletadosIds
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
 
         val data = mapOf(
             "rachaActual" to rachaActual,
@@ -106,6 +112,7 @@ class EstadisticasFirestoreDataSource(
             "palabrasAprendidas" to palabrasAprendidas,
             "quizzesRealizados" to quizzesRealizados,
             "lotesCompletados" to lotesCompletados,
+            "lotesCompletadosIds" to lotesCompletadosUnicos,
             "porcentajeProgreso" to porcentajeProgreso,
             "ultimaSincronizacionEstadisticas" to System.currentTimeMillis()
         )
@@ -193,6 +200,11 @@ class EstadisticasFirestoreDataSource(
             palabrasAprendidas = snapshot.getLong("palabrasAprendidas")?.toInt() ?: 0,
             quizzesRealizados = snapshot.getLong("quizzesRealizados")?.toInt() ?: 0,
             lotesCompletados = snapshot.getLong("lotesCompletados")?.toInt() ?: 0,
+            lotesCompletadosIds = (snapshot.get("lotesCompletadosIds") as? List<*>)
+                ?.mapNotNull { it as? String }
+                ?.filter { it.isNotBlank() }
+                ?.distinct()
+                ?: emptyList(),
             porcentajeProgreso = snapshot.getLong("porcentajeProgreso")?.toInt() ?: 0
         )
     }
@@ -206,5 +218,6 @@ data class FirebaseUserStats(
     val palabrasAprendidas: Int = 0,
     val quizzesRealizados: Int = 0,
     val lotesCompletados: Int = 0,
+    val lotesCompletadosIds: List<String> = emptyList(),
     val porcentajeProgreso: Int = 0
 )
