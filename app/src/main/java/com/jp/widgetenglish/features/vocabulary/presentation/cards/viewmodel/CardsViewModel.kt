@@ -607,6 +607,12 @@ class CardsViewModel(
                 )
 
                 streakRepository.sincronizarEstadisticasActuales(userId)
+
+                // Registrar uso global de la categoría (estudio)
+                streakRepository.registrarUsoCategoriaGlobal(
+                    loteId = lote.idLote,
+                    nombre = lote.nombre
+                )
             } catch (e: Exception) {
                 e.printStackTrace()
             }

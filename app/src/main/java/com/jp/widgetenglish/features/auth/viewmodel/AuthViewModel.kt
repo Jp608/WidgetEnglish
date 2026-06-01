@@ -40,6 +40,7 @@ class AuthViewModel(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     private val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
+    private var autenticacionPendienteTerminos: AutenticacionPendienteTerminos? = null
 
     init {
         verificarSesionActiva()
@@ -291,11 +292,71 @@ class AuthViewModel(
     }
 
     private suspend fun guardarUsuarioFirestoreYRoom(
-        usuarioBase: UsuarioEntity
+        usuarioBase: UsuarioEntity,
+        aceptarTerminos: Boolean = false
     ): UsuarioEntity {
-        val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(usuarioBase)
+        val usuarioConRol = usuarioFirestoreDataSource.crearUsuarioSiNoExiste(
+            usuario = usuarioBase,
+            aceptarTerminos = aceptarTerminos
+        )
 
         return guardarUsuarioRoomPreservandoEstadisticas(usuarioConRol)
+    }
+
+    private suspend fun continuarAutenticacion(
+        firebaseUid: String,
+        usuarioConRol: UsuarioEntity,
+        mensaje: String?
+    ) {
+        val requiereAceptarTerminos = usuarioConRol.rol != RolUsuario.ADMIN &&
+                !usuarioFirestoreDataSource.usuarioAceptoTerminos(firebaseUid)
+
+        if (requiereAceptarTerminos) {
+            autenticacionPendienteTerminos = AutenticacionPendienteTerminos(
+                firebaseUid = firebaseUid,
+                rolUsuario = usuarioConRol.rol,
+                mensaje = mensaje
+            )
+
+            _uiState.value = _uiState.value.copy(
+                cargando = false,
+                autenticado = false,
+                rolUsuario = usuarioConRol.rol,
+                mostrarTerminos = true,
+                aceptandoTerminos = false,
+                mensaje = null,
+                error = null
+            )
+            return
+        }
+
+        completarAutenticacion(
+            firebaseUid = firebaseUid,
+            rolUsuario = usuarioConRol.rol,
+            mensaje = mensaje
+        )
+    }
+
+    private suspend fun completarAutenticacion(
+        firebaseUid: String,
+        rolUsuario: RolUsuario,
+        mensaje: String?
+    ) {
+        sincronizarEstadisticasRemotasALocal(firebaseUid)
+        sincronizarActividadDiariaRemotaALocal(firebaseUid)
+        sincronizarWidgetTrasLogin(firebaseUid)
+
+        autenticacionPendienteTerminos = null
+
+        _uiState.value = _uiState.value.copy(
+            cargando = false,
+            autenticado = true,
+            rolUsuario = rolUsuario,
+            mostrarTerminos = false,
+            aceptandoTerminos = false,
+            mensaje = mensaje,
+            error = null
+        )
     }
 
     private suspend fun guardarUsuarioRoomPreservandoEstadisticas(
@@ -367,26 +428,48 @@ class AuthViewModel(
         _uiState.value = _uiState.value.copy(error = error)
     }
 
-    fun registrar() {
+    fun prepararRegistroConTerminos(): Boolean {
+        val state = _uiState.value
+        val errorRegistro = validarDatosRegistro(state)
+
+        if (errorRegistro != null) {
+            _uiState.value = state.copy(error = errorRegistro)
+            return false
+        }
+
+        _uiState.value = state.copy(error = null)
+        return true
+    }
+
+    private fun validarDatosRegistro(state: AuthUiState): String? {
+        return when {
+            state.nombre.isBlank() || state.correo.isBlank() || state.password.isBlank() ->
+                "Completa todos los campos"
+
+            !state.correo.matches(emailRegex) ->
+                "El formato del correo no es válido"
+
+            state.password.length < 6 ->
+                "La contraseña debe tener mínimo 6 caracteres"
+
+            state.password != state.confirmPassword ->
+                "Las contraseñas no coinciden"
+
+            else -> null
+        }
+    }
+
+    fun registrar(aceptaTerminos: Boolean = false) {
         val state = _uiState.value
 
-        if (state.nombre.isBlank() || state.correo.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(error = "Completa todos los campos")
+        val errorRegistro = validarDatosRegistro(state)
+        if (errorRegistro != null) {
+            _uiState.value = state.copy(error = errorRegistro)
             return
         }
 
-        if (!state.correo.matches(emailRegex)) {
-            _uiState.value = state.copy(error = "El formato del correo no es válido")
-            return
-        }
-
-        if (state.password.length < 6) {
-            _uiState.value = state.copy(error = "La contraseña debe tener mínimo 6 caracteres")
-            return
-        }
-
-        if (state.password != state.confirmPassword) {
-            _uiState.value = state.copy(error = "Las contraseñas no coinciden")
+        if (!aceptaTerminos) {
+            _uiState.value = state.copy(error = "Debes aceptar los términos y condiciones")
             return
         }
 
@@ -416,17 +499,14 @@ class AuthViewModel(
                     ultimoAcceso = System.currentTimeMillis()
                 )
 
-                val usuarioConRol = guardarUsuarioFirestoreYRoom(usuario)
+                val usuarioConRol = guardarUsuarioFirestoreYRoom(
+                    usuarioBase = usuario,
+                    aceptarTerminos = true
+                )
 
-                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
-                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
-
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioConRol.rol,
+                continuarAutenticacion(
+                    firebaseUid = firebaseUser.uid,
+                    usuarioConRol = usuarioConRol,
                     mensaje = "Registro exitoso"
                 )
             }
@@ -480,15 +560,9 @@ class AuthViewModel(
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
-                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
-                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
-
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioConRol.rol,
+                continuarAutenticacion(
+                    firebaseUid = firebaseUser.uid,
+                    usuarioConRol = usuarioConRol,
                     mensaje = "Inicio de sesión exitoso"
                 )
             }
@@ -527,15 +601,9 @@ class AuthViewModel(
 
                 val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
-                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
-                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
-
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioConRol.rol,
+                continuarAutenticacion(
+                    firebaseUid = firebaseUser.uid,
+                    usuarioConRol = usuarioConRol,
                     mensaje = "Inicio de sesión con Google exitoso"
                 )
             }
@@ -571,17 +639,12 @@ class AuthViewModel(
                     )
                 )
 
-                sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
-                sincronizarActividadDiariaRemotaALocal(firebaseUser.uid)
-
                 usuarioFirestoreDataSource.actualizarUltimoAcceso(firebaseUser.uid)
 
-                sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-                _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    autenticado = true,
-                    rolUsuario = usuarioActualizado.rol
+                continuarAutenticacion(
+                    firebaseUid = firebaseUser.uid,
+                    usuarioConRol = usuarioActualizado,
+                    mensaje = null
                 )
 
                 return@launch
@@ -601,16 +664,53 @@ class AuthViewModel(
 
             val usuarioConRol = guardarUsuarioFirestoreYRoom(usuarioBase)
 
-            sincronizarEstadisticasRemotasALocal(firebaseUser.uid)
-
-
-            sincronizarWidgetTrasLogin(firebaseUser.uid)
-
-            _uiState.value = _uiState.value.copy(
-                cargando = false,
-                autenticado = true,
-                rolUsuario = usuarioConRol.rol
+            continuarAutenticacion(
+                firebaseUid = firebaseUser.uid,
+                usuarioConRol = usuarioConRol,
+                mensaje = null
             )
+        }
+    }
+
+    fun aceptarTerminosPendientes() {
+        val pendiente = autenticacionPendienteTerminos ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                aceptandoTerminos = true,
+                error = null
+            )
+
+            try {
+                usuarioFirestoreDataSource.registrarAceptacionTerminos(
+                    firebaseUid = pendiente.firebaseUid
+                )
+
+                completarAutenticacion(
+                    firebaseUid = pendiente.firebaseUid,
+                    rolUsuario = pendiente.rolUsuario,
+                    mensaje = pendiente.mensaje
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    aceptandoTerminos = false,
+                    error = e.message ?: "No se pudo guardar la aceptación de términos"
+                )
+            }
+        }
+    }
+
+    fun cancelarTerminosPendientes() {
+        autenticacionPendienteTerminos = null
+        authRepository.cerrarSesion()
+
+        _uiState.value = AuthUiState(
+            error = "Debes aceptar los términos y condiciones para usar WidgetEnglish"
+        )
+
+        viewModelScope.launch {
+            WidgetPreferences.limpiarSesionWidget(context)
+            WordWidgetProvider.updateAll(context)
         }
     }
 
@@ -663,3 +763,9 @@ class AuthViewModel(
         }
     }
 }
+
+private data class AutenticacionPendienteTerminos(
+    val firebaseUid: String,
+    val rolUsuario: RolUsuario,
+    val mensaje: String?
+)

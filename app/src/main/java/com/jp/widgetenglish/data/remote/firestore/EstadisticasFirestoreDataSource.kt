@@ -1,6 +1,8 @@
 package com.jp.widgetenglish.data.remote.firestore
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
 import kotlinx.coroutines.tasks.await
@@ -10,6 +12,78 @@ class EstadisticasFirestoreDataSource(
 ) {
 
     private val usuariosCollection = firestore.collection("usuarios")
+    private val statsGlobalesCollection = firestore.collection("stats_globales")
+
+    suspend fun incrementarUsoCategoria(loteId: String, nombre: String) {
+        if (loteId.isBlank()) return
+
+        val docRef = statsGlobalesCollection
+            .document("categorias")
+            .collection("detalle")
+            .document(loteId)
+
+        val data = mapOf(
+            "nombre" to nombre,
+            "vecesEstudiada" to FieldValue.increment(1),
+            "ultimaActualizacion" to FieldValue.serverTimestamp()
+        )
+
+        docRef.set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun registrarErrorPalabra(palabraId: String, termino: String, loteId: String) {
+        if (palabraId.isBlank()) return
+
+        val docRef = statsGlobalesCollection
+            .document("errores_palabras")
+            .collection("detalle")
+            .document(palabraId)
+
+        val data = mapOf(
+            "termino" to termino,
+            "loteId" to loteId,
+            "cantidadErrores" to FieldValue.increment(1),
+            "ultimaActualizacion" to FieldValue.serverTimestamp()
+        )
+
+        docRef.set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun obtenerCategoriasStats(): List<CategoriaStatsDto> {
+        val snapshot = statsGlobalesCollection
+            .document("categorias")
+            .collection("detalle")
+            .orderBy("vecesEstudiada", Query.Direction.DESCENDING)
+            .get()
+            .await()
+
+        return snapshot.documents.map { doc ->
+            CategoriaStatsDto(
+                id = doc.id,
+                nombre = doc.getString("nombre") ?: "Desconocida",
+                vecesEstudiada = doc.getLong("vecesEstudiada")?.toInt() ?: 0
+            )
+        }
+    }
+
+    suspend fun obtenerErroresPalabrasStats(): List<PalabraErrorStatsDto> {
+        val snapshot = statsGlobalesCollection
+            .document("errores_palabras")
+            .collection("detalle")
+            .orderBy("cantidadErrores", Query.Direction.DESCENDING)
+            .limit(50)
+            .get()
+            .await()
+
+        return snapshot.documents.map { doc ->
+            PalabraErrorStatsDto(
+                id = doc.id,
+                termino = doc.getString("termino") ?: "Desconocida",
+                loteId = doc.getString("loteId") ?: "",
+                cantidadErrores = doc.getLong("cantidadErrores")?.toInt() ?: 0
+            )
+        }
+    }
 
     suspend fun sincronizarEstadisticasUsuario(
         firebaseUid: String,

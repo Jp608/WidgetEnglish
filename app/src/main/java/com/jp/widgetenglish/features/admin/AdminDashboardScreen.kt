@@ -100,6 +100,8 @@ fun AdminDashboardScreen(
     viewModel: AdminViewModel,
     onRankingClick: () -> Unit,
     onActividadClick: () -> Unit,
+    onCategoriasClick: () -> Unit,
+    onErroresClick: () -> Unit,
     onPerfilClick: () -> Unit,
     onCerrarSesionClick: () -> Unit
 ) {
@@ -224,29 +226,23 @@ fun AdminDashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 AdminActionCard(
-                    title = "Vocabulario",
-                    subtitle = "En construcción",
-                    icon = Icons.Filled.Book,
+                    title = "Categorías",
+                    subtitle = "Temas populares",
+                    icon = Icons.Filled.Layers,
                     background = OrangeSoft,
                     iconColor = OrangeMain,
                     modifier = Modifier.weight(1f),
-                    onClick = {
-                        constructionTitle = "Vocabulario"
-                        showConstructionDialog = true
-                    }
+                    onClick = onCategoriasClick
                 )
 
                 AdminActionCard(
-                    title = "Lotes",
-                    subtitle = "En construcción",
-                    icon = Icons.Filled.Layers,
+                    title = "Errores",
+                    subtitle = "Dificultades",
+                    icon = Icons.Filled.Report,
                     background = GreenSoft,
                     iconColor = GreenMain,
                     modifier = Modifier.weight(1f),
-                    onClick = {
-                        constructionTitle = "Lotes"
-                        showConstructionDialog = true
-                    }
+                    onClick = onErroresClick
                 )
             }
 

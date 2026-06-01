@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,14 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
 }
+
+val releaseSigningFile = rootProject.file("release-signing.properties")
+val releaseSigningProperties = Properties().apply {
+    if (releaseSigningFile.exists()) {
+        releaseSigningFile.inputStream().use(::load)
+    }
+}
+val hasReleaseSigning = releaseSigningFile.exists()
 
 android {
     namespace = "com.jp.widgetenglish"
@@ -25,9 +35,24 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigningProperties.getProperty("storeFile"))
+                storePassword = releaseSigningProperties.getProperty("storePassword")
+                keyAlias = releaseSigningProperties.getProperty("keyAlias")
+                keyPassword = releaseSigningProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

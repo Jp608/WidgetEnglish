@@ -8,6 +8,7 @@ data class AdminUsuarioDto(
     val id: String = "",
     val nombre: String = "Usuario",
     val correo: String = "",
+    val rol: String = "USUARIO",
     val activo: Boolean = false,
     val ultimoAcceso: Long = 0L,
     val palabrasAprendidas: Int = 0,
@@ -27,8 +28,17 @@ class AdminFirestoreDataSource(
             .get()
             .await()
 
-        return snapshot.documents.map { document ->
+        return snapshot.documents.mapNotNull { document ->
             val data = document.data.orEmpty()
+            val rol = obtenerTexto(
+                data = data,
+                claves = listOf("rol", "role", "tipoUsuario"),
+                valorPorDefecto = "USUARIO"
+            )
+
+            if (rol.equals("ADMIN", ignoreCase = true)) {
+                return@mapNotNull null
+            }
 
             AdminUsuarioDto(
                 id = document.id,
@@ -42,6 +52,7 @@ class AdminFirestoreDataSource(
                     claves = listOf("correo", "email", "correoElectronico"),
                     valorPorDefecto = ""
                 ),
+                rol = rol,
                 activo = obtenerBooleano(
                     data = data,
                     claves = listOf("activo", "isActive", "habilitado"),

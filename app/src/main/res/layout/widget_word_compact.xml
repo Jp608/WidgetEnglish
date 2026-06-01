@@ -9,6 +9,7 @@
 
     <!-- Header compacto -->
     <LinearLayout
+        android:id="@+id/widget_compact_header"
         android:layout_width="match_parent"
         android:layout_height="34dp"
         android:background="@drawable/widget_compact_header_bg"

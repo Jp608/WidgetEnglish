@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.UserProfileChangeRequest
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth
 ) : AuthRepository {
@@ -76,8 +77,51 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun actualizarNombreUsuarioActual(
+        nombre: String
+    ): Result<Unit> {
+        return try {
+            val user = firebaseAuth.currentUser
+                ?: return Result.failure(Exception("No hay usuario autenticado"))
+
+            val profileUpdates = UserProfileChangeRequest.Builder()
+                .setDisplayName(nombre)
+                .build()
+
+            user.updateProfile(profileUpdates).await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun obtenerUsuarioActual(): FirebaseUser? {
         return firebaseAuth.currentUser
+    }
+
+    override fun requiereInicioSesionReciente(
+        maxAgeMillis: Long
+    ): Boolean {
+        val lastSignIn = firebaseAuth.currentUser
+            ?.metadata
+            ?.lastSignInTimestamp
+            ?: return true
+
+        return System.currentTimeMillis() - lastSignIn > maxAgeMillis
+    }
+
+    override suspend fun eliminarCuentaActual(): Result<Unit> {
+        return try {
+            val user = firebaseAuth.currentUser
+                ?: return Result.failure(Exception("No hay usuario autenticado"))
+
+            user.delete().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override fun cerrarSesion() {
