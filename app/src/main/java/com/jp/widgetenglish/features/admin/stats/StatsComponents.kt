@@ -15,9 +15,13 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowInsetsControllerCompat
 
 private val StatsHeaderBlue = Color(0xFF2468D8)
+private val StatsErrorRed = Color(0xFFC62828)
+private val StatsErrorSoft = Color(0xFFFFEBEE)
 
 @Composable
 fun AdminStatsStatusBarColor() {
@@ -179,5 +185,57 @@ fun StatsEmptyState(
             textAlign = TextAlign.Center,
             fontSize = 16.sp
         )
+    }
+}
+
+@Composable
+fun StatsErrorState(
+    text: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 28.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(66.dp)
+                .background(
+                    color = StatsErrorSoft,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CloudOff,
+                contentDescription = null,
+                modifier = Modifier.size(34.dp),
+                tint = StatsErrorRed
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = text,
+            color = StatsErrorRed,
+            textAlign = TextAlign.Center,
+            fontSize = 15.sp,
+            lineHeight = 20.sp
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Button(
+            onClick = onRetry,
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = StatsHeaderBlue
+            )
+        ) {
+            Text("Reintentar")
+        }
     }
 }

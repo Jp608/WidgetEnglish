@@ -102,7 +102,9 @@ fun AdminErroresScreen(
                 subtitle = "Top 50 términos de mayor dificultad",
                 isRefreshing = uiState.cargando,
                 onBack = onBack,
-                onRefreshClick = { viewModel.cargarDatosAdmin() }
+                onRefreshClick = {
+                    viewModel.cargarDatosAdmin(forzarActualizacion = true)
+                }
             )
 
             if (categoriesWithErrors.isNotEmpty()) {
@@ -170,6 +172,13 @@ fun AdminErroresScreen(
                     ) {
                         CircularProgressIndicator(color = PrimaryBlue)
                     }
+                } else if (uiState.error != null && uiState.erroresStats.isEmpty()) {
+                    StatsErrorState(
+                        text = uiState.error.orEmpty(),
+                        onRetry = {
+                            viewModel.cargarDatosAdmin(forzarActualizacion = true)
+                        }
+                    )
                 } else if (filteredErrors.isEmpty()) {
                     StatsEmptyState(
                         text = if (selectedCategory == null) {

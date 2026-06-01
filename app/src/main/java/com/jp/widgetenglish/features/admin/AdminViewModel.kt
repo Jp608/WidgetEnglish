@@ -19,7 +19,15 @@ class AdminViewModel(
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
-    fun cargarDatosAdmin() {
+    private var datosAdminCargados = false
+    private var cargaEnCurso = false
+
+    fun cargarDatosAdmin(forzarActualizacion: Boolean = false) {
+        if (cargaEnCurso) return
+        if (datosAdminCargados && !forzarActualizacion) return
+
+        cargaEnCurso = true
+
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(
@@ -28,16 +36,20 @@ class AdminViewModel(
                 )
 
                 val usuarios = adminFirestoreDataSource.obtenerUsuarios()
+                val erroresParciales = mutableListOf<String>()
+
                 val categoriasStats = runCatching {
                     estadisticasFirestoreDataSource.obtenerCategoriasStats()
                 }.onFailure { error ->
                     Log.w(TAG, "No se pudieron cargar estadísticas de categorías", error)
+                    erroresParciales.add("No se pudieron cargar las categorías más usadas.")
                 }.getOrDefault(emptyList())
 
                 val erroresStats = runCatching {
                     estadisticasFirestoreDataSource.obtenerErroresPalabrasStats()
                 }.onFailure { error ->
                     Log.w(TAG, "No se pudieron cargar estadísticas de errores", error)
+                    erroresParciales.add("No se pudieron cargar las palabras con más errores.")
                 }.getOrDefault(emptyList())
 
                 val totalUsuarios = usuarios.size
@@ -71,10 +83,13 @@ class AdminViewModel(
                 }
 
                 val estadoActual = _uiState.value
+                val mensajeError = erroresParciales
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(separator = "\n")
 
                 _uiState.value = estadoActual.copy(
                     cargando = false,
-                    error = null,
+                    error = mensajeError,
 
                     totalUsuarios = totalUsuarios,
                     usuariosActivos = usuariosActivos,
@@ -99,11 +114,15 @@ class AdminViewModel(
                     categoriasStats = categoriasStats,
                     erroresStats = erroresStats
                 )
+
+                datosAdminCargados = true
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
                     error = e.message ?: "Error al cargar datos administrativos"
                 )
+            } finally {
+                cargaEnCurso = false
             }
         }
     }

@@ -94,7 +94,7 @@ fun AdminRankingScreen(
             FixedRankingHeader(
                 isRefreshing = uiState.cargando,
                 onRefreshClick = {
-                    viewModel.cargarDatosAdmin()
+                    viewModel.cargarDatosAdmin(forzarActualizacion = true)
                 }
             )
         },

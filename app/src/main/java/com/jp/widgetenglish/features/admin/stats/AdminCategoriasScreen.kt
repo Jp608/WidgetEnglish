@@ -85,7 +85,9 @@ fun AdminCategoriasScreen(
                 subtitle = "Análisis de participación por tema",
                 isRefreshing = uiState.cargando,
                 onBack = onBack,
-                onRefreshClick = { viewModel.cargarDatosAdmin() }
+                onRefreshClick = {
+                    viewModel.cargarDatosAdmin(forzarActualizacion = true)
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -99,6 +101,13 @@ fun AdminCategoriasScreen(
                 ) {
                     CircularProgressIndicator(color = PrimaryBlue)
                 }
+            } else if (uiState.error != null && uiState.categoriasStats.isEmpty()) {
+                StatsErrorState(
+                    text = uiState.error.orEmpty(),
+                    onRetry = {
+                        viewModel.cargarDatosAdmin(forzarActualizacion = true)
+                    }
+                )
             } else if (uiState.categoriasStats.isEmpty()) {
                 StatsEmptyState(
                     text = "No hay datos de categorías registrados aún.",
