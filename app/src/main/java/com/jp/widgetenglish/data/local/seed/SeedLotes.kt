@@ -8,8 +8,8 @@ object SeedLotes {
     val lotes = listOf(
         LoteEntity(
             idLote = "lote_mascotas",
-            nombre = "Mascotas",
-            descripcion = "Vocabulario de animales domésticos y mascotas comunes.",
+            nombre = "Animales",
+            descripcion = "Vocabulario de animales comunes.",
             tipoLote = TipoLote.TEMATICO,
             nivel = NivelLote.GENERAL,
             colorHex = "#43A047",
@@ -19,18 +19,146 @@ object SeedLotes {
             cantidadContenido = 21,
             cantidadSugeridaEstudio = 10
         ),
+
         LoteEntity(
-            idLote = "lote_A1",
-            nombre = "Verbos A1",
-            descripcion = "Verbos básicos frecuentes para nivel A1.",
-            tipoLote = TipoLote.VERBOS,
-            nivel = NivelLote.A1,
-            colorHex = "#1565C0",
+            idLote = "lote_saludos",
+            nombre = "Saludos y Cortesía",
+            descripcion = "Palabras básicas para saludar y cortesía.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#673AB7",
+            icono = "waving_hand",
+            activo = true,
+            orden = 3,
+            cantidadContenido = 5,
+            cantidadSugeridaEstudio = 5
+        ),
+        LoteEntity(
+            idLote = "lote_comida",
+            nombre = "Comida",
+            descripcion = "Vocabulario sobre alimentos y bebidas.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#E64A19",
+            icono = "restaurant",
+            activo = true,
+            orden = 4,
+            cantidadContenido = 5,
+            cantidadSugeridaEstudio = 10
+        ),
+
+
+
+        // Pegar estos elementos dentro de listOf(...) en SeedLotes.kt, antes del cierre final.
+
+        LoteEntity(
+            idLote = "lote_comida_bebidas",
+            nombre = "Comida y Bebidas",
+            descripcion = "Vocabulario sobre alimentos, bebidas y productos comunes de comida.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#E64A19",
+            icono = "restaurant",
+            activo = true,
+            orden = 6,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_tecnologia",
+            nombre = "Tecnología",
+            descripcion = "Vocabulario básico relacionado con dispositivos, internet y herramientas digitales.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#00897B",
+            icono = "devices",
+            activo = true,
+            orden = 7,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+
+        LoteEntity(
+            idLote = "lote_casa",
+            nombre = "La Casa",
+            descripcion = "Vocabulario de objetos, espacios y elementos comunes del hogar.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#5D4037",
+            icono = "home",
+            activo = true,
+            orden = 5,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_escuela",
+            nombre = "Escuela",
+            descripcion = "Vocabulario relacionado con clases, útiles escolares y vida académica.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#3949AB",
             icono = "school",
             activo = true,
-            orden = 2,
-            cantidadContenido = 29,
+            orden = 8,
+            cantidadContenido = 50,
             cantidadSugeridaEstudio = 10
-        )
+        ),
+
+        LoteEntity(
+            idLote = "lote_regulares",
+            nombre = "Verbos Regulares",
+            descripcion = "Verbos regulares en inglés con pasado simple y participio.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#00897B",
+            icono = "edit_note",
+            activo = true,
+            orden = 8,
+            cantidadContenido = 132,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_irregulares",
+            nombre = "Verbos Irregulares",
+            descripcion = "Verbos irregulares en inglés con sus formas principales.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#7B1FA2",
+            icono = "bolt",
+            activo = true,
+            orden = 9,
+            cantidadContenido = 144,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_emociones",
+            nombre = "Emociones",
+            descripcion = "Vocabulario para expresar emociones y estados de ánimo.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#D81B60",
+            icono = "favorite",
+            activo = true,
+            orden = 10,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+
+        LoteEntity(
+            idLote = "lote_cuerpo",
+            nombre = "Partes del cuerpo",
+            descripcion = "Vocabulario relacionado con partes del cuerpo humano.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#D81B60",
+            icono = "accessibility_new",
+            activo = true,
+            orden = 10,
+            cantidadContenido = 108,
+            cantidadSugeridaEstudio = 10
+        ),
+
+
     )
 }

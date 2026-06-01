@@ -24,7 +24,17 @@ interface AuthRepository {
         correo: String
     ): Result<Unit>
 
+    suspend fun actualizarNombreUsuarioActual(
+        nombre: String
+    ): Result<Unit>
+
     fun obtenerUsuarioActual(): FirebaseUser?
+
+    fun requiereInicioSesionReciente(
+        maxAgeMillis: Long = 4 * 60 * 1000L
+    ): Boolean
+
+    suspend fun eliminarCuentaActual(): Result<Unit>
 
     fun cerrarSesion()
 }

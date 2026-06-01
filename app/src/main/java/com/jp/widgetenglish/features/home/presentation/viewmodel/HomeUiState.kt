@@ -10,7 +10,9 @@ data class HomeUiState(
 
     val nombreUsuario: String = "Usuario",
     val correoUsuario: String = "",
+
     val rachaActual: Int = 0,
+    val rachaMaxima: Int = 0,
 
     val palabras: List<PalabraEntity> = emptyList(),
     val verbos: List<VerboEntity> = emptyList(),
@@ -21,6 +23,7 @@ data class HomeUiState(
 
     val objetivoDiario: Int = 10,
     val progresoDiario: Int = 0,
+    val objetivoDiarioCumplido: Boolean = false,
 
     val error: String? = null
 )

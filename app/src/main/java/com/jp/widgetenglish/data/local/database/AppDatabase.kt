@@ -1,13 +1,14 @@
 package com.jp.widgetenglish.data.local.database
 
-
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.jp.widgetenglish.data.local.dao.ActividadDiariaDao
 import com.jp.widgetenglish.data.local.dao.LoteDao
 import com.jp.widgetenglish.data.local.dao.PalabraDao
 import com.jp.widgetenglish.data.local.dao.ProgresoDao
 import com.jp.widgetenglish.data.local.dao.UsuarioDao
 import com.jp.widgetenglish.data.local.dao.VerboDao
+import com.jp.widgetenglish.data.local.entity.ActividadDiariaEntity
 import com.jp.widgetenglish.data.local.entity.LoteContenidoEntity
 import com.jp.widgetenglish.data.local.entity.LoteEntity
 import com.jp.widgetenglish.data.local.entity.PalabraEntity
@@ -24,9 +25,10 @@ import com.jp.widgetenglish.data.local.entity.VerboEntity
         LoteEntity::class,
         LoteContenidoEntity::class,
         ProgresoUsuarioEntity::class,
-        ProgresoLoteEntity::class
+        ProgresoLoteEntity::class,
+        ActividadDiariaEntity::class
     ],
-    version = 1,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,4 +42,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun loteDao(): LoteDao
 
     abstract fun progresoDao(): ProgresoDao
+
+    abstract fun actividadDiariaDao(): ActividadDiariaDao
 }

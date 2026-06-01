@@ -2,6 +2,7 @@ package com.jp.widgetenglish.data.remote.firestore
 
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.CollectionReference
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import kotlinx.coroutines.tasks.await
@@ -11,12 +12,63 @@ class UsuarioFirestoreDataSource(
 ) {
     private val usuariosCollection = firestore.collection("usuarios")
 
-    suspend fun crearUsuarioSiNoExiste(usuario: UsuarioEntity): UsuarioEntity {
+    suspend fun crearUsuarioSiNoExiste(
+        usuario: UsuarioEntity,
+        aceptarTerminos: Boolean = false
+    ): UsuarioEntity {
         val documentRef = usuariosCollection.document(usuario.firebaseUid)
         val snapshot = documentRef.get().await()
 
         return if (snapshot.exists()) {
             val rolTexto = snapshot.getString("rol") ?: RolUsuario.USUARIO.name
+
+            val camposFaltantes = mutableMapOf<String, Any>()
+
+            if (!snapshot.contains("palabrasAprendidas")) {
+                camposFaltantes["palabrasAprendidas"] = 0
+            }
+
+            if (!snapshot.contains("quizzesRealizados")) {
+                camposFaltantes["quizzesRealizados"] = 0
+            }
+
+            if (!snapshot.contains("lotesCompletados")) {
+                camposFaltantes["lotesCompletados"] = 0
+            }
+
+            if (!snapshot.contains("lotesCompletadosIds")) {
+                camposFaltantes["lotesCompletadosIds"] = emptyList<String>()
+            }
+
+            if (!snapshot.contains("porcentajeProgreso")) {
+                camposFaltantes["porcentajeProgreso"] = 0
+            }
+
+            if (!snapshot.contains("loteActivoId")) {
+                camposFaltantes["loteActivoId"] = ""
+            }
+
+            if (!snapshot.contains("terminosAceptados")) {
+                camposFaltantes["terminosAceptados"] = false
+            }
+
+            if (!snapshot.contains("tratamientoDatosAutorizado")) {
+                camposFaltantes["tratamientoDatosAutorizado"] = false
+            }
+
+            if (!snapshot.contains("terminosVersion")) {
+                camposFaltantes["terminosVersion"] = ""
+            }
+
+            if (aceptarTerminos) {
+                camposFaltantes.putAll(crearDatosAceptacionTerminos())
+            }
+
+            camposFaltantes["ultimoAcceso"] = System.currentTimeMillis()
+
+            if (camposFaltantes.isNotEmpty()) {
+                documentRef.update(camposFaltantes).await()
+            }
 
             usuario.copy(
                 nombre = snapshot.getString("nombre") ?: usuario.nombre,
@@ -28,19 +80,37 @@ class UsuarioFirestoreDataSource(
                 ultimoAcceso = System.currentTimeMillis()
             )
         } else {
-            val data = hashMapOf(
+            val data = hashMapOf<String, Any>(
                 "idUsuario" to usuario.idUsuario,
                 "firebaseUid" to usuario.firebaseUid,
                 "nombre" to usuario.nombre,
                 "correo" to usuario.correo,
-                "avatar" to usuario.avatar,
                 "rol" to RolUsuario.USUARIO.name,
                 "activo" to true,
                 "fechaRegistro" to usuario.fechaRegistro,
                 "ultimoAcceso" to System.currentTimeMillis(),
                 "rachaActual" to usuario.rachaActual,
-                "rachaMaxima" to usuario.rachaMaxima
+                "rachaMaxima" to usuario.rachaMaxima,
+
+                // Estadísticas base para ranking/admin
+                "palabrasAprendidas" to 0,
+                "quizzesRealizados" to 0,
+                "lotesCompletados" to 0,
+                "lotesCompletadosIds" to emptyList<String>(),
+                "porcentajeProgreso" to 0,
+                "loteActivoId" to "",
+                "terminosAceptados" to aceptarTerminos,
+                "tratamientoDatosAutorizado" to aceptarTerminos,
+                "terminosVersion" to if (aceptarTerminos) TERMINOS_VERSION_ACTUAL else ""
             )
+
+            usuario.avatar?.let { avatar ->
+                data["avatar"] = avatar
+            }
+
+            if (aceptarTerminos) {
+                data["fechaAceptacionTerminos"] = System.currentTimeMillis()
+            }
 
             documentRef.set(data).await()
 
@@ -75,9 +145,131 @@ class UsuarioFirestoreDataSource(
         )
     }
 
+    suspend fun usuarioAceptoTerminos(firebaseUid: String): Boolean {
+        val snapshot = usuariosCollection.document(firebaseUid).get().await()
+
+        if (!snapshot.exists()) return false
+
+        val terminosAceptados = snapshot.getBoolean("terminosAceptados") ?: false
+        val tratamientoAutorizado = snapshot.getBoolean("tratamientoDatosAutorizado") ?: false
+        val version = snapshot.getString("terminosVersion").orEmpty()
+
+        return terminosAceptados &&
+                tratamientoAutorizado &&
+                version == TERMINOS_VERSION_ACTUAL
+    }
+
+    suspend fun registrarAceptacionTerminos(firebaseUid: String) {
+        if (firebaseUid.isBlank()) return
+
+        usuariosCollection.document(firebaseUid)
+            .update(crearDatosAceptacionTerminos())
+            .await()
+    }
+
+    suspend fun eliminarUsuarioCompleto(firebaseUid: String) {
+        if (firebaseUid.isBlank()) return
+
+        val usuarioRef = usuariosCollection.document(firebaseUid)
+
+        eliminarSubcoleccion(usuarioRef.collection("actividadDiaria"))
+        usuarioRef.delete().await()
+    }
+
+    suspend fun actualizarPalabrasAprendidas(
+        firebaseUid: String,
+        cantidad: Int
+    ) {
+        usuariosCollection.document(firebaseUid)
+            .update(
+                mapOf(
+                    "palabrasAprendidas" to cantidad,
+                    "ultimoAcceso" to System.currentTimeMillis()
+                )
+            )
+            .await()
+    }
+
     suspend fun actualizarUltimoAcceso(firebaseUid: String) {
         usuariosCollection.document(firebaseUid)
             .update("ultimoAcceso", System.currentTimeMillis())
             .await()
+    }
+
+    suspend fun actualizarNombreUsuario(
+        firebaseUid: String,
+        nombre: String
+    ) {
+        if (firebaseUid.isBlank() || nombre.isBlank()) return
+
+        usuariosCollection.document(firebaseUid)
+            .update(
+                mapOf(
+                    "nombre" to nombre,
+                    "ultimoAcceso" to System.currentTimeMillis()
+                )
+            )
+            .await()
+    }
+
+    suspend fun guardarLoteActivo(firebaseUid: String, loteId: String) {
+        usuariosCollection.document(firebaseUid)
+            .update("loteActivoId", loteId)
+            .await()
+    }
+
+    suspend fun obtenerLoteActivoId(firebaseUid: String): String? {
+        val snapshot = usuariosCollection.document(firebaseUid).get().await()
+        return snapshot.getString("loteActivoId")
+    }
+
+    suspend fun incrementarQuizzesRealizados(firebaseUid: String) {
+        val documentRef = usuariosCollection.document(firebaseUid)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(documentRef)
+
+            val actual = snapshot.getLong("quizzesRealizados") ?: 0L
+
+            transaction.update(
+                documentRef,
+                mapOf(
+                    "quizzesRealizados" to actual + 1,
+                    "ultimoAcceso" to System.currentTimeMillis()
+                )
+            )
+        }.await()
+    }
+
+    private fun crearDatosAceptacionTerminos(): Map<String, Any> {
+        return mapOf(
+            "terminosAceptados" to true,
+            "tratamientoDatosAutorizado" to true,
+            "terminosVersion" to TERMINOS_VERSION_ACTUAL,
+            "fechaAceptacionTerminos" to System.currentTimeMillis()
+        )
+    }
+
+    private suspend fun eliminarSubcoleccion(collectionReference: CollectionReference) {
+        while (true) {
+            val snapshot = collectionReference
+                .limit(400)
+                .get()
+                .await()
+
+            if (snapshot.isEmpty) return
+
+            val batch = firestore.batch()
+
+            snapshot.documents.forEach { document ->
+                batch.delete(document.reference)
+            }
+
+            batch.commit().await()
+        }
+    }
+
+    companion object {
+        const val TERMINOS_VERSION_ACTUAL = "2026-05-31"
     }
 }

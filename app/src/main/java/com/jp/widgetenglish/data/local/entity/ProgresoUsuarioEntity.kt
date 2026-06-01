@@ -1,20 +1,11 @@
 package com.jp.widgetenglish.data.local.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "progreso_usuario",
-    foreignKeys = [
-        ForeignKey(
-            entity = UsuarioEntity::class,
-            parentColumns = ["idUsuario"],
-            childColumns = ["usuarioId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [
         Index(value = ["usuarioId"]),
         Index(value = ["contenidoId", "tipoContenido"]),

@@ -11,6 +11,8 @@ data class AuthUiState(
     val cargando: Boolean = false,
     val autenticado: Boolean = false,
     val rolUsuario: RolUsuario = RolUsuario.USUARIO,
+    val mostrarTerminos: Boolean = false,
+    val aceptandoTerminos: Boolean = false,
 
     val mensaje: String? = null,
     val error: String? = null

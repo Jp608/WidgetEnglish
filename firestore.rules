@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "ADMIN";
+    }
+
+    function validCategoriaStats() {
+      return request.resource.data.keys().hasAll(["nombre", "vecesEstudiada", "ultimaActualizacion"])
+        && request.resource.data.keys().hasOnly(["nombre", "vecesEstudiada", "ultimaActualizacion"])
+        && request.resource.data.nombre is string
+        && request.resource.data.vecesEstudiada is int
+        && request.resource.data.vecesEstudiada >= 0
+        && request.resource.data.ultimaActualizacion is timestamp;
+    }
+
+    function validCategoriaStatsUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["nombre", "vecesEstudiada", "ultimaActualizacion"])
+        && validCategoriaStats();
+    }
+
+    function validErrorStats() {
+      return request.resource.data.keys().hasAll(["termino", "loteId", "cantidadErrores", "ultimaActualizacion"])
+        && request.resource.data.keys().hasOnly(["termino", "loteId", "cantidadErrores", "ultimaActualizacion"])
+        && request.resource.data.termino is string
+        && request.resource.data.loteId is string
+        && request.resource.data.cantidadErrores is int
+        && request.resource.data.cantidadErrores >= 0
+        && request.resource.data.ultimaActualizacion is timestamp;
+    }
+
+    function validErrorStatsUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["termino", "loteId", "cantidadErrores", "ultimaActualizacion"])
+        && validErrorStats();
+    }
+
+    match /usuarios/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow create: if isOwner(userId)
+        && request.resource.data.rol == "USUARIO";
+
+      allow update: if (
+        isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["rol"])
+      )
+      || isAdmin();
+
+      allow delete: if isOwner(userId);
+
+      match /actividadDiaria/{fecha} {
+        allow read, create, update: if isOwner(userId) || isAdmin();
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /stats_globales/categorias/detalle/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && validCategoriaStats();
+      allow update: if isSignedIn() && validCategoriaStatsUpdate();
+      allow delete: if false;
+    }
+
+    match /stats_globales/errores_palabras/detalle/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && validErrorStats();
+      allow update: if isSignedIn() && validErrorStatsUpdate();
+      allow delete: if false;
+    }
+
+    match /stats_globales/{statType}/detalle/{id} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+  }
+}

@@ -1,12 +1,70 @@
 package com.jp.widgetenglish.data.local.seed
 
+import android.util.Log
 import com.jp.widgetenglish.data.local.database.AppDatabase
 
 object DatabaseSeeder {
+
     suspend fun seed(database: AppDatabase) {
-        database.palabraDao().insertarPalabras(SeedPalabras.palabras)
-        database.verboDao().insertarVerbos(SeedVerbos.verbos)
-        database.loteDao().insertarLotes(SeedLotes.lotes)
-        database.loteDao().insertarContenidosLote(SeedLoteContenido.contenidos)
+        try {
+            Log.d("DatabaseSeeder", "DATABASE_SEED_START")
+
+            val palabraDao = database.palabraDao()
+            val verboDao = database.verboDao()
+            val loteDao = database.loteDao()
+
+            // 1. Sincronizar nombres y metadatos de lotes sin borrar progreso
+            // Importante: NO eliminamos lotes, porque eso podría afectar datos relacionados.
+            SeedLotes.lotes.forEach { lote ->
+                val existe = loteDao.obtenerLotePorId(lote.idLote)
+
+                if (existe == null) {
+                    Log.d("DatabaseSeeder", "Inserting new batch: ${lote.nombre}")
+
+                    loteDao.insertarLote(lote)
+                } else {
+                    Log.d(
+                        "DatabaseSeeder",
+                        "Updating metadata for batch: ${lote.nombre} (count: ${lote.cantidadContenido})"
+                    )
+
+                    loteDao.actualizarMetadatos(
+                        lote.idLote,
+                        lote.nombre,
+                        lote.descripcion,
+                        lote.nivel,
+                        lote.tipoLote,
+                        lote.cantidadContenido
+                    )
+                }
+            }
+
+            // 2. Cargar palabras y reiniciar verbos maestros
+            Log.d("DatabaseSeeder", "Syncing master words and reinserting verbs...")
+
+            palabraDao.insertarPalabras(SeedPalabras.palabras)
+
+// Reinserción limpia de verbos.
+// Primero borra los verbos anteriores y luego carga los nuevos desde SeedVerbos.kt.
+            Log.d("DatabaseSeeder", "Reinserting verbs from seed...")
+            verboDao.eliminarVerbos()
+            verboDao.insertarVerbos(SeedVerbos.verbos)
+
+            // 3. Sincronizar relaciones lote-contenido
+            // Antes solo se limpiaba lote_A1.
+            // Ahora limpiamos todos los lotes definidos en SeedLotes para poder cargar comida, tecnología, etc.
+            Log.d("DatabaseSeeder", "Syncing lote-contenido relations...")
+
+            SeedLotes.lotes.forEach { lote ->
+                Log.d("DatabaseSeeder", "Clearing content relations for lote: ${lote.idLote}")
+                loteDao.eliminarContenidoDeLote(lote.idLote)
+            }
+
+            loteDao.insertarContenidosLote(SeedLoteContenido.contenidos)
+
+            Log.d("DatabaseSeeder", "Database Sync Finished.")
+        } catch (e: Exception) {
+            Log.e("DatabaseSeeder", "CRITICAL ERROR in Seeder", e)
+        }
     }
 }
