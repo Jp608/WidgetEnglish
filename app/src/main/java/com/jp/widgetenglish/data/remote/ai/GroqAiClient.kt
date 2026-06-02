@@ -159,6 +159,49 @@ class GroqAiClient(private val apiKey: String) {
         }
     }
 
+    suspend fun extraerIntereses(texto: String): List<String> {
+        val prompt = GroqMessage(
+            role = "user",
+            content = "De este texto del usuario, extrae máximo 3 temas de interés (ej: Fútbol, Música, Videojuegos) en español, separados por comas. Si no hay intereses claros, responde 'NADA'. Texto: $texto"
+        )
+        return try {
+            val response = service.getCompletion(
+                auth = "Bearer $apiKey",
+                request = GroqRequest(messages = listOf(prompt))
+            )
+            val content = response.choices.firstOrNull()?.message?.content ?: "NADA"
+            if (content.contains("NADA", ignoreCase = true)) emptyList()
+            else content.split(",").map { it.trim() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun predecirNivel(vocabularioContado: Int, errores: Int, racha: Int): String {
+        val prompt = GroqMessage(
+            role = "user",
+            content = """
+                Basado en estos datos de un estudiante de inglés:
+                - Palabras aprendidas: $vocabularioContado
+                - Errores cometidos: $errores
+                - Racha actual: $racha días
+                
+                Estima su nivel según el marco común europeo (A1, A2, B1, B2) y da una frase corta de ánimo.
+                Ejemplo: "Nivel A1: ¡Vas por buen camino, pronto serás un experto!". 
+                Responde en máximo 15 palabras.
+            """.trimIndent()
+        )
+        return try {
+            val response = service.getCompletion(
+                auth = "Bearer $apiKey",
+                request = GroqRequest(messages = listOf(prompt))
+            )
+            response.choices.firstOrNull()?.message?.content ?: "Nivel inicial A1"
+        } catch (e: Exception) {
+            "Nivel inicial A1"
+        }
+    }
+
     suspend fun procesarConversacionVoz(textoUsuario: String): String {
         val prompt = """
             Eres Jimmy, un tutor de inglés experto en conversación y fonética. 

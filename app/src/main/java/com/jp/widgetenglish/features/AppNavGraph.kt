@@ -69,6 +69,7 @@ import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsView
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModelFactory
 import com.jp.widgetenglish.data.repository.ChatRepositoryImpl
 import com.jp.widgetenglish.data.remote.ai.GroqAiClient
+import com.jp.widgetenglish.data.repository.InteligenciaRepositoryImpl
 import com.jp.widgetenglish.features.ai.presentation.screens.ChatHistoryScreen
 import com.jp.widgetenglish.features.ai.presentation.screens.ChatRoomScreen
 import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModel
