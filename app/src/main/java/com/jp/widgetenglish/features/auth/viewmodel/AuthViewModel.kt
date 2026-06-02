@@ -15,6 +15,7 @@ import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import com.jp.widgetenglish.features.auth.presentation.state.AuthUiState
+import com.jp.widgetenglish.features.common.resolveUserDisplayName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -546,11 +547,15 @@ class AuthViewModel(
             )
 
             result.onSuccess { firebaseUser ->
+                val correo = firebaseUser.email ?: state.correo
                 val usuarioBase = UsuarioEntity(
                     idUsuario = firebaseUser.uid,
                     firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: state.correo,
+                    nombre = resolveUserDisplayName(
+                        firebaseDisplayName = firebaseUser.displayName,
+                        email = correo
+                    ),
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
@@ -587,11 +592,15 @@ class AuthViewModel(
             val result = authRepository.iniciarSesionConGoogle(credential)
 
             result.onSuccess { firebaseUser ->
+                val correo = firebaseUser.email ?: ""
                 val usuarioBase = UsuarioEntity(
                     idUsuario = firebaseUser.uid,
                     firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: "",
+                    nombre = resolveUserDisplayName(
+                        firebaseDisplayName = firebaseUser.displayName,
+                        email = correo
+                    ),
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
@@ -650,11 +659,15 @@ class AuthViewModel(
                 return@launch
             }
 
+            val correo = firebaseUser.email ?: ""
             val usuarioBase = UsuarioEntity(
                 idUsuario = firebaseUser.uid,
                 firebaseUid = firebaseUser.uid,
-                nombre = firebaseUser.displayName ?: "Usuario",
-                correo = firebaseUser.email ?: "",
+                nombre = resolveUserDisplayName(
+                    firebaseDisplayName = firebaseUser.displayName,
+                    email = correo
+                ),
+                correo = correo,
                 avatar = firebaseUser.photoUrl?.toString(),
                 rol = RolUsuario.USUARIO,
                 activo = true,

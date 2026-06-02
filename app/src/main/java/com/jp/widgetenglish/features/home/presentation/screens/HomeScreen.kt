@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.widgetenglish.features.common.firstDisplayNameOrBlank
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
 
 private val BackgroundColor = Color(0xFFF8FAFC)
@@ -275,12 +276,12 @@ private fun HeaderHome(
     rachaActual: Int,
     objetivoCumplido: Boolean
 ) {
-    val primerNombre = nombreUsuario
-        .trim()
-        .split(" ")
-        .firstOrNull()
-        ?.takeIf { it.isNotBlank() }
-        ?: "Usuario"
+    val primerNombre = firstDisplayNameOrBlank(nombreUsuario)
+    val saludo = if (primerNombre.isBlank()) {
+        "¡Hola! 👋"
+    } else {
+        "¡Hola, $primerNombre! 👋"
+    }
 
     val textoRacha = if (rachaActual == 1) {
         "🔥  1 día de racha"
@@ -330,7 +331,7 @@ private fun HeaderHome(
                 .padding(horizontal = 28.dp)
         ) {
             Text(
-                text = "¡Hola, $primerNombre! 👋",
+                text = saludo,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White

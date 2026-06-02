@@ -33,6 +33,13 @@ enum class WidgetTextSizeOption {
     GRANDE
 }
 
+enum class WidgetLayoutSizeOption {
+    AUTOMATICO,
+    COMPACTO,
+    NORMAL,
+    GRANDE
+}
+
 enum class WidgetVisualStyle {
     CLASICO,
     MINIMALISTA,
@@ -45,6 +52,7 @@ data class WidgetAppearanceSettings(
     val colorTheme: WidgetColorTheme = WidgetColorTheme.AZUL,
     val visualStyle: WidgetVisualStyle = WidgetVisualStyle.CLASICO,
     val textSize: WidgetTextSizeOption = WidgetTextSizeOption.NORMAL,
+    val layoutSize: WidgetLayoutSizeOption = WidgetLayoutSizeOption.NORMAL,
     val mostrarLote: Boolean = true,
     val mostrarProgreso: Boolean = true,
     val mostrarFonetica: Boolean = true,
@@ -58,6 +66,7 @@ object WidgetAppearancePreferences {
     private val KEY_COLOR_THEME = stringPreferencesKey("widget_appearance_color_theme")
     private val KEY_VISUAL_STYLE = stringPreferencesKey("widget_appearance_visual_style")
     private val KEY_TEXT_SIZE = stringPreferencesKey("widget_appearance_text_size")
+    private val KEY_LAYOUT_SIZE = stringPreferencesKey("widget_appearance_layout_size")
     private val KEY_MOSTRAR_LOTE = booleanPreferencesKey("widget_appearance_mostrar_lote")
     private val KEY_MOSTRAR_PROGRESO = booleanPreferencesKey("widget_appearance_mostrar_progreso")
     private val KEY_MOSTRAR_FONETICA = booleanPreferencesKey("widget_appearance_mostrar_fonetica")
@@ -69,6 +78,7 @@ object WidgetAppearancePreferences {
                 colorTheme = prefs[KEY_COLOR_THEME].toEnumOrDefault(WidgetColorTheme.AZUL),
                 visualStyle = prefs[KEY_VISUAL_STYLE].toEnumOrDefault(WidgetVisualStyle.CLASICO),
                 textSize = prefs[KEY_TEXT_SIZE].toEnumOrDefault(WidgetTextSizeOption.NORMAL),
+                layoutSize = prefs[KEY_LAYOUT_SIZE].toEnumOrDefault(WidgetLayoutSizeOption.NORMAL),
                 mostrarLote = prefs[KEY_MOSTRAR_LOTE] ?: true,
                 mostrarProgreso = prefs[KEY_MOSTRAR_PROGRESO] ?: true,
                 mostrarFonetica = prefs[KEY_MOSTRAR_FONETICA] ?: true,
@@ -89,6 +99,7 @@ object WidgetAppearancePreferences {
             prefs[KEY_COLOR_THEME] = settings.colorTheme.name
             prefs[KEY_VISUAL_STYLE] = settings.visualStyle.name
             prefs[KEY_TEXT_SIZE] = settings.textSize.name
+            prefs[KEY_LAYOUT_SIZE] = settings.layoutSize.name
             prefs[KEY_MOSTRAR_LOTE] = settings.mostrarLote
             prefs[KEY_MOSTRAR_PROGRESO] = settings.mostrarProgreso
             prefs[KEY_MOSTRAR_FONETICA] = settings.mostrarFonetica

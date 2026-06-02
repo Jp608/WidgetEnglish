@@ -10,6 +10,7 @@ import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.local.entity.TipoContenido
 import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.data.local.entity.UsuarioEntity
+import com.jp.widgetenglish.features.common.resolveUserDisplayName
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -378,12 +379,16 @@ class QuizViewModel(
         }
 
         val firebaseUser = authRepository.obtenerUsuarioActual()
+        val correo = firebaseUser?.email ?: ""
 
         val nuevoUsuario = UsuarioEntity(
             idUsuario = usuarioId,
             firebaseUid = usuarioId,
-            nombre = firebaseUser?.displayName ?: "Usuario",
-            correo = firebaseUser?.email ?: "",
+            nombre = resolveUserDisplayName(
+                firebaseDisplayName = firebaseUser?.displayName,
+                email = correo
+            ),
+            correo = correo,
             avatar = firebaseUser?.photoUrl?.toString(),
             rol = RolUsuario.USUARIO,
             activo = true,
