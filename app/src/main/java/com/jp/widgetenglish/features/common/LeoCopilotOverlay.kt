@@ -1,9 +1,9 @@
 package com.jp.widgetenglish.features.common
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,43 +20,62 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jp.widgetenglish.data.remote.ai.GroqAiClient
 import com.jp.widgetenglish.features.ai.presentation.screens.VoiceAssistantOverlay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
-fun JimmyCopilotOverlay(
+fun LeoCopilotOverlay(
     pantallaActual: String,
     contextoAdicional: String? = null,
     aiClient: GroqAiClient
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
     var showVoiceOverlay by remember { mutableStateOf(false) }
     var tip by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        // Botón Flotante Discreto con Gestos
+    // Configuración para el arrastre
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+    val buttonSizePx = with(density) { 60.dp.toPx() }
+
+    // Posición inicial: abajo a la derecha
+    var offsetX by remember { mutableStateOf(screenWidthPx - buttonSizePx - with(density) { 20.dp.toPx() }) }
+    var offsetY by remember { mutableStateOf(screenHeightPx - buttonSizePx - with(density) { 100.dp.toPx() }) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Botón Flotante Draggable (Arrastrable)
         Surface(
             modifier = Modifier
-                .size(56.dp)
-                .shadow(8.dp, CircleShape)
+                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                .size(60.dp)
+                .shadow(12.dp, CircleShape)
                 .clip(CircleShape)
+                .pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        offsetX = (offsetX + dragAmount.x).coerceIn(0f, screenWidthPx - buttonSizePx)
+                        offsetY = (offsetY + dragAmount.y).coerceIn(0f, screenHeightPx - buttonSizePx)
+                    }
+                }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {
-                            expanded = true
+                            showDialog = true
                             if (tip == null) {
                                 loading = true
                                 scope.launch {
@@ -84,16 +103,16 @@ fun JimmyCopilotOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Jimmy Copilot",
+                    contentDescription = "Leo Copilot",
                     tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(30.dp)
                 )
             }
         }
 
         // Diálogo de Asistencia Contextual
-        if (expanded) {
-            Dialog(onDismissRequest = { expanded = false }) {
+        if (showDialog) {
+            Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -112,12 +131,12 @@ fun JimmyCopilotOverlay(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Jimmy dice... ✨",
+                                text = "Leo dice... ✨",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1565C0)
                             )
-                            IconButton(onClick = { expanded = false }) {
+                            IconButton(onClick = { showDialog = false }) {
                                 Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.Gray)
                             }
                         }
@@ -164,7 +183,7 @@ fun JimmyCopilotOverlay(
 
                         OutlinedButton(
                             onClick = {
-                                expanded = false
+                                showDialog = false
                                 showVoiceOverlay = true
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -172,7 +191,7 @@ fun JimmyCopilotOverlay(
                         ) {
                             Icon(Icons.Default.Mic, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Hablar con Jimmy", fontWeight = FontWeight.Bold)
+                            Text("Hablar con Leo", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

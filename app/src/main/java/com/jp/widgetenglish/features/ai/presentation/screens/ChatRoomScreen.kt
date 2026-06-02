@@ -45,7 +45,7 @@ fun ChatRoomScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Chateando con Jimmy ✨", fontWeight = FontWeight.Bold) },
+                title = { Text("Chateando con Leo ✨", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -85,7 +85,7 @@ fun ChatRoomScreen(
                             modifier = Modifier.padding(end = 64.dp)
                         ) {
                             Text(
-                                text = "Jimmy está pensando...",
+                                text = "Leo está pensando...",
                                 modifier = Modifier.padding(12.dp),
                                 fontSize = 14.sp,
                                 color = Color.Gray

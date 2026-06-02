@@ -43,7 +43,7 @@ fun VoiceAssistantOverlay(
     val scope = rememberCoroutineScope()
     val ttsHelper = remember { TtsHelper(context) }
     
-    var jimmyText by remember { mutableStateOf("¡Hola! Soy Jimmy. Presiona el micro y hablemos.") }
+    var leoText by remember { mutableStateOf("¡Hola! Soy Leo. Presiona el micro y hablemos.") }
     var userText by remember { mutableStateOf("") }
     var isListening by remember { mutableStateOf(false) }
     var isThinking by remember { mutableStateOf(false) }
@@ -58,7 +58,7 @@ fun VoiceAssistantOverlay(
                 isThinking = true
                 scope.launch {
                     val response = aiClient.procesarConversacionVoz(result)
-                    jimmyText = response
+                    leoText = response
                     isThinking = false
                     ttsHelper.speak(response, speechRate)
                 }
@@ -118,10 +118,10 @@ fun VoiceAssistantOverlay(
                     }
                 }
 
-                // Jimmy's Section
+                // Leo's Section
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = jimmyText,
+                        text = leoText,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,

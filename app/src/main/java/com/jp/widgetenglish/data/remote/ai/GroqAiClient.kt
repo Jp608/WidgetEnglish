@@ -87,7 +87,7 @@ class GroqAiClient(private val apiKey: String) {
         val systemPrompt = GroqMessage(
             role = "system",
             content = """
-                Eres Jimmy, un tutor de inglés amigable y experto para hispanohablantes principiantes.
+                Eres Leo, un tutor de inglés amigable y experto para hispanohablantes principiantes.
                 Tu objetivo es ayudar al usuario a practicar inglés de forma natural.
                 
                 REGLAS:
@@ -107,9 +107,9 @@ class GroqAiClient(private val apiKey: String) {
                     messages = fullHistory
                 )
             )
-            response.choices.firstOrNull()?.message?.content ?: "Jimmy se quedó pensando... intenta de nuevo."
+            response.choices.firstOrNull()?.message?.content ?: "Leo se quedó pensando... intenta de nuevo."
         } catch (e: Exception) {
-            "Error de conexión con Jimmy: ${e.message}"
+            "Error de conexión con Leo: ${e.message}"
         }
     }
 
@@ -134,7 +134,7 @@ class GroqAiClient(private val apiKey: String) {
 
     suspend fun obtenerAsistenciaContextual(pantalla: String, contexto: String?): String {
         val prompt = """
-            Eres Jimmy, un copiloto inteligente de aprendizaje de inglés para hispanohablantes principiantes.
+            Eres Leo, un copiloto inteligente de aprendizaje de inglés para hispanohablantes principiantes.
             El usuario está viendo la pantalla '$pantalla'. 
             Datos actuales del contexto: ${contexto ?: "Navegando por la app"}.
 
@@ -155,7 +155,7 @@ class GroqAiClient(private val apiKey: String) {
             )
             response.choices.firstOrNull()?.message?.content ?: "¡Sigue adelante con tu aprendizaje!"
         } catch (e: Exception) {
-            "¡Hola! Soy Jimmy, tu copiloto. ¿En qué puedo ayudarte hoy?"
+            "¡Hola! Soy Leo, tu copiloto. ¿En qué puedo ayudarte hoy?"
         }
     }
 
@@ -204,7 +204,7 @@ class GroqAiClient(private val apiKey: String) {
 
     suspend fun procesarConversacionVoz(textoUsuario: String): String {
         val prompt = """
-            Eres Jimmy, un tutor de inglés experto en conversación y fonética. 
+            Eres Leo, un tutor de inglés experto en conversación y fonética.
             El usuario te acaba de hablar (vía voz).
             
             REGLAS:
