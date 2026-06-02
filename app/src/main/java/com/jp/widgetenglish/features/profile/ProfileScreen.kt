@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -40,6 +41,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -78,14 +80,20 @@ import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
 import com.jp.widgetenglish.data.local.datastore.WidgetAppearancePreferences
 import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
 import com.jp.widgetenglish.data.local.datastore.WidgetColorTheme
+import com.jp.widgetenglish.data.local.datastore.WidgetLayoutSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
 import com.jp.widgetenglish.features.auth.TermsAndConditionsInfoDialog
 import com.jp.widgetenglish.features.common.AppBottomBar
+import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MAX_LENGTH
+import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MIN_LENGTH
+import com.jp.widgetenglish.features.profile.viewmodel.ProfileConfirmation
+import com.jp.widgetenglish.features.profile.viewmodel.ProfileConfirmationTarget
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.widgetenglish.app.ui.Screen
 import kotlin.math.roundToInt
 import androidx.compose.material.icons.filled.BarChart
+import kotlinx.coroutines.delay
 
 private val PrimaryBlue = Color(0xFF1565FF)
 private val DeepBlue = Color(0xFF08145F)
@@ -143,9 +151,12 @@ fun ProfileScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showWidgetCustomizationDialog by remember { mutableStateOf(false) }
     var showTermsInfoDialog by remember { mutableStateOf(false) }
+    var showEditNameDialog by remember { mutableStateOf(false) }
     var unavailableOptionTitle by remember { mutableStateOf<String?>(null) }
     var objetivoDiarioExpanded by remember { mutableStateOf(false) }
     var aprendizajeExpanded by remember { mutableStateOf(false) }
+    val nombreVisible = uiState.usuario?.nombre.orEmpty()
+    val correoVisible = uiState.usuario?.correo ?: "Invitado"
 
     LaunchedEffect(uiState.cuentaEliminada) {
         if (uiState.cuentaEliminada) {
@@ -157,6 +168,13 @@ fun ProfileScreen(
                 }
                 launchSingleTop = true
             }
+        }
+    }
+
+    LaunchedEffect(uiState.confirmation) {
+        if (uiState.confirmation != null) {
+            delay(3_000)
+            viewModel.limpiarMensajes()
         }
     }
 
@@ -322,10 +340,12 @@ fun ProfileScreen(
             settings = uiState.widgetAppearanceSettings,
             onDismiss = { showWidgetCustomizationDialog = false },
             onSave = { settings ->
-                viewModel.guardarAparienciaWidget(
-                    context = context,
-                    settings = settings
-                )
+                if (settings != uiState.widgetAppearanceSettings) {
+                    viewModel.guardarAparienciaWidget(
+                        context = context,
+                        settings = settings
+                    )
+                }
                 showWidgetCustomizationDialog = false
             }
         )
@@ -334,6 +354,25 @@ fun ProfileScreen(
     if (showTermsInfoDialog) {
         TermsAndConditionsInfoDialog(
             onDismiss = { showTermsInfoDialog = false }
+        )
+    }
+
+    if (showEditNameDialog) {
+        EditProfileNameDialog(
+            currentName = nombreVisible,
+            isSaving = uiState.guardandoPerfil,
+            message = uiState.mensaje,
+            error = uiState.error,
+            onDismiss = {
+                if (!uiState.guardandoPerfil) {
+                    viewModel.limpiarMensajes()
+                    showEditNameDialog = false
+                }
+            },
+            onSave = { nombre ->
+                viewModel.actualizarNombrePerfil(nombre)
+                showEditNameDialog = false
+            }
         )
     }
 
@@ -360,8 +399,12 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             ProfileHeader(
-                nombre = uiState.usuario?.nombre ?: "Usuario",
-                correo = uiState.usuario?.correo ?: "Invitado"
+                nombre = nombreVisible,
+                correo = correoVisible,
+                onEditNameClick = {
+                    viewModel.limpiarMensajes()
+                    showEditNameDialog = true
+                }
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -373,6 +416,27 @@ fun ProfileScreen(
                     aprendidas = "${uiState.usuario?.palabrasAprendidas ?: 0}",
                     lotes = "${uiState.usuario?.lotesCompletados ?: 0}",
                     racha = "${uiState.usuario?.rachaActual ?: 0}"
+                )
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                SectionTitle("Perfil personalizado")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ProfileNameCard(
+                    nombre = nombreVisible,
+                    correo = correoVisible,
+                    isSaving = uiState.guardandoPerfil,
+                    onClick = {
+                        viewModel.limpiarMensajes()
+                        showEditNameDialog = true
+                    }
+                )
+
+                ConfirmationText(
+                    confirmation = uiState.confirmation,
+                    target = ProfileConfirmationTarget.NAME
                 )
 
                 Spacer(modifier = Modifier.height(22.dp))
@@ -406,6 +470,11 @@ fun ProfileScreen(
                     }
                 )
 
+                ConfirmationText(
+                    confirmation = uiState.confirmation,
+                    target = ProfileConfirmationTarget.DAILY_GOAL
+                )
+
                 Spacer(modifier = Modifier.height(22.dp))
 
                 SectionTitle("Aprendizaje")
@@ -432,6 +501,11 @@ fun ProfileScreen(
                     }
                 )
 
+                ConfirmationText(
+                    confirmation = uiState.confirmation,
+                    target = ProfileConfirmationTarget.LEARNING
+                )
+
                 Spacer(modifier = Modifier.height(22.dp))
 
                 SectionTitle("Mi cuenta")
@@ -446,6 +520,11 @@ fun ProfileScreen(
                 ) {
                     showWidgetCustomizationDialog = true
                 }
+
+                ConfirmationText(
+                    confirmation = uiState.confirmation,
+                    target = ProfileConfirmationTarget.WIDGET_APPEARANCE
+                )
 
                 ProfileOption(
                     icon = Icons.Filled.Help,
@@ -526,7 +605,8 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeader(
     nombre: String,
-    correo: String
+    correo: String,
+    onEditNameClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -557,7 +637,8 @@ private fun ProfileHeader(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 26.dp)
-                .size(34.dp),
+                .size(34.dp)
+                .clickable { onEditNameClick() },
             shape = RoundedCornerShape(12.dp),
             color = Color.White.copy(alpha = 0.16f)
         ) {
@@ -577,20 +658,22 @@ private fun ProfileHeader(
                 .padding(start = 96.dp, end = 46.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = nombre,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (nombre.isNotBlank()) {
+                Text(
+                    text = nombre,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(5.dp))
+            }
 
             Text(
                 text = correo,
-                fontSize = 12.5.sp,
+                fontSize = if (nombre.isBlank()) 15.sp else 12.5.sp,
                 color = Color.White.copy(alpha = 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -656,8 +739,211 @@ private fun StatsCard(
 }
 
 @Composable
+private fun ProfileNameCard(
+    nombre: String,
+    correo: String,
+    isSaving: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(17.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(50.dp),
+                shape = RoundedCornerShape(17.dp),
+                color = SoftBlue
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Nombre visible",
+                    fontSize = 13.sp,
+                    color = TextMuted,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = nombre.ifBlank { "Sin nombre visible" },
+                    fontSize = 18.sp,
+                    color = TextDark,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = correo,
+                    fontSize = 12.5.sp,
+                    color = TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = PrimaryBlue,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFFCBD5E1),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditProfileNameDialog(
+    currentName: String,
+    isSaving: Boolean,
+    message: String?,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var name by remember(currentName) {
+        mutableStateOf(currentName.take(USER_DISPLAY_NAME_MAX_LENGTH))
+    }
+    val cleanName = name.trim()
+    val canSave = !isSaving &&
+            cleanName.length in USER_DISPLAY_NAME_MIN_LENGTH..USER_DISPLAY_NAME_MAX_LENGTH &&
+            cleanName != currentName.trim()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = null,
+                tint = PrimaryBlue,
+                modifier = Modifier.size(30.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Nombre visible",
+                color = TextDark,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Este nombre se mostrará dentro de WidgetEnglish.",
+                    color = TextMuted,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { value ->
+                        name = value.take(USER_DISPLAY_NAME_MAX_LENGTH)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSaving,
+                    singleLine = true,
+                    label = { Text("Nombre") },
+                    shape = RoundedCornerShape(16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "${name.length}/$USER_DISPLAY_NAME_MAX_LENGTH",
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                val feedback = error ?: message
+                if (feedback != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = feedback,
+                        color = if (error != null) DangerRed else PrimaryBlue,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(cleanName) },
+                enabled = canSave,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryBlue
+                )
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar")
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !isSaving,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Cancelar")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
 private fun SectionTitle(text: String) {
     val icon = when (text) {
+        "Perfil personalizado" -> Icons.Filled.Person
         "Objetivo diario" -> Icons.Filled.Whatshot
         "Aprendizaje" -> Icons.Filled.School
         "Mi cuenta" -> Icons.Filled.Person
@@ -666,6 +952,7 @@ private fun SectionTitle(text: String) {
     }
 
     val subtitle = when (text) {
+        "Perfil personalizado" -> "Elige cómo quieres que se muestre tu nombre en la app."
         "Objetivo diario" -> "Define tu meta y mantén el enfoque cada día."
         "Aprendizaje" -> "Personaliza cómo se muestra el contenido y la cantidad."
         "Mi cuenta" -> "Gestiona tu cuenta y preferencias de la aplicación."
@@ -709,6 +996,27 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
+private fun ConfirmationText(
+    confirmation: ProfileConfirmation?,
+    target: ProfileConfirmationTarget
+) {
+    val activeConfirmation = confirmation
+        ?.takeIf { it.target == target }
+        ?: return
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Text(
+        text = activeConfirmation.text,
+        color = Color(0xFF16A34A),
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
 private fun WidgetCustomizationDialog(
     settings: WidgetAppearanceSettings,
     onDismiss: () -> Unit,
@@ -722,6 +1030,9 @@ private fun WidgetCustomizationDialog(
     }
     var textSize by remember(settings.textSize) {
         mutableStateOf(settings.textSize)
+    }
+    var layoutSize by remember(settings.layoutSize) {
+        mutableStateOf(settings.layoutSize)
     }
     var mostrarLote by remember(settings.mostrarLote) {
         mutableStateOf(settings.mostrarLote)
@@ -740,6 +1051,7 @@ private fun WidgetCustomizationDialog(
         colorTheme = colorTheme,
         visualStyle = visualStyle,
         textSize = textSize,
+        layoutSize = layoutSize,
         mostrarLote = mostrarLote,
         mostrarProgreso = mostrarProgreso,
         mostrarFonetica = mostrarFonetica,
@@ -817,6 +1129,18 @@ private fun WidgetCustomizationDialog(
                         onSizeSelected = { textSize = it }
                     )
 
+                    Text(
+                        text = "Tamaño del widget",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DialogTextPrimary
+                    )
+
+                    WidgetLayoutSizeSelector(
+                        selectedSize = layoutSize,
+                        onSizeSelected = { layoutSize = it }
+                    )
+
                     WidgetSwitchRow(
                         title = "Mostrar lote",
                         subtitle = "Nombre del lote activo en el encabezado.",
@@ -851,6 +1175,7 @@ private fun WidgetCustomizationDialog(
                             colorTheme = defaults.colorTheme
                             visualStyle = defaults.visualStyle
                             textSize = defaults.textSize
+                            layoutSize = defaults.layoutSize
                             mostrarLote = defaults.mostrarLote
                             mostrarProgreso = defaults.mostrarProgreso
                             mostrarFonetica = defaults.mostrarFonetica
@@ -1265,6 +1590,78 @@ private fun WidgetTextSizeSelector(
 }
 
 @Composable
+private fun WidgetLayoutSizeSelector(
+    selectedSize: WidgetLayoutSizeOption,
+    onSizeSelected: (WidgetLayoutSizeOption) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        WidgetLayoutSizeOption.entries.chunked(2).forEach { rowSizes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowSizes.forEach { size ->
+                    WidgetLayoutSizeCard(
+                        modifier = Modifier.weight(1f),
+                        size = size,
+                        selected = selectedSize == size,
+                        onClick = { onSizeSelected(size) }
+                    )
+                }
+
+                repeat(2 - rowSizes.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetLayoutSizeCard(
+    modifier: Modifier = Modifier,
+    size: WidgetLayoutSizeOption,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) Color(0xFFEAF2FF) else Color.White,
+        border = BorderStroke(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) PrimaryBlue else BorderSoft
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                text = size.label(),
+                color = if (selected) Color(0xFF0B4FD8) else TextDark,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Text(
+                text = size.description(),
+                color = TextSecondaryStrong,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
 private fun WidgetSwitchRow(
     title: String,
     subtitle: String,
@@ -1548,8 +1945,26 @@ private fun WidgetTextSizeOption.label(): String {
     }
 }
 
+private fun WidgetLayoutSizeOption.label(): String {
+    return when (this) {
+        WidgetLayoutSizeOption.AUTOMATICO -> "Automático"
+        WidgetLayoutSizeOption.COMPACTO -> "Compacto"
+        WidgetLayoutSizeOption.NORMAL -> "Normal"
+        WidgetLayoutSizeOption.GRANDE -> "Grande"
+    }
+}
+
+private fun WidgetLayoutSizeOption.description(): String {
+    return when (this) {
+        WidgetLayoutSizeOption.AUTOMATICO -> "La app decide según el launcher."
+        WidgetLayoutSizeOption.COMPACTO -> "Fuerza la vista más pequeña."
+        WidgetLayoutSizeOption.NORMAL -> "Mantiene el formato estándar."
+        WidgetLayoutSizeOption.GRANDE -> "Usa la vista con más detalle."
+    }
+}
+
 private fun WidgetAppearanceSettings.summaryLabel(): String {
-    return "${visualStyle.label()} · ${colorTheme.label()} · ${textSize.label()}"
+    return "${visualStyle.label()} · ${colorTheme.label()} · ${layoutSize.label()}"
 }
 
 @Composable

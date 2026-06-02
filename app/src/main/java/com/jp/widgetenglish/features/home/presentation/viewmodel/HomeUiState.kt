@@ -8,7 +8,7 @@ import com.jp.widgetenglish.data.local.entity.VerboEntity
 data class HomeUiState(
     val cargando: Boolean = true,
 
-    val nombreUsuario: String = "Usuario",
+    val nombreUsuario: String = "",
     val correoUsuario: String = "",
 
     val rachaActual: Int = 0,

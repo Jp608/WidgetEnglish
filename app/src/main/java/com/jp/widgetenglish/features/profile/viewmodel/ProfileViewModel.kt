@@ -22,6 +22,9 @@ import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.StreakRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
+import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MAX_LENGTH
+import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MIN_LENGTH
+import com.jp.widgetenglish.features.common.resolveUserDisplayName
 import com.jp.widgetenglish.features.widget.WordWidgetProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -29,6 +32,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+enum class ProfileConfirmationTarget {
+    NAME,
+    DAILY_GOAL,
+    LEARNING,
+    WIDGET_APPEARANCE
+}
+
+data class ProfileConfirmation(
+    val target: ProfileConfirmationTarget,
+    val text: String
+)
 
 data class ProfileUiState(
     val usuario: UsuarioEntity? = null,
@@ -40,6 +55,7 @@ data class ProfileUiState(
     val cuentaEliminada: Boolean = false,
     val mensaje: String? = null,
     val error: String? = null,
+    val confirmation: ProfileConfirmation? = null,
 
     val learningSettings: LearningSettings = LearningSettings(
         modoSeleccionContenido = ModoSeleccionContenido.INTELIGENTE,
@@ -98,9 +114,16 @@ class ProfileViewModel(
             val usuarioLocal = usuarioDao.obtenerUsuarioPorFirebaseUid(firebaseUser.uid)
 
             if (usuarioLocal != null) {
+                val correo = firebaseUser.email ?: usuarioLocal.correo
+                val nombreVisible = resolveUserDisplayName(
+                    localName = usuarioLocal.nombre,
+                    firebaseDisplayName = firebaseUser.displayName,
+                    email = correo
+                )
+
                 val usuarioActualizado = usuarioLocal.copy(
-                    nombre = firebaseUser.displayName ?: usuarioLocal.nombre,
-                    correo = firebaseUser.email ?: usuarioLocal.correo,
+                    nombre = nombreVisible,
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString() ?: usuarioLocal.avatar,
                     ultimoAcceso = System.currentTimeMillis()
                 )
@@ -114,11 +137,17 @@ class ProfileViewModel(
                     error = null
                 )
             } else {
+                val correo = firebaseUser.email ?: ""
+                val nombreVisible = resolveUserDisplayName(
+                    firebaseDisplayName = firebaseUser.displayName,
+                    email = correo
+                )
+
                 val nuevoUsuario = UsuarioEntity(
                     idUsuario = firebaseUser.uid,
                     firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: "",
+                    nombre = nombreVisible,
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
@@ -203,6 +232,8 @@ class ProfileViewModel(
         context: Context,
         settings: WidgetAppearanceSettings
     ) {
+        if (_uiState.value.widgetAppearanceSettings == settings) return
+
         viewModelScope.launch {
             try {
                 val appContext = context.applicationContext
@@ -214,6 +245,11 @@ class ProfileViewModel(
 
                 _uiState.value = _uiState.value.copy(
                     widgetAppearanceSettings = settings,
+                    confirmation = ProfileConfirmation(
+                        target = ProfileConfirmationTarget.WIDGET_APPEARANCE,
+                        text = "Apariencia del widget guardada correctamente"
+                    ),
+                    mensaje = null,
                     error = null
                 )
 
@@ -222,6 +258,8 @@ class ProfileViewModel(
                 Log.e(TAG, "Error guardando apariencia del widget", e)
 
                 _uiState.value = _uiState.value.copy(
+                    confirmation = null,
+                    mensaje = null,
                     error = "No se pudo guardar la apariencia del widget"
                 )
             }
@@ -267,6 +305,13 @@ class ProfileViewModel(
         automatico: Boolean,
         objetivo: Int
     ) {
+        val settingsActuales = _uiState.value.learningSettings
+        val hayCambios = settingsActuales.modoSeleccionContenido != modo ||
+                settingsActuales.objetivoDiarioAutomatico != automatico ||
+                (!automatico && settingsActuales.objetivoDiarioManual != objetivo)
+
+        if (!hayCambios) return
+
         viewModelScope.launch {
             try {
                 val appContext = context.applicationContext
@@ -288,11 +333,17 @@ class ProfileViewModel(
 
                 reiniciarWidgetPorCambioDeConfiguracion(appContext)
                 cargarConfiguracionAprendizaje(appContext)
+                mostrarConfirmacion(
+                    target = ProfileConfirmationTarget.LEARNING,
+                    text = "Algoritmo de aprendizaje guardado correctamente"
+                )
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error guardando configuracion de aprendizaje", e)
 
                 _uiState.value = _uiState.value.copy(
+                    confirmation = null,
+                    mensaje = null,
                     error = "No se pudo guardar la configuraciÃ³n"
                 )
             }
@@ -319,6 +370,8 @@ class ProfileViewModel(
                 Log.e(TAG, "Error cambiando objetivo automático", e)
 
                 _uiState.value = _uiState.value.copy(
+                    confirmation = null,
+                    mensaje = null,
                     error = "No se pudo actualizar el objetivo diario"
                 )
             }
@@ -337,7 +390,10 @@ class ProfileViewModel(
 
         actualizarObjetivoDiarioOptimista(settingsOptimistas)
 
-        persistirCambioObjetivoDiario(context) { appContext ->
+        persistirCambioObjetivoDiario(
+            context = context,
+            confirmationText = "Objetivo diario guardado correctamente"
+        ) { appContext ->
             DailyGoalPreferences.guardarAutomatico(
                 context = appContext,
                 automatico = automatico
@@ -366,7 +422,10 @@ class ProfileViewModel(
 
         actualizarObjetivoDiarioOptimista(settingsOptimistas)
 
-        persistirCambioObjetivoDiario(context) { appContext ->
+        persistirCambioObjetivoDiario(
+            context = context,
+            confirmationText = "Objetivo diario guardado correctamente"
+        ) { appContext ->
             DailyGoalPreferences.guardarObjetivoManual(
                 context = appContext,
                 objetivo = objetivoNormalizado
@@ -385,7 +444,10 @@ class ProfileViewModel(
 
         actualizarObjetivoDiarioOptimista(settingsOptimistas)
 
-        persistirCambioObjetivoDiario(context) { appContext ->
+        persistirCambioObjetivoDiario(
+            context = context,
+            confirmationText = "Objetivo diario guardado correctamente"
+        ) { appContext ->
             DailyGoalPreferences.reiniciar(appContext)
         }
     }
@@ -395,12 +457,15 @@ class ProfileViewModel(
     ) {
         _uiState.value = _uiState.value.copy(
             dailyGoalSettings = settings,
+            confirmation = null,
+            mensaje = null,
             error = null
         )
     }
 
     private fun persistirCambioObjetivoDiario(
         context: Context,
+        confirmationText: String,
         guardar: suspend (Context) -> Unit
     ) {
         val appContext = context.applicationContext
@@ -410,6 +475,10 @@ class ProfileViewModel(
         dailyGoalUpdateJob = viewModelScope.launch {
             try {
                 guardar(appContext)
+                mostrarConfirmacion(
+                    target = ProfileConfirmationTarget.DAILY_GOAL,
+                    text = confirmationText
+                )
                 recalcularObjetivoDiarioActual(appContext)
 
             } catch (e: CancellationException) {
@@ -418,6 +487,8 @@ class ProfileViewModel(
                 Log.e(TAG, "Error actualizando objetivo diario", e)
 
                 _uiState.value = _uiState.value.copy(
+                    confirmation = null,
+                    mensaje = null,
                     error = "No se pudo actualizar el objetivo diario"
                 )
 
@@ -453,6 +524,15 @@ class ProfileViewModel(
     }
 
     fun reiniciarConfiguracionAprendizaje(context: Context) {
+        val settingsIniciales = LearningSettings(
+            modoSeleccionContenido = ModoSeleccionContenido.INTELIGENTE,
+            objetivoDiarioAutomatico = true,
+            objetivoDiarioManual = LearningPreferences.MIN_OBJETIVO_DIARIO,
+            objetivoDiarioActual = LearningPreferences.MIN_OBJETIVO_DIARIO
+        )
+
+        if (_uiState.value.learningSettings == settingsIniciales) return
+
         viewModelScope.launch {
             try {
                 val appContext = context.applicationContext
@@ -461,6 +541,10 @@ class ProfileViewModel(
 
                 reiniciarWidgetPorCambioDeConfiguracion(appContext)
                 cargarConfiguracionAprendizaje(appContext)
+                mostrarConfirmacion(
+                    target = ProfileConfirmationTarget.LEARNING,
+                    text = "Algoritmo de aprendizaje guardado correctamente"
+                )
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error reiniciando configuración de aprendizaje", e)
@@ -494,35 +578,121 @@ class ProfileViewModel(
     fun limpiarMensajes() {
         _uiState.value = _uiState.value.copy(
             mensaje = null,
+            error = null,
+            confirmation = null
+        )
+    }
+
+    private fun mostrarConfirmacion(
+        target: ProfileConfirmationTarget,
+        text: String
+    ) {
+        _uiState.value = _uiState.value.copy(
+            confirmation = ProfileConfirmation(
+                target = target,
+                text = text
+            ),
+            mensaje = null,
             error = null
         )
     }
 
     fun actualizarPerfilAdministrador(nombre: String) {
-        val nombreLimpio = nombre.trim()
+        actualizarNombrePerfil(
+            nombre = nombre,
+            mensajeExito = "Perfil actualizado correctamente",
+            origenLog = "administrador",
+            actualizacionOptimista = false
+        )
+    }
 
-        if (nombreLimpio.length < 3) {
+    fun actualizarNombrePerfil(nombre: String) {
+        actualizarNombrePerfil(
+            nombre = nombre,
+            mensajeExito = "Nombre actualizado correctamente",
+            origenLog = "usuario",
+            actualizacionOptimista = true
+        )
+    }
+
+    private fun actualizarNombrePerfil(
+        nombre: String,
+        mensajeExito: String,
+        origenLog: String,
+        actualizacionOptimista: Boolean
+    ) {
+        val nombreLimpio = nombre
+            .trim()
+            .replace(Regex("\\s+"), " ")
+
+        if (nombreLimpio.length < USER_DISPLAY_NAME_MIN_LENGTH) {
             _uiState.value = _uiState.value.copy(
-                error = "El nombre debe tener al menos 3 caracteres"
+                error = "El nombre debe tener al menos $USER_DISPLAY_NAME_MIN_LENGTH caracteres"
             )
             return
         }
 
-        viewModelScope.launch {
-            val firebaseUser = authRepository.obtenerUsuarioActual()
-
-            if (firebaseUser == null) {
-                _uiState.value = _uiState.value.copy(
-                    error = "No hay usuario autenticado"
-                )
-                return@launch
-            }
-
+        if (nombreLimpio.length > USER_DISPLAY_NAME_MAX_LENGTH) {
             _uiState.value = _uiState.value.copy(
-                guardandoPerfil = true,
+                error = "El nombre no puede superar $USER_DISPLAY_NAME_MAX_LENGTH caracteres"
+            )
+            return
+        }
+
+        val firebaseUser = authRepository.obtenerUsuarioActual()
+
+        if (firebaseUser == null) {
+            _uiState.value = _uiState.value.copy(
+                error = "No hay usuario autenticado"
+            )
+            return
+        }
+
+        val usuarioAnterior = _uiState.value.usuario
+        val nombreActual = usuarioAnterior?.nombre
+            ?.trim()
+            ?.replace(Regex("\\s+"), " ")
+
+        if (nombreActual == nombreLimpio) {
+            _uiState.value = _uiState.value.copy(
                 mensaje = null,
+                confirmation = null,
                 error = null
             )
+            return
+        }
+
+        if (actualizacionOptimista) {
+            _uiState.value = _uiState.value.copy(
+                mensaje = null,
+                confirmation = null,
+                error = null
+            )
+
+            _uiState.value = _uiState.value.copy(
+                usuario = usuarioAnterior?.copy(
+                    nombre = nombreLimpio,
+                    ultimoAcceso = System.currentTimeMillis()
+                ),
+                guardandoPerfil = false,
+                mensaje = mensajeExito,
+                confirmation = ProfileConfirmation(
+                    target = ProfileConfirmationTarget.NAME,
+                    text = mensajeExito
+                ),
+                error = null
+            )
+        }
+
+        viewModelScope.launch {
+            if (!actualizacionOptimista) {
+                _uiState.value = _uiState.value.copy(
+                    guardandoPerfil = true,
+                    mensaje = null,
+                    confirmation = null,
+                    error = null
+                )
+            }
 
             try {
                 authRepository.actualizarNombreUsuarioActual(nombreLimpio)
@@ -543,17 +713,28 @@ class ProfileViewModel(
                     usuarioDao.actualizarUsuario(usuarioActualizado)
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    usuario = usuarioActualizado ?: _uiState.value.usuario?.copy(nombre = nombreLimpio),
-                    guardandoPerfil = false,
-                    mensaje = "Perfil actualizado correctamente",
-                    error = null
-                )
+                if (actualizacionOptimista) {
+                    _uiState.value = _uiState.value.copy(
+                        usuario = usuarioActualizado ?: _uiState.value.usuario?.copy(nombre = nombreLimpio),
+                        guardandoPerfil = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        usuario = usuarioActualizado ?: _uiState.value.usuario?.copy(nombre = nombreLimpio),
+                        guardandoPerfil = false,
+                        mensaje = mensajeExito,
+                        confirmation = null,
+                        error = null
+                    )
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error actualizando perfil administrador", e)
+                Log.e(TAG, "Error actualizando perfil $origenLog", e)
 
                 _uiState.value = _uiState.value.copy(
+                    usuario = if (actualizacionOptimista) usuarioAnterior else _uiState.value.usuario,
                     guardandoPerfil = false,
+                    mensaje = null,
+                    confirmation = null,
                     error = e.message ?: "No se pudo actualizar el perfil"
                 )
             }
