@@ -74,7 +74,7 @@ import com.jp.widgetenglish.features.ai.presentation.screens.ChatHistoryScreen
 import com.jp.widgetenglish.features.ai.presentation.screens.ChatRoomScreen
 import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModel
 import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModelFactory
-import com.jp.widgetenglish.features.common.JimmyCopilotOverlay
+import com.jp.widgetenglish.features.common.LeoCopilotOverlay
 
 @Composable
 fun AppNavGraph() {
@@ -297,7 +297,7 @@ fun AppNavGraph() {
                         navegar(Screen.Profile.route)
                     }
                 )
-                JimmyCopilotOverlay(
+                LeoCopilotOverlay(
                     pantallaActual = "Inicio (Home)",
                     contextoAdicional = "Racha: ${homeViewModel.uiState.collectAsState().value.rachaActual} días",
                     aiClient = groqAiClient
@@ -338,7 +338,7 @@ fun AppNavGraph() {
                         )
                     }
                 )
-                JimmyCopilotOverlay(
+                LeoCopilotOverlay(
                     pantallaActual = "Biblioteca de Vocabulario",
                     contextoAdicional = "Sección: ${vocabularyViewModel.uiState.collectAsState().value.seccionActual.name}",
                     aiClient = groqAiClient
@@ -364,7 +364,7 @@ fun AppNavGraph() {
                         navController.popBackStack()
                     }
                 )
-                JimmyCopilotOverlay(
+                LeoCopilotOverlay(
                     pantallaActual = "Detalle de Palabra",
                     contextoAdicional = "Palabra ID: $itemId, esVerbo: $isVerbo",
                     aiClient = groqAiClient
@@ -749,7 +749,7 @@ fun AppNavGraph() {
                     viewModel = profileViewModel,
                     authViewModel = authViewModel
                 )
-                JimmyCopilotOverlay(
+                LeoCopilotOverlay(
                     pantallaActual = "Perfil de Usuario",
                     contextoAdicional = "Usuario: ${profileViewModel.uiState.collectAsState().value.usuario?.nombre ?: "Sin nombre"}",
                     aiClient = groqAiClient

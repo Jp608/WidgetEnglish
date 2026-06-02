@@ -91,7 +91,7 @@ fun ChatHistoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Práctica con Jimmy ✨",
+                    text = "Práctica con Leo ✨",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -199,9 +199,9 @@ fun EmptyHistoryState(onStart: () -> Unit) {
             tint = Color.LightGray
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Aún no has practicado con Jimmy", fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text("Aún no has practicado con Leo", fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Text(
-            "Jimmy es tu tutor de IA. Puedes pedirle ayuda con traducciones o practicar conversaciones reales.",
+            "Leo es tu tutor de IA. Puedes pedirle ayuda con traducciones o practicar conversaciones reales.",
             color = Color.Gray,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             fontSize = 14.sp
