@@ -55,6 +55,7 @@ fun ChatRoomScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -100,9 +101,9 @@ fun ChatRoomScreen(
             ) {
                 Row(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .navigationBarsPadding()
-                        .imePadding(),
+                        .navigationBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextField(
@@ -111,6 +112,9 @@ fun ChatRoomScreen(
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("Escribe algo en inglés o español...") },
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            cursorColor = Color(0xFF1565C0),
                             unfocusedContainerColor = Color.Transparent,
                             focusedContainerColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
