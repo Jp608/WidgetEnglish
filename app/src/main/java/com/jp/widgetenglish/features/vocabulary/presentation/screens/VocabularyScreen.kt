@@ -69,6 +69,8 @@ import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.data.local.entity.TipoPalabra
 import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.common.TtsHelper
+import com.jp.widgetenglish.features.common.UserHeaderBlue
+import com.jp.widgetenglish.features.common.UserHeaderSystemBars
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.PalabraConProgreso
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioFiltro
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularioSeccion
@@ -101,6 +103,8 @@ fun VocabularyScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val ttsHelper = remember { TtsHelper(context) }
+
+    UserHeaderSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarUsuarioActual()
@@ -413,7 +417,7 @@ fun VocabularyScreen(
 @Composable
 private fun VocabularyTopHeader(nombreLote: String? = null) {
     Surface(
-        color = BluePrimary,
+        color = UserHeaderBlue,
         shadowElevation = 0.dp
     ) {
         Row(

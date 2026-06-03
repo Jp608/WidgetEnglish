@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.common.TtsHelper
@@ -285,9 +286,14 @@ private fun CardsSessionHeader(
         Text(
             text = title,
             color = Color.White,
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 54.dp)
         )
 
         Icon(
@@ -357,7 +363,9 @@ private fun SessionProgressCard(
                             color = TextDark,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
 
@@ -411,7 +419,7 @@ private fun FlashCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 26.dp),
+                .padding(horizontal = 28.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
@@ -423,16 +431,18 @@ private fun FlashCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 26.dp, vertical = 24.dp),
+                    .padding(horizontal = 22.dp, vertical = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = tarjeta.termino,
                     color = TextDark,
-                    fontSize = 42.sp,
+                    fontSize = 38.sp,
                     fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center,
-                    lineHeight = 46.sp
+                    lineHeight = 42.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 if (mostrarPronunciacion && !tarjeta.fonetica.isNullOrBlank()) {
@@ -441,9 +451,11 @@ private fun FlashCard(
                     Text(
                         text = tarjeta.fonetica.orEmpty(),
                         color = TextMuted,
-                        fontSize = 23.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -525,7 +537,7 @@ private fun FloatingArrowButton(
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = modifier.size(52.dp),
+        modifier = modifier.size(46.dp),
         shape = CircleShape,
         color = if (enabled) Color.White else Color(0xFFF3F4F6),
         shadowElevation = if (enabled) 5.dp else 0.dp,
@@ -538,7 +550,7 @@ private fun FloatingArrowButton(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (enabled) StrongBlue else Color(0xFFCBD5E1),
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
     }
@@ -567,11 +579,11 @@ private fun ExampleBox(
         border = BorderStroke(1.dp, Color(0xFFCFE0FF))
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
             Surface(
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(38.dp),
                 shape = RoundedCornerShape(15.dp),
                 color = SoftBlue
             ) {
@@ -579,19 +591,21 @@ private fun ExampleBox(
                     Text(
                         text = "”",
                         color = StrongBlue,
-                        fontSize = 32.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(13.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = "Ejemplo:",
                     color = TextDark,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
 
@@ -601,9 +615,9 @@ private fun ExampleBox(
                     Text(
                         text = ejemploIngles,
                         color = TextDark,
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        lineHeight = 22.sp
+                        lineHeight = 20.sp
                     )
                 }
 
@@ -613,9 +627,9 @@ private fun ExampleBox(
                     Text(
                         text = ejemploEspanol,
                         color = TextMuted,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        lineHeight = 20.sp
+                        lineHeight = 18.sp
                     )
                 }
             }
@@ -708,26 +722,33 @@ private fun InfoRow(
                 imageVector = icon,
                 contentDescription = null,
                 tint = TextMuted,
-                modifier = Modifier.size(23.dp)
+                modifier = Modifier.size(22.dp)
             )
 
-            Spacer(modifier = Modifier.width(13.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Text(
-                text = label,
-                color = TextMuted,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+            Column(
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                Text(
+                    text = label,
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Text(
-                text = value,
-                color = TextDark,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.End
-            )
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = value,
+                    color = TextDark,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    lineHeight = 18.sp
+                )
+            }
         }
 
         Box(
@@ -831,7 +852,7 @@ private fun AnswerButton(
     val iconColor = if (selected) selectedColor else baseColor
 
     Surface(
-        modifier = modifier.height(82.dp),
+        modifier = modifier.height(84.dp),
         shape = RoundedCornerShape(22.dp),
         color = containerColor,
         border = BorderStroke(
@@ -842,11 +863,11 @@ private fun AnswerButton(
         onClick = onClick
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(43.dp),
+                modifier = Modifier.size(38.dp),
                 shape = CircleShape,
                 color = iconCircleColor
             ) {
@@ -855,12 +876,12 @@ private fun AnswerButton(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconColor,
-                        modifier = Modifier.size(25.dp)
+                        modifier = Modifier.size(23.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -869,9 +890,11 @@ private fun AnswerButton(
                 Text(
                     text = title,
                     color = titleColor,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1
+                    lineHeight = 16.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -879,9 +902,10 @@ private fun AnswerButton(
                 Text(
                     text = subtitle,
                     color = subtitleColor,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
