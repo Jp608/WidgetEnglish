@@ -132,7 +132,7 @@ class UsuarioFirestoreDataSource(
         return UsuarioEntity(
             idUsuario = snapshot.getString("idUsuario") ?: firebaseUid,
             firebaseUid = snapshot.getString("firebaseUid") ?: firebaseUid,
-            nombre = snapshot.getString("nombre") ?: "Usuario",
+            nombre = snapshot.getString("nombre") ?: "",
             correo = snapshot.getString("correo") ?: "",
             avatar = snapshot.getString("avatar"),
             rol = runCatching { RolUsuario.valueOf(rolTexto) }

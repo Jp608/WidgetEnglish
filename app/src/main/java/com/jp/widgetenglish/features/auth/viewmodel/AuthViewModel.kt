@@ -14,7 +14,10 @@ import com.jp.widgetenglish.data.remote.firestore.EstadisticasFirestoreDataSourc
 import com.jp.widgetenglish.data.remote.firestore.UsuarioFirestoreDataSource
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
+import com.jp.widgetenglish.features.auth.AuthInputLimits
+import com.jp.widgetenglish.features.auth.limitTo
 import com.jp.widgetenglish.features.auth.presentation.state.AuthUiState
+import com.jp.widgetenglish.features.common.resolveUserDisplayName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -398,28 +401,28 @@ class AuthViewModel(
 
     fun actualizarNombre(nombre: String) {
         _uiState.value = _uiState.value.copy(
-            nombre = nombre,
+            nombre = nombre.limitTo(AuthInputLimits.NAME),
             error = null
         )
     }
 
     fun actualizarCorreo(correo: String) {
         _uiState.value = _uiState.value.copy(
-            correo = correo,
+            correo = correo.limitTo(AuthInputLimits.EMAIL),
             error = null
         )
     }
 
     fun actualizarPassword(password: String) {
         _uiState.value = _uiState.value.copy(
-            password = password,
+            password = password.limitTo(AuthInputLimits.PASSWORD),
             error = null
         )
     }
 
     fun actualizarConfirmPassword(confirmPassword: String) {
         _uiState.value = _uiState.value.copy(
-            confirmPassword = confirmPassword,
+            confirmPassword = confirmPassword.limitTo(AuthInputLimits.PASSWORD),
             error = null
         )
     }
@@ -546,11 +549,15 @@ class AuthViewModel(
             )
 
             result.onSuccess { firebaseUser ->
+                val correo = firebaseUser.email ?: state.correo
                 val usuarioBase = UsuarioEntity(
                     idUsuario = firebaseUser.uid,
                     firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: state.correo,
+                    nombre = resolveUserDisplayName(
+                        firebaseDisplayName = firebaseUser.displayName,
+                        email = correo
+                    ),
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
@@ -587,11 +594,15 @@ class AuthViewModel(
             val result = authRepository.iniciarSesionConGoogle(credential)
 
             result.onSuccess { firebaseUser ->
+                val correo = firebaseUser.email ?: ""
                 val usuarioBase = UsuarioEntity(
                     idUsuario = firebaseUser.uid,
                     firebaseUid = firebaseUser.uid,
-                    nombre = firebaseUser.displayName ?: "Usuario",
-                    correo = firebaseUser.email ?: "",
+                    nombre = resolveUserDisplayName(
+                        firebaseDisplayName = firebaseUser.displayName,
+                        email = correo
+                    ),
+                    correo = correo,
                     avatar = firebaseUser.photoUrl?.toString(),
                     rol = RolUsuario.USUARIO,
                     activo = true,
@@ -650,11 +661,15 @@ class AuthViewModel(
                 return@launch
             }
 
+            val correo = firebaseUser.email ?: ""
             val usuarioBase = UsuarioEntity(
                 idUsuario = firebaseUser.uid,
                 firebaseUid = firebaseUser.uid,
-                nombre = firebaseUser.displayName ?: "Usuario",
-                correo = firebaseUser.email ?: "",
+                nombre = resolveUserDisplayName(
+                    firebaseDisplayName = firebaseUser.displayName,
+                    email = correo
+                ),
+                correo = correo,
                 avatar = firebaseUser.photoUrl?.toString(),
                 rol = RolUsuario.USUARIO,
                 activo = true,

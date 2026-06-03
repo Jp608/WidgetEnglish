@@ -23,6 +23,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jp.widgetenglish.features.auth.AuthCharacterCounter
+import com.jp.widgetenglish.features.auth.AuthInputLimits
+import com.jp.widgetenglish.features.auth.limitTo
 import com.widgetenglish.app.ui.Screen
 
 @Composable
@@ -123,22 +126,28 @@ fun NewPasswordScreen(navController: NavController) {
                         // Nueva contraseña
                         OutlinedTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = { password = it.limitTo(AuthInputLimits.PASSWORD) },
                             label = { Text("Nueva contraseña") },
                             leadingIcon = {
                                 Icon(Icons.Filled.Lock, contentDescription = null,
                                     tint = Color(0xFF1565C0))
                             },
                             trailingIcon = {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        imageVector = if (passwordVisible)
-                                            Icons.Filled.Visibility
-                                        else
-                                            Icons.Filled.VisibilityOff,
-                                        contentDescription = "Mostrar contraseña",
-                                        tint = Color(0xFF1565C0)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    AuthCharacterCounter(
+                                        currentLength = password.length,
+                                        maxLength = AuthInputLimits.PASSWORD
                                     )
+                                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                        Icon(
+                                            imageVector = if (passwordVisible)
+                                                Icons.Filled.Visibility
+                                            else
+                                                Icons.Filled.VisibilityOff,
+                                            contentDescription = "Mostrar contraseña",
+                                            tint = Color(0xFF1565C0)
+                                        )
+                                    }
                                 }
                             },
                             visualTransformation = if (passwordVisible)
@@ -156,22 +165,28 @@ fun NewPasswordScreen(navController: NavController) {
                         // Confirmar contraseña
                         OutlinedTextField(
                             value = confirmPassword,
-                            onValueChange = { confirmPassword = it },
+                            onValueChange = { confirmPassword = it.limitTo(AuthInputLimits.PASSWORD) },
                             label = { Text("Confirmar contraseña") },
                             leadingIcon = {
                                 Icon(Icons.Filled.LockOpen, contentDescription = null,
                                     tint = Color(0xFF1565C0))
                             },
                             trailingIcon = {
-                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                                    Icon(
-                                        imageVector = if (confirmPasswordVisible)
-                                            Icons.Filled.Visibility
-                                        else
-                                            Icons.Filled.VisibilityOff,
-                                        contentDescription = "Mostrar contraseña",
-                                        tint = Color(0xFF1565C0)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    AuthCharacterCounter(
+                                        currentLength = confirmPassword.length,
+                                        maxLength = AuthInputLimits.PASSWORD
                                     )
+                                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                        Icon(
+                                            imageVector = if (confirmPasswordVisible)
+                                                Icons.Filled.Visibility
+                                            else
+                                                Icons.Filled.VisibilityOff,
+                                            contentDescription = "Mostrar contraseña",
+                                            tint = Color(0xFF1565C0)
+                                        )
+                                    }
                                 }
                             },
                             visualTransformation = if (confirmPasswordVisible)

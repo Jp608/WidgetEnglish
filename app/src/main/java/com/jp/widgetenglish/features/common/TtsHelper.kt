@@ -17,9 +17,10 @@ class TtsHelper(context: Context) {
         }
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, rate: Float = 1.0f) {
         if (isReady) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            tts?.setSpeechRate(rate)
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "TTS_ID_${System.currentTimeMillis()}")
         }
     }
 

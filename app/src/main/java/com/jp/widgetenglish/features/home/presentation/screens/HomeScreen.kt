@@ -51,6 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.widgetenglish.features.common.LightUserSystemBars
+import com.jp.widgetenglish.features.common.firstDisplayNameOrBlank
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
 
 private val BackgroundColor = Color(0xFFF8FAFC)
@@ -75,6 +77,8 @@ fun HomeScreen(
     onPerfilClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LightUserSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarHome()
@@ -275,12 +279,12 @@ private fun HeaderHome(
     rachaActual: Int,
     objetivoCumplido: Boolean
 ) {
-    val primerNombre = nombreUsuario
-        .trim()
-        .split(" ")
-        .firstOrNull()
-        ?.takeIf { it.isNotBlank() }
-        ?: "Usuario"
+    val primerNombre = firstDisplayNameOrBlank(nombreUsuario)
+    val saludo = if (primerNombre.isBlank()) {
+        "¡Hola! 👋"
+    } else {
+        "¡Hola, $primerNombre! 👋"
+    }
 
     val textoRacha = if (rachaActual == 1) {
         "🔥  1 día de racha"
@@ -330,7 +334,7 @@ private fun HeaderHome(
                 .padding(horizontal = 28.dp)
         ) {
             Text(
-                text = "¡Hola, $primerNombre! 👋",
+                text = saludo,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
@@ -532,6 +536,8 @@ private fun SummaryCard(
     verbos: Int,
     lotes: Int
 ) {
+    val totalContenido = palabras + verbos
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -549,6 +555,60 @@ private fun SummaryCard(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFF8FAFC))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0xFFE0F2FE), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "T",
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 19.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Contenido total",
+                        color = MutedText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = "Palabras + verbos",
+                        color = DarkText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = totalContenido.toString(),
+                    color = DarkText,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
 
             Spacer(modifier = Modifier.height(18.dp))
 

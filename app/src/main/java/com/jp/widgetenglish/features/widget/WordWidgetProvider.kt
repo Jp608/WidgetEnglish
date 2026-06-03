@@ -20,6 +20,7 @@ import com.jp.widgetenglish.data.local.datastore.ModoSeleccionContenido
 import com.jp.widgetenglish.data.local.datastore.WidgetAppearancePreferences
 import com.jp.widgetenglish.data.local.datastore.WidgetAppearanceSettings
 import com.jp.widgetenglish.data.local.datastore.WidgetColorTheme
+import com.jp.widgetenglish.data.local.datastore.WidgetLayoutSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
 import com.jp.widgetenglish.data.local.datastore.WidgetPreferences
@@ -464,7 +465,8 @@ class WordWidgetProvider : AppWidgetProvider() {
 
             val layoutId = seleccionarLayout(
                 appWidgetManager = appWidgetManager,
-                appWidgetId = appWidgetId
+                appWidgetId = appWidgetId,
+                appearance = appearance
             )
 
             val views = RemoteViews(
@@ -509,8 +511,16 @@ class WordWidgetProvider : AppWidgetProvider() {
 
         private fun seleccionarLayout(
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            appearance: WidgetAppearanceSettings
         ): Int {
+            when (appearance.layoutSize) {
+                WidgetLayoutSizeOption.COMPACTO -> return R.layout.widget_word_compact
+                WidgetLayoutSizeOption.NORMAL -> return R.layout.widget_word_normal
+                WidgetLayoutSizeOption.GRANDE -> return R.layout.widget_word_large
+                WidgetLayoutSizeOption.AUTOMATICO -> Unit
+            }
+
             val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
 
             val minWidth = options.getInt(

@@ -138,6 +138,13 @@ fun LoginScreen(
                         onValueChange = { viewModel.actualizarCorreo(it) },
                         label = { Text("Correo electrónico") },
                         leadingIcon = { Icon(Icons.Filled.Email, null, tint = Color(0xFF1565C0)) },
+                        trailingIcon = {
+                            AuthCharacterCounter(
+                                currentLength = uiState.correo.length,
+                                maxLength = AuthInputLimits.EMAIL,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -154,12 +161,18 @@ fun LoginScreen(
                         label = { Text("Contraseña") },
                         leadingIcon = { Icon(Icons.Filled.Lock, null, tint = Color(0xFF1565C0)) },
                         trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = null,
-                                    tint = Color(0xFF1565C0)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AuthCharacterCounter(
+                                    currentLength = uiState.password.length,
+                                    maxLength = AuthInputLimits.PASSWORD
                                 )
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1565C0)
+                                    )
+                                }
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),

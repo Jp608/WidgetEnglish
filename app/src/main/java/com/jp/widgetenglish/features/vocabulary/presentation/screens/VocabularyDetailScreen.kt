@@ -61,6 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.data.local.entity.EstadoAprendizaje
 import com.jp.widgetenglish.features.common.TtsHelper
+import com.jp.widgetenglish.features.common.UserHeaderBlue
+import com.jp.widgetenglish.features.common.UserHeaderSystemBars
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.VocabularyViewModel
 
 private val DetailBackgroundColor = Color(0xFFF8FAFC)
@@ -84,6 +86,8 @@ fun VocabularyDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val ttsHelper = remember { TtsHelper(context) }
+
+    UserHeaderSystemBars()
 
     val item = uiState.palabrasOriginales.find {
         it.id == itemId && it.esVerbo == isVerbo
@@ -454,7 +458,7 @@ private fun DetailTopHeader(
     onBack: () -> Unit
 ) {
     Surface(
-        color = DetailBluePrimary,
+        color = UserHeaderBlue,
         shadowElevation = 0.dp
     ) {
         Row(

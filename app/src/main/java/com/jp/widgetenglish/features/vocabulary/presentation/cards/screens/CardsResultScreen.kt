@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.vocabulary.presentation.cards.viewmodel.CardsViewModel
@@ -245,11 +246,13 @@ private fun SummaryCard(
         )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(58.dp),
+                modifier = Modifier.size(54.dp),
                 shape = RoundedCornerShape(19.dp),
                 color = SoftBlue
             ) {
@@ -258,12 +261,12 @@ private fun SummaryCard(
                         imageVector = Icons.Filled.School,
                         contentDescription = null,
                         tint = StrongBlue,
-                        modifier = Modifier.size(31.dp)
+                        modifier = Modifier.size(29.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(
                 modifier = Modifier.weight(1f)
@@ -271,9 +274,10 @@ private fun SummaryCard(
                 Text(
                     text = loteNombre,
                     color = TextDark,
-                    fontSize = 21.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -289,7 +293,7 @@ private fun SummaryCard(
             Text(
                 text = "$progresoFinal%",
                 color = StrongBlue,
-                fontSize = 28.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.ExtraBold
             )
         }
@@ -318,7 +322,7 @@ private fun StatsGrid(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatBox(
                     modifier = Modifier.weight(1f),
@@ -345,7 +349,7 @@ private fun StatsGrid(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatBox(
                     modifier = Modifier.weight(1f),
@@ -382,7 +386,7 @@ private fun StatBox(
     background: Color
 ) {
     Surface(
-        modifier = modifier.height(96.dp),
+        modifier = modifier.height(104.dp),
         shape = RoundedCornerShape(20.dp),
         color = background,
         border = BorderStroke(
@@ -392,11 +396,11 @@ private fun StatBox(
         shadowElevation = 1.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(46.dp),
+                modifier = Modifier.size(40.dp),
                 shape = CircleShape,
                 color = color
             ) {
@@ -405,12 +409,12 @@ private fun StatBox(
                         imageVector = icon,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(27.dp)
+                        modifier = Modifier.size(23.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -419,17 +423,19 @@ private fun StatBox(
                 Text(
                     text = value.toString(),
                     color = darkColor,
-                    fontSize = 28.sp,
+                    fontSize = 25.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    lineHeight = 30.sp
+                    lineHeight = 27.sp
                 )
 
                 Text(
                     text = label,
                     color = darkColor,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1
+                    lineHeight = 14.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -472,8 +478,11 @@ private fun ProgressFinalCard(
                 Text(
                     text = "Progreso actualizado",
                     color = TextDark,
-                    fontSize = 19.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold,
+                    lineHeight = 21.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
 

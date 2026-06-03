@@ -14,6 +14,7 @@ import com.jp.widgetenglish.data.local.entity.UsuarioEntity
 import com.jp.widgetenglish.data.local.entity.VerboEntity
 import com.jp.widgetenglish.data.repository.VocabularioRepository
 import com.jp.widgetenglish.data.repository.auth.AuthRepository
+import com.jp.widgetenglish.features.common.resolveUserDisplayName
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,13 +90,15 @@ class HomeViewModel(
                 DailyGoalPreferences.observarConfiguracion(context)
             ) { datos, loteActivo, dailyGoalSettings ->
 
-                val nombre = datos.usuarioLocal?.nombre
-                    ?: firebaseUser.displayName
-                    ?: "Usuario"
-
                 val correo = datos.usuarioLocal?.correo
                     ?: firebaseUser.email
                     ?: ""
+
+                val nombre = resolveUserDisplayName(
+                    localName = datos.usuarioLocal?.nombre,
+                    firebaseDisplayName = firebaseUser.displayName,
+                    email = correo
+                )
 
                 val loteActivoInfo = datos.lotes.firstOrNull { lote ->
                     lote.idLote == loteActivo?.loteId
