@@ -20,8 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.data.local.entity.ChatMessageEntity
 import com.jp.widgetenglish.features.ai.presentation.viewmodel.ChatViewModel
+import com.jp.widgetenglish.features.common.UserHeaderBlue
+import com.jp.widgetenglish.features.common.UserHeaderSystemBars
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatRoomScreen(
     sessionId: String,
@@ -31,6 +32,8 @@ fun ChatRoomScreen(
     val state by viewModel.roomState.collectAsState()
     var textState by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    UserHeaderSystemBars()
 
     LaunchedEffect(sessionId) {
         viewModel.cargarMensajes(sessionId)
@@ -44,19 +47,7 @@ fun ChatRoomScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Chateando con Leo ✨", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF1565C0),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
+            ChatRoomHeader(onBack = onBack)
         },
         containerColor = Color(0xFFF5F5F5)
     ) { paddingValues ->
@@ -91,6 +82,12 @@ fun ChatRoomScreen(
                                 color = Color.Gray
                             )
                         }
+                    }
+                }
+
+                state.error?.let { error ->
+                    item {
+                        ChatErrorMessage(error = error)
                     }
                 }
             }
@@ -142,6 +139,59 @@ fun ChatRoomScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChatRoomHeader(
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(UserHeaderBlue)
+            .statusBarsPadding()
+            .height(56.dp)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Volver",
+                tint = Color.White,
+                modifier = Modifier.size(27.dp)
+            )
+        }
+
+        Text(
+            text = "Chateando con Leo",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ChatErrorMessage(error: String) {
+    Surface(
+        color = Color(0xFFFFEBEE),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = error,
+            modifier = Modifier.padding(14.dp),
+            color = Color(0xFFB91C1C),
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

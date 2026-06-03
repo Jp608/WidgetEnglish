@@ -1,12 +1,15 @@
 package com.jp.widgetenglish.data.remote.ai
 
+import com.jp.widgetenglish.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
+import java.io.IOException
 
 // Data models for Groq API (OpenAI compatible)
 data class GroqRequest(
@@ -27,6 +30,11 @@ data class GroqChoice(
     val message: GroqMessage
 )
 
+class AiClientException(
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause)
+
 interface GroqService {
     @POST("v1/chat/completions")
     suspend fun getCompletion(
@@ -40,7 +48,11 @@ class GroqAiClient(private val apiKey: String) {
 
     init {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -53,6 +65,44 @@ class GroqAiClient(private val apiKey: String) {
             .build()
 
         service = retrofit.create(GroqService::class.java)
+    }
+
+    private fun authHeader(): String {
+        if (apiKey.isBlank()) {
+            throw AiClientException("La IA no esta configurada. Falta GROQ_API_KEY.")
+        }
+
+        return "Bearer $apiKey"
+    }
+
+    private suspend fun completarChat(mensajes: List<GroqMessage>): String {
+        val response = service.getCompletion(
+            auth = authHeader(),
+            request = GroqRequest(messages = mensajes)
+        )
+
+        return response.choices.firstOrNull()?.message?.content
+            ?.takeIf { it.isNotBlank() }
+            ?: throw AiClientException("La IA no devolvio una respuesta valida.")
+    }
+
+    private fun toAiClientException(error: Exception): AiClientException {
+        if (error is AiClientException) {
+            return error
+        }
+
+        val message = when (error) {
+            is HttpException -> when (error.code()) {
+                401, 403 -> "No se pudo autenticar con el servicio de IA."
+                429 -> "Leo recibio demasiadas solicitudes. Intenta de nuevo en un momento."
+                in 500..599 -> "El servicio de IA no esta disponible temporalmente."
+                else -> "El servicio de IA respondio con error ${error.code()}."
+            }
+            is IOException -> "No se pudo conectar con Leo. Revisa tu internet."
+            else -> "No se pudo obtener respuesta de Leo."
+        }
+
+        return AiClientException(message, error)
     }
 
     suspend fun obtenerExplicacion(termino: String): String {
@@ -71,13 +121,7 @@ class GroqAiClient(private val apiKey: String) {
         """.trimIndent()
 
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(
-                    messages = listOf(GroqMessage(role = "user", content = prompt))
-                )
-            )
-            response.choices.firstOrNull()?.message?.content ?: "No pude generar una explicación."
+            completarChat(listOf(GroqMessage(role = "user", content = prompt)))
         } catch (e: Exception) {
             "Error al conectar con la IA Open Source: ${e.message}"
         }
@@ -101,15 +145,9 @@ class GroqAiClient(private val apiKey: String) {
         val fullHistory = listOf(systemPrompt) + mensajes
 
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(
-                    messages = fullHistory
-                )
-            )
-            response.choices.firstOrNull()?.message?.content ?: "Leo se quedó pensando... intenta de nuevo."
+            completarChat(fullHistory)
         } catch (e: Exception) {
-            "Error de conexión con Leo: ${e.message}"
+            throw toAiClientException(e)
         }
     }
 
@@ -120,13 +158,7 @@ class GroqAiClient(private val apiKey: String) {
         )
         
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(
-                    messages = mensajes + prompt
-                )
-            )
-            response.choices.firstOrNull()?.message?.content?.trim() ?: "Conversación de inglés"
+            completarChat(mensajes + prompt).trim()
         } catch (e: Exception) {
             "Conversación nueva"
         }
@@ -147,13 +179,7 @@ class GroqAiClient(private val apiKey: String) {
         """.trimIndent()
 
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(
-                    messages = listOf(GroqMessage(role = "user", content = prompt))
-                )
-            )
-            response.choices.firstOrNull()?.message?.content ?: "¡Sigue adelante con tu aprendizaje!"
+            completarChat(listOf(GroqMessage(role = "user", content = prompt)))
         } catch (e: Exception) {
             "¡Hola! Soy Leo, tu copiloto. ¿En qué puedo ayudarte hoy?"
         }
@@ -165,11 +191,7 @@ class GroqAiClient(private val apiKey: String) {
             content = "De este texto del usuario, extrae máximo 3 temas de interés (ej: Fútbol, Música, Videojuegos) en español, separados por comas. Si no hay intereses claros, responde 'NADA'. Texto: $texto"
         )
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(messages = listOf(prompt))
-            )
-            val content = response.choices.firstOrNull()?.message?.content ?: "NADA"
+            val content = completarChat(listOf(prompt))
             if (content.contains("NADA", ignoreCase = true)) emptyList()
             else content.split(",").map { it.trim() }
         } catch (e: Exception) {
@@ -192,11 +214,7 @@ class GroqAiClient(private val apiKey: String) {
             """.trimIndent()
         )
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(messages = listOf(prompt))
-            )
-            response.choices.firstOrNull()?.message?.content ?: "Nivel inicial A1"
+            completarChat(listOf(prompt))
         } catch (e: Exception) {
             "Nivel inicial A1"
         }
@@ -216,16 +234,12 @@ class GroqAiClient(private val apiKey: String) {
         """.trimIndent()
 
         return try {
-            val response = service.getCompletion(
-                auth = "Bearer $apiKey",
-                request = GroqRequest(
-                    messages = listOf(
-                        GroqMessage(role = "system", content = prompt),
-                        GroqMessage(role = "user", content = textoUsuario)
-                    )
+            completarChat(
+                listOf(
+                    GroqMessage(role = "system", content = prompt),
+                    GroqMessage(role = "user", content = textoUsuario)
                 )
             )
-            response.choices.firstOrNull()?.message?.content ?: "Interesante. Let's keep practicing!"
         } catch (e: Exception) {
             "Te escucho un poco entrecortado. Can you repeat that?"
         }

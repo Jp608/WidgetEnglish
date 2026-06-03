@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jp.widgetenglish.data.repository.ChatRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -14,6 +15,7 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
 
     private val _roomState = MutableStateFlow(ChatRoomUiState())
     val roomState: StateFlow<ChatRoomUiState> = _roomState.asStateFlow()
+    private var roomMessagesJob: Job? = null
 
     init {
         observarSesiones()
@@ -35,8 +37,16 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
     }
 
     fun cargarMensajes(sessionId: String) {
-        _roomState.update { it.copy(sessionId = sessionId) }
-        viewModelScope.launch {
+        roomMessagesJob?.cancel()
+        _roomState.update {
+            it.copy(
+                sessionId = sessionId,
+                mensajes = emptyList(),
+                error = null,
+                cargandoRespuesta = false
+            )
+        }
+        roomMessagesJob = viewModelScope.launch {
             repository.observarMensajes(sessionId).collect { lista ->
                 _roomState.update { it.copy(mensajes = lista) }
             }
@@ -48,11 +58,20 @@ class ChatViewModel(private val repository: ChatRepository) : ViewModel() {
         if (contenido.isBlank()) return
 
         viewModelScope.launch {
-            _roomState.update { it.copy(cargandoRespuesta = true) }
+            _roomState.update {
+                it.copy(
+                    cargandoRespuesta = true,
+                    error = null
+                )
+            }
             try {
                 repository.enviarMensaje(sessionId, contenido)
             } catch (e: Exception) {
-                _roomState.update { it.copy(error = e.message) }
+                _roomState.update {
+                    it.copy(
+                        error = e.message ?: "No se pudo enviar el mensaje."
+                    )
+                }
             } finally {
                 _roomState.update { it.copy(cargandoRespuesta = false) }
             }

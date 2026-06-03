@@ -296,5 +296,125 @@ object SeedLotes {
             cantidadSugeridaEstudio = 10
         ),
         // Fin lotes derivados
+
+        // Inicio lotes adjetivos importados desde CSV
+        LoteEntity(
+            idLote = "lote_adj_apariencia_medidas",
+            nombre = "Adjetivos: apariencia y medidas",
+            descripcion = "Colores, luz, tamanos, formas y medidas para describir objetos.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#2563EB",
+            icono = "palette",
+            activo = true,
+            orden = 21,
+            cantidadContenido = 61,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_opinion_valor",
+            nombre = "Adjetivos: opinion y valor",
+            descripcion = "Adjetivos para expresar gusto, valoracion, utilidad e impacto.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#7C3AED",
+            icono = "thumb_up",
+            activo = true,
+            orden = 22,
+            cantidadContenido = 34,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_funcion_precision",
+            nombre = "Adjetivos: funcion y precision",
+            descripcion = "Adjetivos sobre exactitud, resultados, requisitos y funcionamiento.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#0D9488",
+            icono = "tune",
+            activo = true,
+            orden = 23,
+            cantidadContenido = 52,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_personas_emociones",
+            nombre = "Adjetivos: personas y emociones",
+            descripcion = "Emociones, personalidad y trato social para describir personas.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#D81B60",
+            icono = "mood",
+            activo = true,
+            orden = 24,
+            cantidadContenido = 63,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_estado_disponibilidad",
+            nombre = "Adjetivos: estado y disponibilidad",
+            descripcion = "Condicion, disponibilidad, movimiento y estado de cosas o personas.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#16A34A",
+            icono = "toggle_on",
+            activo = true,
+            orden = 25,
+            cantidadContenido = 52,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_tiempo_ubicacion",
+            nombre = "Adjetivos: tiempo y ubicacion",
+            descripcion = "Tiempo, frecuencia, posicion, origen y alcance espacial.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#0891B2",
+            icono = "schedule",
+            activo = true,
+            orden = 26,
+            cantidadContenido = 69,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_salud_sentidos",
+            nombre = "Adjetivos: salud y sentidos",
+            descripcion = "Salud, cuerpo, sabores, texturas y percepciones sensoriales.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#EA580C",
+            icono = "restaurant",
+            activo = true,
+            orden = 27,
+            cantidadContenido = 49,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_naturaleza_seguridad",
+            nombre = "Adjetivos: naturaleza y seguridad",
+            descripcion = "Clima, naturaleza, materiales, riesgo, normas y seguridad.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#15803D",
+            icono = "forest",
+            activo = true,
+            orden = 28,
+            cantidadContenido = 29,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_adj_contextos_generales",
+            nombre = "Adjetivos: contextos generales",
+            descripcion = "Contextos profesionales, tecnologia y adjetivos generales de apoyo.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#4338CA",
+            icono = "devices",
+            activo = true,
+            orden = 29,
+            cantidadContenido = 40,
+            cantidadSugeridaEstudio = 10
+        ),
+        // Fin lotes adjetivos importados desde CSV
     )
 }
