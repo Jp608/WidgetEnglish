@@ -16,7 +16,7 @@ object SeedLotes {
             icono = "pets",
             activo = true,
             orden = 1,
-            cantidadContenido = 21,
+            cantidadContenido = 60,
             cantidadSugeridaEstudio = 10
         ),
 
@@ -160,5 +160,141 @@ object SeedLotes {
         ),
 
 
+
+        // Inicio lotes importados desde CSV
+        LoteEntity(
+            idLote = "lote_expresiones_cotidianas",
+            nombre = "Expresiones cotidianas",
+            descripcion = "Frases y expresiones comunes para conversaciones del dia a dia.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#8E24AA",
+            icono = "chat_bubble",
+            activo = true,
+            orden = 11,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_naturaleza_clima",
+            nombre = "Naturaleza y clima",
+            descripcion = "Vocabulario sobre naturaleza, paisaje, clima y fenomenos naturales.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#2E7D32",
+            icono = "forest",
+            activo = true,
+            orden = 12,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_profesiones",
+            nombre = "Profesiones",
+            descripcion = "Vocabulario de trabajos, ocupaciones y roles profesionales.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#0277BD",
+            icono = "work",
+            activo = true,
+            orden = 13,
+            cantidadContenido = 50,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_phrasal_regulares",
+            nombre = "Verbos frasales regulares",
+            descripcion = "Verbos frasales regulares con pasado simple y participio.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#00897B",
+            icono = "rule",
+            activo = true,
+            orden = 14,
+            cantidadContenido = 54,
+            cantidadSugeridaEstudio = 10
+        ),
+        LoteEntity(
+            idLote = "lote_phrasal_irregulares",
+            nombre = "Verbos frasales irregulares",
+            descripcion = "Verbos frasales irregulares con sus formas principales.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#C62828",
+            icono = "bolt",
+            activo = true,
+            orden = 15,
+            cantidadContenido = 55,
+            cantidadSugeridaEstudio = 10
+        ),
+        // Fin lotes importados desde CSV
+
+        // Inicio lotes derivados
+        LoteEntity(
+            idLote = "lote_ingles_supervivencia",
+            nombre = "Ingles de supervivencia",
+            descripcion = "Expresiones esenciales para resolver situaciones basicas al comunicarse.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.A1,
+            colorHex = "#1565C0",
+            icono = "support_agent",
+            activo = true,
+            orden = 16,
+            cantidadContenido = 25,
+            cantidadSugeridaEstudio = 8
+        ),
+        LoteEntity(
+            idLote = "lote_conversacion_a1",
+            nombre = "Conversacion A1",
+            descripcion = "Preguntas, respuestas y frases cortas para primeras conversaciones.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.A1,
+            colorHex = "#6A1B9A",
+            icono = "forum",
+            activo = true,
+            orden = 17,
+            cantidadContenido = 22,
+            cantidadSugeridaEstudio = 8
+        ),
+        LoteEntity(
+            idLote = "lote_clima_basico",
+            nombre = "Clima basico",
+            descripcion = "Vocabulario frecuente para hablar del tiempo y fenomenos del clima.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.A1,
+            colorHex = "#00838F",
+            icono = "wb_sunny",
+            activo = true,
+            orden = 18,
+            cantidadContenido = 22,
+            cantidadSugeridaEstudio = 8
+        ),
+        LoteEntity(
+            idLote = "lote_profesiones_servicio",
+            nombre = "Profesiones de servicio",
+            descripcion = "Trabajos de atencion, ayuda, servicios practicos y oficios cotidianos.",
+            tipoLote = TipoLote.TEMATICO,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#EF6C00",
+            icono = "handyman",
+            activo = true,
+            orden = 19,
+            cantidadContenido = 20,
+            cantidadSugeridaEstudio = 8
+        ),
+        LoteEntity(
+            idLote = "lote_phrasal_esenciales",
+            nombre = "Phrasal verbs esenciales",
+            descripcion = "Seleccion de verbos frasales comunes para comunicacion diaria.",
+            tipoLote = TipoLote.VERBOS,
+            nivel = NivelLote.GENERAL,
+            colorHex = "#AD1457",
+            icono = "stars",
+            activo = true,
+            orden = 20,
+            cantidadContenido = 30,
+            cantidadSugeridaEstudio = 10
+        ),
+        // Fin lotes derivados
     )
 }

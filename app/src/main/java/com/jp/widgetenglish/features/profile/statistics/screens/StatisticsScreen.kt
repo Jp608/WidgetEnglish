@@ -43,6 +43,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.common.AppBottomBar
@@ -203,8 +207,14 @@ fun StatisticsScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         LotsProgressCard(
-                            lotesCompletados = state.lotesCompletados,
                             porcentajeProgreso = state.porcentajeProgreso,
+                            lotes = state.progresoLotes
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        CompletedLotsCard(
+                            lotesCompletados = state.lotesCompletados,
                             lotes = state.progresoLotes
                         )
 
@@ -757,7 +767,6 @@ private fun LearningStatusRow(
 
 @Composable
 private fun LotsProgressCard(
-    lotesCompletados: Int,
     porcentajeProgreso: Int,
     lotes: List<StatisticsLotProgressItem>
 ) {
@@ -804,15 +813,6 @@ private fun LotsProgressCard(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Lotes completados: $lotesCompletados",
-                color = TextMuted,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }
@@ -873,6 +873,252 @@ private fun LotProgressRow(
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+@Composable
+private fun CompletedLotsCard(
+    lotesCompletados: Int,
+    lotes: List<StatisticsLotProgressItem>
+) {
+    var expanded by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val lotesTerminados = lotes
+        .filter(::isCompletedLot)
+        .sortedBy { it.nombre }
+
+    val totalCompletados = maxOf(
+        lotesCompletados,
+        lotesTerminados.size
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .clickable {
+                        expanded = !expanded
+                    }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    color = SoftGreen
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.EmojiEvents,
+                            contentDescription = null,
+                            tint = Green,
+                            modifier = Modifier.size(25.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Lotes completados",
+                        color = TextDark,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = if (expanded) {
+                            "Toca para ocultar el detalle"
+                        } else {
+                            "Toca para ver el detalle"
+                        },
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = SoftGreen
+                ) {
+                    Text(
+                        text = totalCompletados.toString(),
+                        color = Green,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    modifier = Modifier.size(34.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFF3F4F6)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (expanded) "-" else "+",
+                            color = Green,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                when {
+                    totalCompletados == 0 -> {
+                        EmptyCompletedLotsMessage(
+                            text = "Aun no hay lotes completados. Completa todas las palabras de un lote para verlo aqui."
+                        )
+                    }
+
+                    lotesTerminados.isEmpty() -> {
+                        EmptyCompletedLotsMessage(
+                            text = "Hay lotes completados, pero el detalle aun no esta disponible en este dispositivo."
+                        )
+                    }
+
+                    else -> {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            lotesTerminados.forEach { lote ->
+                                CompletedLotRow(lote = lote)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyCompletedLotsMessage(
+    text: String
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFF8FAFC)
+    ) {
+        Text(
+            text = text,
+            color = TextMuted,
+            fontSize = 13.sp,
+            lineHeight = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp)
+        )
+    }
+}
+
+@Composable
+private fun CompletedLotRow(
+    lote: StatisticsLotProgressItem
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = SoftGreen.copy(alpha = 0.55f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(13.dp),
+                color = Color.White
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.School,
+                        contentDescription = null,
+                        tint = Green,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(11.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = lote.nombre,
+                    color = TextDark,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Text(
+                    text = "${lote.aprendidas} / ${lote.total} aprendidas",
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Text(
+                text = "100%",
+                color = Green,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
+
+private fun isCompletedLot(
+    lote: StatisticsLotProgressItem
+): Boolean {
+    return lote.porcentaje >= 100 ||
+            (
+                    lote.total > 0 &&
+                            lote.aprendidas >= lote.total
+                    )
 }
 
 @Composable

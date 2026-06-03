@@ -533,6 +533,8 @@ private fun SummaryCard(
     verbos: Int,
     lotes: Int
 ) {
+    val totalContenido = palabras + verbos
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -550,6 +552,60 @@ private fun SummaryCard(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFF8FAFC))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0xFFE0F2FE), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "T",
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 19.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Contenido total",
+                        color = MutedText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = "Palabras + verbos",
+                        color = DarkText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = totalContenido.toString(),
+                    color = DarkText,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
 
             Spacer(modifier = Modifier.height(18.dp))
 

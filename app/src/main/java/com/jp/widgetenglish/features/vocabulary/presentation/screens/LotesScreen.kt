@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -20,8 +21,8 @@ import com.jp.widgetenglish.features.common.AppBottomBar
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModel
 
 private val BackgroundColor = Color(0xFFF8FAFC)
+private val HeaderBlue = Color(0xFF0B63F6)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LotesScreen(
     viewModel: LotesViewModel,
@@ -69,23 +70,7 @@ fun LotesScreen(
     Scaffold(
         containerColor = BackgroundColor,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Lotes de Vocabulario",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF111827)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
-            )
+            LotesHeader(onBackClick = onBackClick)
         },
         bottomBar = {
             AppBottomBar(
@@ -137,6 +122,57 @@ fun LotesScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LotesHeader(
+    onBackClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(HeaderBlue)
+            .statusBarsPadding()
+            .height(72.dp)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(
+            onClick = onBackClick,
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Volver",
+                tint = Color.White,
+                modifier = Modifier.size(29.dp)
+            )
+        }
+
+        Text(
+            text = "Lotes de Vocabulario",
+            color = Color.White,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(42.dp),
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White.copy(alpha = 0.16f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.Book,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(27.dp)
+                )
             }
         }
     }
