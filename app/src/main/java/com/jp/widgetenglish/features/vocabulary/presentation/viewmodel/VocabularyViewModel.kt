@@ -176,8 +176,7 @@ class VocabularyViewModel(
                             item.estado == EstadoAprendizaje.NO_VISTA
 
                         VocabularioFiltro.EN_PROGRESO ->
-                            item.estado == EstadoAprendizaje.EN_PROGRESO ||
-                                    item.estado == EstadoAprendizaje.DIFICIL
+                            item.estado == EstadoAprendizaje.EN_PROGRESO
 
                         VocabularioFiltro.APRENDIDAS ->
                             item.estado == EstadoAprendizaje.APRENDIDA
@@ -193,8 +192,7 @@ class VocabularyViewModel(
                 }
 
                 val enProgreso = listaCompleta.count {
-                    it.estado == EstadoAprendizaje.EN_PROGRESO ||
-                            it.estado == EstadoAprendizaje.DIFICIL
+                    it.estado == EstadoAprendizaje.EN_PROGRESO
                 }
 
                 val aprendidas = listaCompleta.count {
