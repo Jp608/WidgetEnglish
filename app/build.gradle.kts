@@ -16,6 +16,18 @@ val releaseSigningProperties = Properties().apply {
 }
 val hasReleaseSigning = releaseSigningFile.exists()
 
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+val groqApiKey = localProperties.getProperty("GROQ_API_KEY", "")
+
+fun String.asBuildConfigString(): String {
+    return "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+}
+
 android {
     namespace = "com.jp.widgetenglish"
 
@@ -33,6 +45,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GROQ_API_KEY", groqApiKey.asBuildConfigString())
     }
 
     signingConfigs {
@@ -68,6 +81,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -20,10 +20,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Layers
@@ -530,12 +530,12 @@ fun ProfileScreen(
                 )
 
                 ProfileOption(
-                    icon = Icons.Filled.Help,
+                    icon = Icons.AutoMirrored.Filled.Help,
                     label = "Ayuda y soporte",
                     subtitle = "Preguntas frecuentes y contacto",
                     iconColor = PrimaryBlue
                 ) {
-                    unavailableOptionTitle = "Ayuda y soporte"
+                    navegar(Screen.HelpSupport.route)
                 }
 
                 Spacer(modifier = Modifier.height(22.dp))

@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.jp.widgetenglish.BuildConfig
 import com.jp.widgetenglish.data.local.database.DatabaseProvider
 import com.jp.widgetenglish.data.local.entity.RolUsuario
 import com.jp.widgetenglish.data.remote.firestore.AdminFirestoreDataSource
@@ -38,6 +39,8 @@ import com.jp.widgetenglish.features.home.presentation.screens.HomeScreen
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModelFactory
 import com.jp.widgetenglish.features.profile.ProfileScreen
+import com.jp.widgetenglish.features.profile.support.HelpSupportDetailScreen
+import com.jp.widgetenglish.features.profile.support.HelpSupportScreen
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModel
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileViewModelFactory
 import com.jp.widgetenglish.features.vocabulary.presentation.screens.LoteDetailScreen
@@ -176,7 +179,7 @@ fun AppNavGraph() {
         )
     )
 
-    val groqAiClient = GroqAiClient(apiKey = "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")
+    val groqAiClient = GroqAiClient(apiKey = BuildConfig.GROQ_API_KEY)
     val chatRepository = ChatRepositoryImpl(
         chatDao = database.chatDao(),
         aiClient = groqAiClient
@@ -762,6 +765,59 @@ fun AppNavGraph() {
                     aiClient = groqAiClient
                 )
             }
+        }
+
+        composable(Screen.HelpSupport.route) {
+            HelpSupportScreen(
+                onBack = { navController.popBackStack() },
+                onTopicClick = { topicId ->
+                    navController.navigate(Screen.HelpSupportDetail.createRoute(topicId))
+                },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
+        }
+
+        composable(Screen.HelpSupportDetail.route) { backStackEntry ->
+            val topicId = backStackEntry.arguments?.getString("topicId") ?: "faq"
+            HelpSupportDetailScreen(
+                topicId = topicId,
+                onBack = { navController.popBackStack() },
+                onInicioClick = {
+                    navegar(Screen.Home.route)
+                },
+                onVocabularioClick = {
+                    navegar(Screen.Vocabulario.route)
+                },
+                onLotesClick = {
+                    navegar(Screen.Lotes.route)
+                },
+                onEstudioClick = {
+                    navegar(Screen.Estudio.route)
+                },
+                onIaClick = {
+                    navegar(Screen.Ia.route)
+                },
+                onPerfilClick = {
+                    navegar(Screen.Profile.route)
+                }
+            )
         }
 
         composable(Screen.Statistics.route) {

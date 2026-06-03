@@ -14,6 +14,17 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     fun observarMensajesPorSesion(sessionId: String): Flow<List<ChatMessageEntity>>
 
+    @Query("""
+        SELECT * FROM (
+            SELECT * FROM chat_messages
+            WHERE sessionId = :sessionId
+            ORDER BY timestamp DESC, id DESC
+            LIMIT :limit
+        )
+        ORDER BY timestamp ASC, id ASC
+    """)
+    suspend fun obtenerMensajesRecientes(sessionId: String, limit: Int = 16): List<ChatMessageEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarSesion(sesion: ChatSessionEntity)
 

@@ -36,25 +36,31 @@ class ChatRepositoryImpl(
     }
 
     override suspend fun enviarMensaje(sessionId: String, contenido: String): String {
-        // 1. Guardar mensaje del usuario
-        val userMsg = ChatMessageEntity(sessionId = sessionId, role = "user", content = contenido)
+        val userMsg = ChatMessageEntity(
+            sessionId = sessionId,
+            role = "user",
+            content = contenido.trim()
+        )
         chatDao.insertarMensaje(userMsg)
 
-        // 2. Obtener historial para la IA
-        // Nota: En un repo real usaríamos un flow convertido a lista o una query directa
-        // Para simplificar esta versión, obtenemos los mensajes actuales
-        val history = mutableListOf<GroqMessage>()
-        // Aquí deberíamos obtener los mensajes previos de la DB, por ahora simulamos con el nuevo
-        history.add(GroqMessage(role = "user", content = contenido))
+        val history = chatDao.obtenerMensajesRecientes(sessionId)
+            .filter { it.role == "user" || it.role == "assistant" }
+            .map { message ->
+                GroqMessage(
+                    role = message.role,
+                    content = message.content
+                )
+            }
 
-        // 3. Consultar a la IA
         val aiResponse = aiClient.enviarChat(history)
 
-        // 4. Guardar respuesta de la IA
-        val aiMsg = ChatMessageEntity(sessionId = sessionId, role = "assistant", content = aiResponse)
+        val aiMsg = ChatMessageEntity(
+            sessionId = sessionId,
+            role = "assistant",
+            content = aiResponse
+        )
         chatDao.insertarMensaje(aiMsg)
 
-        // 5. Actualizar última interacción y generar resumen si es necesario
         val sesion = chatDao.obtenerSesionPorId(sessionId)
         sesion?.let {
             val updatedSesion = it.copy(
