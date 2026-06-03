@@ -58,6 +58,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.common.AppBottomBar
+import com.jp.widgetenglish.features.common.UserHeaderBlue
+import com.jp.widgetenglish.features.common.UserHeaderSystemBars
 import com.jp.widgetenglish.features.profile.statistics.model.StatisticsLotProgressItem
 import com.jp.widgetenglish.features.profile.statistics.model.StatisticsPeriod
 import com.jp.widgetenglish.features.profile.statistics.viewmodel.StatisticsViewModel
@@ -95,6 +97,8 @@ fun StatisticsScreen(
     onPerfilClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    UserHeaderSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarEstadisticas()
@@ -241,9 +245,9 @@ private fun StatisticsHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(StrongBlue)
+            .background(UserHeaderBlue)
             .statusBarsPadding()
-            .height(72.dp)
+            .height(56.dp)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -255,14 +259,14 @@ private fun StatisticsHeader(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Volver",
                 tint = Color.White,
-                modifier = Modifier.size(29.dp)
+                modifier = Modifier.size(27.dp)
             )
         }
 
         Text(
             text = "Estadísticas",
             color = Color.White,
-            fontSize = 24.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold
         )
 

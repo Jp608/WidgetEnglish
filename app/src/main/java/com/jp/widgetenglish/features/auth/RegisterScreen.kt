@@ -91,6 +91,13 @@ fun RegisterScreen(
                         onValueChange = { viewModel.actualizarNombre(it) },
                         label = { Text("Nombre completo") },
                         leadingIcon = { Icon(Icons.Filled.Person, null, tint = Color(0xFF1565C0)) },
+                        trailingIcon = {
+                            AuthCharacterCounter(
+                                currentLength = uiState.nombre.length,
+                                maxLength = AuthInputLimits.NAME,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
@@ -103,6 +110,13 @@ fun RegisterScreen(
                         onValueChange = { viewModel.actualizarCorreo(it) },
                         label = { Text("Correo electrónico") },
                         leadingIcon = { Icon(Icons.Filled.Email, null, tint = Color(0xFF1565C0)) },
+                        trailingIcon = {
+                            AuthCharacterCounter(
+                                currentLength = uiState.correo.length,
+                                maxLength = AuthInputLimits.EMAIL,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -117,11 +131,17 @@ fun RegisterScreen(
                         label = { Text("Contraseña") },
                         leadingIcon = { Icon(Icons.Filled.Lock, null, tint = Color(0xFF1565C0)) },
                         trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = null, tint = Color(0xFF1565C0)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AuthCharacterCounter(
+                                    currentLength = uiState.password.length,
+                                    maxLength = AuthInputLimits.PASSWORD
                                 )
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                        contentDescription = null, tint = Color(0xFF1565C0)
+                                    )
+                                }
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -139,11 +159,17 @@ fun RegisterScreen(
                         label = { Text("Confirmar contraseña") },
                         leadingIcon = { Icon(Icons.Filled.LockOpen, null, tint = Color(0xFF1565C0)) },
                         trailingIcon = {
-                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                                Icon(
-                                    imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = null, tint = Color(0xFF1565C0)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AuthCharacterCounter(
+                                    currentLength = uiState.confirmPassword.length,
+                                    maxLength = AuthInputLimits.PASSWORD
                                 )
+                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                        contentDescription = null, tint = Color(0xFF1565C0)
+                                    )
+                                }
                             }
                         },
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.widgetenglish.features.common.LightUserSystemBars
 import com.jp.widgetenglish.features.common.firstDisplayNameOrBlank
 import com.jp.widgetenglish.features.home.presentation.viewmodel.HomeViewModel
 
@@ -76,6 +77,8 @@ fun HomeScreen(
     onPerfilClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LightUserSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarHome()

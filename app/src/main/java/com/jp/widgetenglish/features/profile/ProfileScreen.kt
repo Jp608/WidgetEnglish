@@ -85,6 +85,7 @@ import com.jp.widgetenglish.data.local.datastore.WidgetTextSizeOption
 import com.jp.widgetenglish.data.local.datastore.WidgetVisualStyle
 import com.jp.widgetenglish.features.auth.TermsAndConditionsInfoDialog
 import com.jp.widgetenglish.features.common.AppBottomBar
+import com.jp.widgetenglish.features.common.LightUserSystemBars
 import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MAX_LENGTH
 import com.jp.widgetenglish.features.common.USER_DISPLAY_NAME_MIN_LENGTH
 import com.jp.widgetenglish.features.profile.viewmodel.ProfileConfirmation
@@ -139,6 +140,8 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    LightUserSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarDatosUsuario()

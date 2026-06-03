@@ -18,10 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.widgetenglish.features.common.AppBottomBar
+import com.jp.widgetenglish.features.common.UserHeaderBlue
+import com.jp.widgetenglish.features.common.UserHeaderSystemBars
 import com.jp.widgetenglish.features.vocabulary.presentation.viewmodel.LotesViewModel
 
 private val BackgroundColor = Color(0xFFF8FAFC)
-private val HeaderBlue = Color(0xFF0B63F6)
 
 @Composable
 fun LotesScreen(
@@ -38,6 +39,8 @@ fun LotesScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var loteParaReiniciar by remember { mutableStateOf<String?>(null) }
+
+    UserHeaderSystemBars()
 
     LaunchedEffect(Unit) {
         viewModel.cargarLotes()
@@ -134,9 +137,9 @@ private fun LotesHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(HeaderBlue)
+            .background(UserHeaderBlue)
             .statusBarsPadding()
-            .height(72.dp)
+            .height(56.dp)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -148,14 +151,14 @@ private fun LotesHeader(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Volver",
                 tint = Color.White,
-                modifier = Modifier.size(29.dp)
+                modifier = Modifier.size(27.dp)
             )
         }
 
         Text(
             text = "Lotes de Vocabulario",
             color = Color.White,
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold
         )
 

@@ -270,7 +270,10 @@ class LotesViewModel(
                             fonetica = verbo.fonetica,
                             estado = progreso?.estadoAprendizaje ?: EstadoAprendizaje.NO_VISTA,
                             esVerbo = true,
-                            tipoPalabra = TipoPalabra.VERBO
+                            tipoPalabra = TipoPalabra.VERBO,
+                            pasadoSimple = verbo.pasadoSimple,
+                            participioPasado = verbo.participioPasado,
+                            esIrregular = verbo.esIrregular
                         )
                     } else {
                         val palabra = vocabularioRepository.obtenerPalabraPorId(

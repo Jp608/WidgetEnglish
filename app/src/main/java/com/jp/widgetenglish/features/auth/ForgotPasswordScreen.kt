@@ -24,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jp.widgetenglish.features.auth.AuthCharacterCounter
+import com.jp.widgetenglish.features.auth.AuthInputLimits
+import com.jp.widgetenglish.features.auth.limitTo
 import com.jp.widgetenglish.features.auth.viewmodel.AuthViewModel
 
 @Composable
@@ -129,8 +132,9 @@ fun ForgotPasswordScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
-                                email = it
-                                viewModel.actualizarCorreo(it)
+                                val limitedEmail = it.limitTo(AuthInputLimits.EMAIL)
+                                email = limitedEmail
+                                viewModel.actualizarCorreo(limitedEmail)
                             },
                             label = { Text("Correo electrónico") },
                             leadingIcon = {
@@ -138,6 +142,13 @@ fun ForgotPasswordScreen(
                                     imageVector = Icons.Filled.Email,
                                     contentDescription = null,
                                     tint = Color(0xFF1565C0)
+                                )
+                            },
+                            trailingIcon = {
+                                AuthCharacterCounter(
+                                    currentLength = email.length,
+                                    maxLength = AuthInputLimits.EMAIL,
+                                    modifier = Modifier.padding(end = 12.dp)
                                 )
                             },
                             keyboardOptions = KeyboardOptions(

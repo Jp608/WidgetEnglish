@@ -21,6 +21,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.jp.widgetenglish.features.auth.AuthCharacterCounter
+import com.jp.widgetenglish.features.auth.AuthInputLimits
+import com.jp.widgetenglish.features.auth.limitTo
 import com.widgetenglish.app.ui.Screen
 
 @Composable
@@ -115,11 +118,18 @@ fun VerifyResetCodeScreen(navController: NavController) {
 
                     OutlinedTextField(
                         value = code,
-                        onValueChange = { if (it.length <= 6) code = it },
+                        onValueChange = { code = it.limitTo(AuthInputLimits.RESET_CODE) },
                         label = { Text("Código de 6 dígitos") },
                         leadingIcon = {
                             Icon(Icons.Filled.Password, contentDescription = null,
                                 tint = Color(0xFF1565C0))
+                        },
+                        trailingIcon = {
+                            AuthCharacterCounter(
+                                currentLength = code.length,
+                                maxLength = AuthInputLimits.RESET_CODE,
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
